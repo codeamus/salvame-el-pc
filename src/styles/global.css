@@ -258,6 +258,55 @@
     }
   }
 
+  /* ── Velo sobre las fotos de la portada ────────────────────────────────
+   * Las fotos van desaturadas y con un velo suave de tinta; al pasar el
+   * cursor por la card recuperan color y brillo.
+   *
+   * Por qué desaturar en vez de teñir con un color: las fotos de producto
+   * vienen de fuentes distintas y cada una trae su propia dominante (el
+   * verde de los PCB de las RAM, el azul de los LED). Cualquier tinte de
+   * color las deja desparejas —además de que teñir de coral las volvía un
+   * cuarto oscuro—. Sin saturación, las catorce fotos comparten tratamiento
+   * y el coral queda como el único color de la página, que es justamente el
+   * rol que tiene en esta paleta.
+   *
+   * El velo de tinta encima (bajo, 22 %) es lo que hace perceptible el
+   * hover: al levantarse, la foto no solo recupera el color sino también el
+   * brillo. Con la desaturación sola el cambio se sentía tímido.
+   *
+   * Todo dentro de `hover: hover`: en una pantalla táctil no existe el
+   * hover, así que no habría manera de quitar el velo y las fotos de
+   * producto quedarían apagadas para siempre.
+   */
+  @media (hover: hover) {
+    .photo-veiled img {
+      filter: grayscale(1) contrast(1.04);
+      transition: filter 0.3s ease;
+    }
+
+    .photo-veil {
+      position: absolute;
+      inset: 0;
+      background: var(--color-ink);
+      opacity: 0.22;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    /* Dos formas a propósito: en las cards el contenedor de la foto es un
+     * descendiente del .group, pero en los tiles del bento el <a> es a la vez
+     * el .group y el contenedor. Con solo el combinador de descendiente, los
+     * tiles se quedaban en gris al pasar el cursor. */
+    .group:hover .photo-veiled img,
+    .group:hover.photo-veiled img {
+      filter: none;
+    }
+
+    .group:hover .photo-veil {
+      opacity: 0;
+    }
+  }
+
   /* Hover de cards: levanta y deja sombra dura. */
   .hover-lift-coral {
     transition:

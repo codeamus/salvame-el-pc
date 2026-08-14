@@ -9,9 +9,11 @@ interface Props {
   eager?: boolean;
   /** Ver nota en ProductPhoto: apagar si el producto ya apareció en la página. */
   vt?: boolean;
+  /** Velo coral sobre la foto, que se levanta al pasar el cursor por la card. */
+  veil?: boolean;
 }
 
-const { product, eager = false, vt = true } = Astro.props;
+const { product, eager = false, vt = true, veil = false } = Astro.props;
 const { slug, name, brand, priceCLP, compareAtPriceCLP } = product;
 
 const discount = getDiscountPercent(product);
@@ -35,8 +37,14 @@ const cartPayload = JSON.stringify({
   ese pseudo-elemento se posiciona contra el ancestro posicionado más cercano.
 */
 }
-<article class="hover-lift-coral relative flex flex-col border border-ink bg-cream">
-  <ProductPhoto product={product} eager={eager} vt={vt} class="aspect-4/3 border-b border-ink">
+<article class="group hover-lift-coral relative flex flex-col border border-ink bg-cream">
+  <ProductPhoto
+    product={product}
+    eager={eager}
+    vt={vt}
+    veil={veil}
+    class="aspect-4/3 border-b border-ink"
+  >
     {
       discount !== null && (
         <span class="absolute top-2.5 left-2.5 border border-ink bg-coral px-2 py-0.5 font-mono text-[11px] font-bold">

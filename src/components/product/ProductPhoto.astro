@@ -15,9 +15,14 @@ interface Props {
   vt?: boolean;
   /** Vacío = decorativa (el nombre del producto ya está al lado en la card). */
   alt?: string;
+  /**
+   * Velo coral que se levanta al pasar el cursor por la card. Requiere que
+   * algún ancestro tenga la clase `group`, que es quien detecta el hover.
+   */
+  veil?: boolean;
 }
 
-const { product, class: className, eager = false, vt = true, alt = "" } = Astro.props;
+const { product, class: className, eager = false, vt = true, alt = "", veil = false } = Astro.props;
 ---
 
 {
@@ -25,7 +30,11 @@ const { product, class: className, eager = false, vt = true, alt = "" } = Astro.
     rayado con caption mono — comportamiento definido en el handoff. */
 }
 <div
-  class={cn("stripes relative flex items-center justify-center overflow-hidden", className)}
+  class={cn(
+    "stripes relative flex items-center justify-center overflow-hidden",
+    veil && "photo-veiled",
+    className,
+  )}
   style={vt ? { viewTransitionName: productViewTransitionName(product) } : undefined}
 >
   <span class="px-2 text-center font-mono text-[11px] text-faint" aria-hidden="true">
@@ -39,5 +48,10 @@ const { product, class: className, eager = false, vt = true, alt = "" } = Astro.
     data-photo-fallback
     class="absolute inset-0 h-full w-full object-cover"
   />
+  {
+    /* Va después de la foto y antes del slot: tiñe la imagen, pero los badges
+      que llegan por slot se pintan encima y quedan sin teñir. */
+  }
+  {veil && <span class="photo-veil" aria-hidden="true" />}
   <slot />
 </div>

@@ -96,6 +96,30 @@ test.describe("Navegación del sitio", () => {
     await expect(page.getByRole("link", { name: "GPU GeForce RTX 4060 8GB" })).toBeHidden();
   });
 
+  test("el velo de las fotos se levanta al pasar el cursor", async ({ page }) => {
+    await page.goto("/");
+
+    const conCursor = await page.evaluate(() => matchMedia("(hover: hover)").matches);
+    const tile = page.locator('a[href*="cat=RAM"]');
+    const filtro = () => tile.locator("img").evaluate((n) => getComputedStyle(n).filter);
+
+    if (!conCursor) {
+      // En táctil no hay hover, así que el velo no se aplica nunca: las fotos
+      // de producto tienen que verse a color desde el principio.
+      expect(await filtro()).toBe("none");
+      return;
+    }
+
+    expect(await filtro()).toContain("grayscale");
+
+    await tile.hover();
+
+    // En los tiles del bento, el .group y el contenedor de la foto son el
+    // mismo elemento; con un selector de descendiente solo, la foto se
+    // quedaba en gris al pasar el cursor.
+    await expect.poll(filtro).toBe("none");
+  });
+
   test("una URL inexistente muestra la página 404", async ({ page }) => {
     const response = await page.goto("/producto-que-no-existe");
 

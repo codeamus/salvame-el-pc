@@ -82,7 +82,7 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
     <article
       class="group relative col-span-2 row-span-2 flex flex-col overflow-hidden border-r border-ink"
     >
-      <ProductPhoto product={heroProduct} eager class="flex-1">
+      <ProductPhoto product={heroProduct} eager veil class="flex-1">
         <span
           class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px] text-coral uppercase"
         >
@@ -109,7 +109,7 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
       categoryTiles.map((tile) => (
         <a
           href={`/tienda?cat=${encodeURIComponent(tile.category)}`}
-          class="group stripes relative overflow-hidden border-r border-b border-ink no-underline"
+          class="group stripes photo-veiled relative overflow-hidden border-r border-b border-ink no-underline"
         >
           {tile.product && (
             /* El nombre va en la <img> y no en el <a>: así lo que vuela es
@@ -129,6 +129,9 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
               class="absolute inset-0 h-full w-full object-cover"
             />
           )}
+          {/* El velo va justo sobre la foto: el chip y la barra inferior se
+              pintan después y quedan sin teñir. */}
+          <span class="photo-veil" aria-hidden="true" />
           <span class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px]">
             {tile.count}
           </span>
@@ -188,7 +191,7 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
       </a>
     </div>
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-      {featured.map((product) => <ProductCard product={product} vt={claimVt(product.id)} />)}
+      {featured.map((product) => <ProductCard product={product} veil vt={claimVt(product.id)} />)}
     </div>
   </section>
 
@@ -201,7 +204,7 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
       <span class="font-mono text-[13px]">hasta agotar stock</span>
     </div>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
-      {offers.map((product) => <OfferCard product={product} vt={claimVt(product.id)} />)}
+      {offers.map((product) => <OfferCard product={product} veil vt={claimVt(product.id)} />)}
     </div>
   </section>
 

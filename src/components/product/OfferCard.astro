@@ -11,14 +11,21 @@ interface Props {
   product: Product;
   /** Ver nota en ProductPhoto: apagar si el producto ya apareció en la página. */
   vt?: boolean;
+  /** Velo coral sobre la foto, que se levanta al pasar el cursor por la card. */
+  veil?: boolean;
 }
 
-const { product, vt = true } = Astro.props;
+const { product, vt = true, veil = false } = Astro.props;
 const discount = getDiscountPercent(product);
 ---
 
-<article class="hover-lift-ink relative flex border border-ink bg-cream">
-  <ProductPhoto product={product} vt={vt} class="w-[42%] shrink-0 border-r border-ink" />
+<article class="group hover-lift-ink relative flex border border-ink bg-cream">
+  <ProductPhoto
+    product={product}
+    vt={vt}
+    veil={veil}
+    class="w-[42%] shrink-0 border-r border-ink"
+  />
 
   <div class="flex flex-1 flex-col gap-1 p-4">
     {
