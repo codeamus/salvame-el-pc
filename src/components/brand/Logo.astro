@@ -1,0 +1,128 @@
+---
+import { cn } from "@/lib/cn";
+
+/**
+ * Logo de la marca: monitor con un chip que late adentro (opción 2a del
+ * set de marca, en brand/logo-opcion-2.png).
+ *
+ * El ícono es SVG inline y no una imagen: escala sin perder nitidez, pesa
+ * menos que un PNG y —lo importante— toma el color del texto que lo
+ * rodea, así que la misma pieza sirve sobre crema (header) y sobre tinta
+ * (footer) sin necesidad de una segunda versión.
+ *
+ * El wordmark va como texto HTML al lado y no dentro del SVG: se puede
+ * seleccionar, se lee bien en un lector de pantalla y no depende de que
+ * la fuente esté convertida a trazos.
+ */
+
+interface Props {
+  /** "full" = ícono + wordmark. "mark" = solo el ícono (mobile, espacios chicos). */
+  variant?: "full" | "mark";
+  /** Alto del ícono en px. El wordmark escala en proporción. */
+  size?: number;
+  /** Título accesible. null si es decorativo (ya hay un nombre accesible al lado). */
+  title?: string | null;
+  class?: string;
+}
+
+const { variant = "full", size = 36, title = "Sálvame el PC", class: className } = Astro.props;
+
+const isDecorative = title === null;
+// Id único por instancia: dos logos en la misma página no deben colisionar
+// en el aria-labelledby.
+const titleId = `logo-title-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<span class={cn("inline-flex items-center gap-2.5", className)}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 48 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    role={isDecorative ? "presentation" : "img"}
+    aria-hidden={isDecorative ? "true" : undefined}
+    aria-labelledby={isDecorative ? undefined : titleId}
+    class="shrink-0"
+  >
+    {!isDecorative && <title id={titleId}>{title}</title>}
+
+    {/* Monitor: trazo grueso, flat, sin gradientes ni sombras. */}
+    <rect x="3" y="5" width="42" height="30" rx="3.5" stroke="currentColor" stroke-width="3"></rect>
+
+    {/* Línea que separa la pantalla del mentón del monitor */}
+    <path d="M3 29.5h42" stroke="currentColor" stroke-width="2.5"></path>
+
+    {/* Pie: dos patas en diagonal y la base */}
+    <path
+      d="M19 35l-3 6M29 35l3 6M14 42h20"
+      stroke="currentColor"
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-linejoin="round"></path>
+
+    {
+      /*
+      Patas del chip. El conjunto chip + patas va centrado en el área de
+      pantalla (entre el borde superior y la línea del mentón) dejando aire
+      a ambos lados: si las patas rozan el marco, a 34 px en el header el
+      ícono se empasta y deja de leerse como un chip.
+    */
+    }
+    <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M21 11.5V9M24 11.5V9M27 11.5V9"></path>
+      <path d="M21 23.5V26M24 23.5V26M27 23.5V26"></path>
+      <path d="M18 14.5h-3M18 20.5h-3"></path>
+      <path d="M30 14.5h3M30 20.5h3"></path>
+    </g>
+
+    {/* Cuerpo del chip */}
+    <rect
+      x="18"
+      y="11.5"
+      width="12"
+      height="12"
+      rx="2"
+      fill="var(--color-coral)"
+      stroke="currentColor"
+      stroke-width="2"></rect>
+
+    {
+      /*
+      El pulso atraviesa la pantalla de lado a lado y se invierte al entrar
+      al chip: coral sobre el fondo, crema sobre el coral del chip. Es el
+      gesto de la marca — el hardware con signos vitales.
+    */
+    }
+    <path
+      d="M6 17.5h12M30 17.5h12"
+      stroke="var(--color-coral)"
+      stroke-width="2.5"
+      stroke-linecap="round"></path>
+    <path
+      d="M18 17.5h2l1.5-4 2 8 1.5-6 1.5 2h3"
+      stroke="var(--color-cream)"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"></path>
+  </svg>
+
+  {
+    /*
+      El wordmark se escribe acá y no sale de SITE.name: es parte del logo,
+      con su corte de color fijo ("el PC" en coral). Si mañana cambia el
+      nombre comercial, el logo es una pieza de diseño que se rehace, no un
+      string que se interpola.
+    */
+  }
+  {
+    variant === "full" && (
+      <span
+        class="font-(family-name:--font-logo) leading-none font-bold tracking-[-.01em]"
+        style={{ fontSize: `${String(Math.round(size * 0.5))}px` }}
+      >
+        Sálvame <span class="text-coral">el PC</span>
+      </span>
+    )
+  }
+</span>

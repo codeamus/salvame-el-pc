@@ -1,16 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <rect width="48" height="48" rx="9" fill="#F6F1E7"/>
-  <g fill="none">
-    <rect x="4" y="5" width="40" height="30" rx="4" stroke="#1E1B18" stroke-width="3"/>
-    <path d="M5 29h38" stroke="#1E1B18" stroke-width="3"/>
-    <path d="M17 43h14M20 35l-3 8M28 35l3 8" stroke="#1E1B18" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="17" y="12" width="14" height="12" rx="2" stroke="#1E1B18" stroke-width="2.5"/>
-    <g stroke="#1E1B18" stroke-width="2" stroke-linecap="round">
-      <path d="M21 12V9M24 12V9M27 12V9"/>
-      <path d="M21 24v3M24 24v3M27 24v3"/>
-      <path d="M17 15h-3M17 21h-3"/>
-      <path d="M31 15h3M31 21h3"/>
-    </g>
-    <path d="M9 18h10l2.5-5 3 11 2.5-6h12" stroke="#FF5A48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!--
+    Versión oscura de la marca (la que muestra la tarjeta de identidad): el
+    monitor en crema sobre el cuadro tinta, con el chip coral latiendo. El
+    fondo sólido lo separa del chrome del navegador mucho mejor que la
+    versión sobre crema.
+
+    Dos diferencias deliberadas con el logo del sitio, por tamaño:
+      · Sin las patas del chip. A 16 px se empastan contra el marco y el
+        ícono se vuelve un borrón; el chip solo, más grande, se reconoce.
+      · Trazos más gruesos, por lo mismo.
+    El logo completo con patas vive en src/components/brand/Logo.astro.
+  -->
+  <rect width="48" height="48" rx="9" fill="#1E1B18"/>
+  <g transform="translate(24 24) scale(.82) translate(-24 -24)" fill="none">
+    <rect x="3" y="5" width="42" height="30" rx="3.5" stroke="#F6F1E7" stroke-width="3.5"/>
+    <path d="M3 29.5h42" stroke="#F6F1E7" stroke-width="3"/>
+    <path d="M19 35l-3 6M29 35l3 6M14 42h20" stroke="#F6F1E7" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="17" y="10.5" width="14" height="14" rx="2.5" fill="#FF5A48" stroke="#F6F1E7" stroke-width="2.6"/>
+    <path d="M6 17.5h11M31 17.5h11" stroke="#FF5A48" stroke-width="3" stroke-linecap="round"/>
+    <path d="M17 17.5h2.5l1.5-4.5 2.5 9.5 1.5-7 1.5 2h4" stroke="#F6F1E7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>

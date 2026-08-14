@@ -1,6 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 4321;
+/**
+ * Puerto propio de los E2E, deliberadamente lejos del 4321 de `astro dev`.
+ *
+ * Astro arranca en 4321 y va subiendo (4322, 4323…) si está ocupado. Si los
+ * tests compartieran ese rango y alguien tuviera el dev server levantado,
+ * Playwright se conectaría al dev server en vez de al build — que es
+ * exactamente lo que esta configuración quiere evitar.
+ */
+const PORT = 4390;
 const BASE_URL = `http://localhost:${PORT}`;
 
 const isCI = Boolean(process.env.CI);
@@ -38,7 +46,13 @@ export default defineConfig({
   webServer: {
     command: `pnpm build && node scripts/serve-dist.mjs ${String(PORT)}`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // Nunca se reutiliza un server ajeno, ni en local. Reutilizarlo hacía que
+    // la suite corriera contra lo que hubiera escuchando en el puerto: con un
+    // `astro dev` levantado, los tests pasaban a medir el dev server —los
+    // islands ni siquiera hidrataban— y los fallos no tenían relación con el
+    // código. Levantar el server propio cuesta un build y elimina la clase
+    // entera de falso negativo.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });
