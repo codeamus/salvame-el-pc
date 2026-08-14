@@ -105,6 +105,13 @@
     left: 0;
   }
 
+  /* Cinta de marcas. La duración llega por variable desde la página porque
+   * depende de cuántas veces se repita el contenido: si el largo cambia y la
+   * duración no, cambia la velocidad de desplazamiento. */
+  .marquee-track {
+    animation: marquee var(--marquee-duration, 22s) linear infinite;
+  }
+
   /* Eyebrow: etiqueta mono uppercase que abre cada sección. */
   .eyebrow {
     font-family: var(--font-mono);

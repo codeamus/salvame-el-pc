@@ -19,12 +19,18 @@ const { product, vt = true, veil = false } = Astro.props;
 const discount = getDiscountPercent(product);
 ---
 
+{
+  /* La foto lleva proporción fija: sin ella la altura de la card la marcaba
+    solo el texto, y en pantallas anchas quedaba de 109 px con la foto
+    reducida a una franja. Con el aspecto atado al ancho, la card crece con
+    la pantalla en vez de aplastarse. */
+}
 <article class="group hover-lift-ink relative flex border border-ink bg-cream">
   <ProductPhoto
     product={product}
     vt={vt}
     veil={veil}
-    class="w-[42%] shrink-0 border-r border-ink"
+    class="aspect-4/3 w-[42%] shrink-0 border-r border-ink"
   />
 
   <div class="flex flex-1 flex-col gap-1 p-4">

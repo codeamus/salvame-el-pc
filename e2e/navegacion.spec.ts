@@ -120,6 +120,24 @@ test.describe("Navegación del sitio", () => {
     await expect.poll(filtro).toBe("none");
   });
 
+  test("la cinta de marcas no deja huecos al reiniciar el bucle", async ({ page }) => {
+    // El bucle son dos copias con translateX(-50%), así que una copia tiene
+    // que ser al menos tan ancha como la pantalla. Si alguien acorta la lista
+    // de marcas, vuelve a aparecer el vacío — y solo se nota mirando.
+    await page.goto("/");
+
+    const { copia, pantalla } = await page.evaluate(() => {
+      const track = document.querySelector(".marquee-track");
+      const primera = track?.firstElementChild;
+      return {
+        copia: primera ? primera.getBoundingClientRect().width : 0,
+        pantalla: window.innerWidth,
+      };
+    });
+
+    expect(copia).toBeGreaterThanOrEqual(pantalla);
+  });
+
   test("una URL inexistente muestra la página 404", async ({ page }) => {
     const response = await page.goto("/producto-que-no-existe");
 

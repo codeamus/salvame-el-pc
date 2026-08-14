@@ -56,7 +56,22 @@ const categoryTiles = CATEGORIES.map((category) => {
   };
 });
 
-const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"]).flat();
+/*
+ * Cinta de marcas.
+ *
+ * El bucle se hace con dos copias idénticas y un translateX(-50%), así que
+ * UNA copia tiene que ser más ancha que la pantalla: si no, al reiniciar
+ * queda un hueco vacío. Con 3 pares la copia medía 1.148 px y en un monitor
+ * de 1920 se veían 772 px de nada antes de que volviera a empezar.
+ *
+ * Cada par "Redragon ✱ Logitech ✱" mide ~383 px, así que 10 pares cubren
+ * ~3.800 px (hasta 4K). La duración se calcula a partir del largo para que
+ * la velocidad en píxeles por segundo siga siendo la del diseño original.
+ */
+const MARQUEE_PAIRS = 10;
+const SECONDS_PER_PAIR = 22 / 3;
+const marqueeSeconds = (MARQUEE_PAIRS * SECONDS_PER_PAIR).toFixed(1);
+const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", "Logitech"]).flat();
 ---
 
 <BaseLayout title="Inicio" description={SITE.description}>
@@ -163,7 +178,8 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
   {/* ── Marquee de marcas ────────────────────────────────────────────── */}
   <section class="overflow-hidden border-b border-ink py-5.5" aria-hidden="true">
     <div
-      class="flex w-max animate-[marquee_22s_linear_infinite] font-mono text-[26px] font-bold tracking-[.04em] whitespace-nowrap uppercase"
+      class="marquee-track flex w-max font-mono text-[26px] font-bold tracking-[.04em] whitespace-nowrap uppercase"
+      style={`--marquee-duration: ${marqueeSeconds}s`}
     >
       {
         Array.from({ length: 2 }, () => (
