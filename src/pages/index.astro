@@ -6,7 +6,7 @@ import ProductPhoto from "@/components/product/ProductPhoto.astro";
 import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
 import { SITE } from "@/config/site";
-import { CATEGORIES } from "@/types/product";
+import { CATEGORIES, productViewTransitionName } from "@/types/product";
 
 const all = await getAllProducts();
 const featured = await getFeaturedProducts();
@@ -18,26 +18,43 @@ if (!heroProduct) {
   throw new Error("Catálogo vacío: la portada necesita al menos un producto para el bento.");
 }
 
-/* Tiles de categoría: foto de un producto distinto al destacado del bento,
- * para que la misma imagen no aparezca dos veces en la grilla. */
-const categoryTiles = CATEGORIES.map((category) => {
-  const inCategory = all.filter((p) => p.category === category);
-  return {
-    category,
-    count: `${String(inCategory.length).padStart(2, "0")} productos`,
-    photo: (inCategory.find((p) => p.photo !== heroProduct.photo) ?? inCategory[0])?.photo,
-  };
-});
-
-/* Un mismo producto puede estar en el bento, en destacados y en ofertas.
- * El view-transition-name debe ser único por página: lo lleva solo la
- * primera aparición, las siguientes lo apagan con vt={false}. */
+/* Un mismo producto puede aparecer en el bento, en destacados y en ofertas.
+ * El view-transition-name tiene que ser único en la página: si se repite,
+ * el navegador aborta la transición ENTERA (no solo la del duplicado). Por
+ * eso cada nombre lo reclama una sola aparición y las demás lo apagan. */
 const vtUsed = new Set<number>([heroProduct.id]);
 function claimVt(id: number): boolean {
   if (vtUsed.has(id)) return false;
   vtUsed.add(id);
   return true;
 }
+
+/*
+ * Tiles de categoría del bento.
+ *
+ * Cada tile muestra la foto de un producto real y se lleva su
+ * view-transition-name, así la foto vuela hasta la card de ese producto en
+ * el catálogo. Para elegir cuál, se descarta el del bento (que la misma
+ * imagen salga dos veces se ve mal) y se prefiere uno que Destacados y
+ * Ofertas NO vayan a usar más abajo: como el nombre lo puede llevar un
+ * solo elemento, elegir un producto ya "hablado" le quitaría la transición
+ * a esa card. Con el catálogo actual solo RAM queda sin alternativa libre.
+ */
+const claimedBelow = new Set([...featured, ...offers].map((p) => p.id));
+
+const categoryTiles = CATEGORIES.map((category) => {
+  const inCategory = all.filter((p) => p.category === category);
+  const notHero = inCategory.filter((p) => p.photo !== heroProduct.photo);
+  const pool = notHero.length > 0 ? notHero : inCategory;
+  const product = pool.find((p) => !claimedBelow.has(p.id)) ?? pool[0];
+
+  return {
+    category,
+    count: `${String(inCategory.length).padStart(2, "0")} productos`,
+    product,
+    vt: product ? claimVt(product.id) : false,
+  };
+});
 
 const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"]).flat();
 ---
@@ -94,13 +111,21 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
           href={`/tienda?cat=${encodeURIComponent(tile.category)}`}
           class="group stripes relative overflow-hidden border-r border-b border-ink no-underline"
         >
-          {tile.photo && (
+          {tile.product && (
+            /* El nombre va en la <img> y no en el <a>: así lo que vuela es
+               la foto sola, sin arrastrar la barra con el nombre de la
+               categoría ni el chip del contador. */
             <img
-              src={tile.photo}
+              src={tile.product.photo}
               alt=""
               loading="lazy"
               decoding="async"
               data-photo-fallback
+              style={
+                tile.vt
+                  ? { viewTransitionName: productViewTransitionName(tile.product) }
+                  : undefined
+              }
               class="absolute inset-0 h-full w-full object-cover"
             />
           )}

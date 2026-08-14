@@ -44,6 +44,58 @@ test.describe("Navegación del sitio", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Teclados" })).toBeVisible();
   });
 
+  test("los tiles de categoría transicionan hacia su card en el catálogo", async ({ page }) => {
+    // Cada tile muestra la foto de un producto y se lleva su
+    // view-transition-name para que vuele hasta la card de ese producto. Si
+    // el nombre no existiera en el catálogo, no habría con quién emparejar y
+    // el efecto simplemente no ocurriría.
+    await page.goto("/");
+    const nombresDeTiles = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/tienda?cat="]')].map(
+        (a) => getComputedStyle(a.querySelector("img") as Element).viewTransitionName,
+      ),
+    );
+
+    expect(nombresDeTiles).toHaveLength(6);
+    expect(nombresDeTiles.filter((n) => n === "none")).toEqual([]);
+
+    await page.goto("/tienda");
+    const nombresDelCatalogo = await page.evaluate(() =>
+      [...document.querySelectorAll("*")].map((n) => getComputedStyle(n).viewTransitionName),
+    );
+
+    for (const nombre of nombresDeTiles) {
+      expect(nombresDelCatalogo).toContain(nombre);
+    }
+  });
+
+  test("no hay view-transition-name repetidos en la portada", async ({ page }) => {
+    // Un nombre duplicado no rompe solo esa transición: el navegador aborta
+    // la transición ENTERA de la página. Como falla en silencio, se cubre acá.
+    await page.goto("/");
+
+    const nombres = await page.evaluate(() =>
+      [...document.querySelectorAll("*")]
+        .map((n) => getComputedStyle(n).viewTransitionName)
+        .filter((v) => v && v !== "none"),
+    );
+
+    expect(nombres).toEqual([...new Set(nombres)]);
+  });
+
+  test("la categoría con tilde filtra bien al llegar desde el tile", async ({ page }) => {
+    // "Audífonos" viaja percent-encoded en la URL y vuelve decodificada: si
+    // la forma Unicode no coincidiera con la del HTML, el filtro devolvería
+    // cero productos sin ningún error visible.
+    await page.goto("/");
+    await page.locator('a[href*="cat=Aud"]').click();
+
+    await expect(page).toHaveURL(/cat=Aud/);
+    await expect(page.getByRole("heading", { level: 1, name: "Audífonos" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Audífonos HyperX Cloud II" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "GPU GeForce RTX 4060 8GB" })).toBeHidden();
+  });
+
   test("una URL inexistente muestra la página 404", async ({ page }) => {
     const response = await page.goto("/producto-que-no-existe");
 

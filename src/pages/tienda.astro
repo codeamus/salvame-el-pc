@@ -12,9 +12,11 @@ const categoryChips = ["Todos", ...CATEGORIES];
 {
   /*
   El sitio es 100% estático, así que los filtros (?cat=&marca=&orden=) se
-  aplican en el cliente: las 12 cards se renderizan en build y el script de
-  abajo muestra/oculta/reordena según la URL. Cuando el catálogo crezca y se
-  conecte backend, esta página pasa a filtrar en el servidor sin cambiar la UI.
+  aplican en el cliente. La lógica vive en src/lib/catalog-filter.ts, cargado
+  desde el layout: tiene que estar disponible ANTES del swap de la transición
+  de vista para filtrar el documento entrante (ver el comentario del módulo).
+  Cuando el catálogo crezca y se conecte backend, esta página pasa a filtrar
+  en el servidor sin cambiar el marcado.
 */
 }
 <BaseLayout
@@ -113,103 +115,3 @@ const categoryChips = ["Todos", ...CATEGORIES];
     </div>
   </div>
 </BaseLayout>
-
-<script>
-  type Orden = "rel" | "menor" | "mayor";
-
-  interface CatalogState {
-    cat: string;
-    marcas: string[];
-    orden: Orden;
-  }
-
-  /* Con <ClientRouter /> el módulo corre una vez por visita: el estado y los
-   * listeners se re-arman en cada astro:page-load buscando el DOM nuevo. */
-  function initCatalog(): void {
-    const root = document.querySelector<HTMLElement>("[data-catalog]");
-    if (!root) return;
-
-    const params = new URLSearchParams(window.location.search);
-    const orden = params.get("orden");
-    const state: CatalogState = {
-      cat: params.get("cat") ?? "Todos",
-      marcas: params.getAll("marca"),
-      orden: orden === "menor" || orden === "mayor" ? orden : "rel",
-    };
-
-    const items = [...root.querySelectorAll<HTMLElement>("[data-item]")];
-    const catButtons = [...root.querySelectorAll<HTMLElement>("[data-filter-cat]")];
-    const marcaButtons = [...root.querySelectorAll<HTMLElement>("[data-filter-marca]")];
-    const ordenSelect = root.querySelector<HTMLSelectElement>("[data-filter-orden]");
-    const title = root.querySelector<HTMLElement>("[data-catalog-title]");
-    const count = root.querySelector<HTMLElement>("[data-catalog-count]");
-
-    function syncUrl(): void {
-      const next = new URLSearchParams();
-      if (state.cat !== "Todos") next.set("cat", state.cat);
-      for (const marca of state.marcas) next.append("marca", marca);
-      if (state.orden !== "rel") next.set("orden", state.orden);
-      const query = next.toString();
-      history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
-    }
-
-    function apply(): void {
-      let visible = 0;
-      for (const item of items) {
-        const matches =
-          (state.cat === "Todos" || item.dataset.cat === state.cat) &&
-          (state.marcas.length === 0 || state.marcas.includes(item.dataset.marca ?? ""));
-        item.hidden = !matches;
-        if (matches) visible += 1;
-
-        /* El orden se resuelve con la propiedad CSS `order`: no se toca el DOM. */
-        const price = Number(item.dataset.precio);
-        item.style.order =
-          state.orden === "menor" ? String(price) : state.orden === "mayor" ? String(-price) : "";
-      }
-
-      for (const button of catButtons) {
-        button.toggleAttribute("data-active", button.dataset.filterCat === state.cat);
-      }
-      for (const button of marcaButtons) {
-        const active = state.marcas.includes(button.dataset.filterMarca ?? "");
-        button.setAttribute("aria-pressed", String(active));
-        const mark = button.querySelector("[data-marca-mark]");
-        if (mark) mark.textContent = active ? "■" : "□";
-      }
-      if (ordenSelect) ordenSelect.value = state.orden;
-      if (title) title.textContent = state.cat === "Todos" ? "Catálogo" : state.cat;
-      if (count) count.textContent = String(visible).padStart(2, "0");
-    }
-
-    for (const button of catButtons) {
-      button.addEventListener("click", () => {
-        state.cat = button.dataset.filterCat ?? "Todos";
-        syncUrl();
-        apply();
-      });
-    }
-
-    for (const button of marcaButtons) {
-      button.addEventListener("click", () => {
-        const marca = button.dataset.filterMarca ?? "";
-        state.marcas = state.marcas.includes(marca)
-          ? state.marcas.filter((m) => m !== marca)
-          : [...state.marcas, marca];
-        syncUrl();
-        apply();
-      });
-    }
-
-    ordenSelect?.addEventListener("change", () => {
-      const value = ordenSelect.value;
-      state.orden = value === "menor" || value === "mayor" ? value : "rel";
-      syncUrl();
-      apply();
-    });
-
-    apply();
-  }
-
-  document.addEventListener("astro:page-load", initCatalog);
-</script>
