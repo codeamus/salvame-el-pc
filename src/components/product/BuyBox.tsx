@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { addToCart, MAX_QUANTITY_PER_LINE } from "@/lib/cart-store";
+import { addToCart, MAX_QUANTITY_PER_LINE, type CartProduct } from "@/lib/cart-store";
 import { showToast } from "@/lib/toast-store";
 import { formatCLP } from "@/lib/format";
-import type { Product } from "@/types/product";
 
 interface BuyBoxProps {
-  product: Product;
+  /**
+   * CartProduct y no Product entero: Astro serializa los props del island
+   * dentro del HTML de la ficha, así que pasar el objeto completo mandaría
+   * también las specs y la descripción — duplicadas, porque ya se renderizan
+   * en el servidor. Acá viaja solo lo que el carrito necesita guardar.
+   */
+  product: CartProduct;
 }
 
 /**

@@ -154,7 +154,7 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
   {/* ── Destacados ───────────────────────────────────────────────────── */}
   <section class="border-b border-ink px-5 py-14 sm:px-10">
     <div class="mb-7 flex items-baseline justify-between">
-      <h2 class="text-[40px] font-extrabold tracking-[-.03em] uppercase">Destacados</h2>
+      <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">Destacados</h2>
       <a
         href="/tienda"
         class="border-b-2 border-coral font-mono text-[13px] no-underline hover:text-coral"
@@ -170,7 +170,9 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
   {/* ── Ofertas de la semana ─────────────────────────────────────────── */}
   <section class="border-b border-ink bg-coral px-5 py-14 sm:px-10">
     <div class="mb-7 flex flex-wrap items-baseline justify-between gap-2">
-      <h2 class="text-[40px] font-extrabold tracking-[-.03em] uppercase">Ofertas de la semana</h2>
+      <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">
+        Ofertas de la semana
+      </h2>
       <span class="font-mono text-[13px]">hasta agotar stock</span>
     </div>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -180,7 +182,8 @@ const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"])
 
   {/* ── Banner servicio técnico ──────────────────────────────────────── */}
   <section class="grid grid-cols-1 border-b border-ink bg-ink text-cream lg:grid-cols-[1.2fr_1fr]">
-    <div class="flex flex-col justify-center gap-5 px-6 py-16 sm:px-12">
+    {/* Bloque de texto sin VT adentro: es seguro revelarlo (ver global.css). */}
+    <div class="reveal-up flex flex-col justify-center gap-5 px-6 py-16 sm:px-12">
       <p class="eyebrow">Servicio técnico</p>
       <h2
         class="text-[clamp(32px,4vw,56px)] leading-none font-extrabold tracking-[-.03em] uppercase"

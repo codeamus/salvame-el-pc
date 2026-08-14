@@ -186,6 +186,76 @@
     );
   }
 
+  /* ── Scroll reveal ────────────────────────────────────────────────────
+   * Animaciones dirigidas por el scroll, sin JavaScript: cada elemento
+   * lleva su propia timeline según su posición en el viewport. No hay
+   * IntersectionObserver que re-armar en cada navegación del ClientRouter,
+   * ni estado que se pierda en el swap del DOM.
+   *
+   * ⚠️ REGLA — no aplicar estas clases a un elemento que CONTENGA una foto
+   * con view-transition-name (las cards de producto y el bento de la
+   * portada). El progreso va atado al scroll, así que un ancestro puede
+   * quedar estacionado a media animación justo cuando el visitante hace
+   * clic, y entonces el snapshot que vuela hacia la ficha se captura
+   * desplazado y a medio fundir. Van solo sobre bloques sin VT adentro:
+   * títulos de sección y columnas de texto.
+   *
+   * Todo vive dentro de @supports: donde la propiedad no existe el estado
+   * inicial oculto nunca llega a aplicarse y el contenido se ve normal.
+   * Y se activa bajo `no-preference` en vez de neutralizarse bajo
+   * `reduce`, para que el default sea sin animación. El bloque global de
+   * prefers-reduced-motion no alcanza acá: pisa animation-duration, que
+   * una timeline de scroll ignora por completo.
+   */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Se usan longhands y NO el shorthand `animation`: con el shorthand,
+       * el minificador pliega animation-timeline adentro y emite
+       * `animation: linear both reveal-up view()`. Esa forma es de CSS
+       * Animations Level 2 y Chromium todavía no la parsea, así que
+       * descarta la declaración completa y la animación nunca corre —
+       * en silencio, porque el CSS fuente se ve correcto. */
+      .reveal-up {
+        animation-name: reveal-up;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 10% entry 55%;
+      }
+
+      .reveal-wipe {
+        animation-name: reveal-wipe;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: entry 15% entry 60%;
+      }
+    }
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* El título se dibuja de izquierda a derecha en vez de aparecer con un
+   * fundido — más cerca del trazo duro de la marca que un fade genérico.
+   * Los inset negativos dejan aire alrededor para no recortar glifos. */
+  @keyframes reveal-wipe {
+    from {
+      clip-path: inset(-0.15em 100% -0.15em 0);
+    }
+    to {
+      clip-path: inset(-0.15em -0.15em -0.15em 0);
+    }
+  }
+
   /* Hover de cards: levanta y deja sombra dura. */
   .hover-lift-coral {
     transition:

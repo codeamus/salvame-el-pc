@@ -1,10 +1,23 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { waitForIslands } from "./helpers";
 
 const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711"; // $19.990
 
+/** Abre la ficha y espera a que el island de compra quede utilizable. */
+async function openProduct(page: Page): Promise<void> {
+  await page.goto(PRODUCT_URL);
+  await waitForIslands(page);
+}
+
+/** Abre el carrito. Su contenido real solo existe después de hidratar. */
+async function openCart(page: Page): Promise<void> {
+  await page.goto("/carrito");
+  await waitForIslands(page);
+}
+
 test.describe("Flujo del carrito", () => {
   test("agregar desde la ficha muestra el toast y actualiza el contador", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
 
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
@@ -13,10 +26,10 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("el producto aparece en el carrito con subtotal, envío y total", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
-    await page.goto("/carrito");
+    await openCart(page);
 
     await expect(page.getByRole("link", { name: "Mouse Redragon Cobra M711" })).toBeVisible();
     // Se apunta a los testids porque el mismo monto aparece varias veces
@@ -27,9 +40,9 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("sobre $50.000 el envío pasa a ser gratis", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
-    await page.goto("/carrito");
+    await openCart(page);
 
     // 3 × $19.990 = $59.970 — cruza el umbral.
     const increment = page.getByRole("button", { name: /agregar una unidad/i });
@@ -43,19 +56,20 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("el carrito sobrevive a recargar la página", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
 
     await page.reload();
+    await waitForIslands(page);
 
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
 
   test("el ✕ deja el carrito vacío", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
-    await page.goto("/carrito");
+    await openCart(page);
 
     await page.getByRole("button", { name: /quitar mouse redragon .* del carrito/i }).click();
 
@@ -63,6 +77,8 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("el botón + de las cards estáticas también agrega", async ({ page }) => {
+    // El catálogo no tiene islands: el botón "+" lo maneja la delegación de
+    // cart-ui.ts, que corre antes del evento load.
     await page.goto("/tienda");
 
     await page
@@ -74,10 +90,11 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("el checkout simula la salida a Mercado Pago y limpia el carrito", async ({ page }) => {
-    await page.goto(PRODUCT_URL);
+    await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
     await page.goto("/checkout");
+    await waitForIslands(page);
 
     await page.getByPlaceholder("Nombre y apellido").fill("Ada Lovelace");
     await page.getByPlaceholder("RUT (12.345.678-9)").fill("12.345.678-9");

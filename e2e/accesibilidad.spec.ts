@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { waitForIslands } from "./helpers";
 
 /**
  * Auditoría automática de accesibilidad con axe-core.
@@ -30,6 +31,9 @@ const PAGES: readonly { name: string; path: string }[] = [
 for (const { name, path } of PAGES) {
   test(`la página de ${name} no tiene violaciones de accesibilidad`, async ({ page }) => {
     await page.goto(path);
+    // Se audita el DOM ya hidratado: antes de eso, /carrito muestra el
+    // estado vacío del servidor y no lo que ve realmente el visitante.
+    await waitForIslands(page);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -42,8 +46,10 @@ for (const { name, path } of PAGES) {
 
 test("el carrito con productos tampoco tiene violaciones", async ({ page }) => {
   await page.goto("/producto/mouse-redragon-cobra-m711");
+  await waitForIslands(page);
   await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
   await page.goto("/carrito");
+  await waitForIslands(page);
 
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
