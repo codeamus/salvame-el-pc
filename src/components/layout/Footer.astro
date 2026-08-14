@@ -1,0 +1,64 @@
+---
+import { CONTACT, SITE } from "@/config/site";
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="bg-ink text-cream">
+  <div
+    class="grid grid-cols-1 gap-8 px-5 pt-14 pb-10 sm:grid-cols-2 sm:px-10 lg:grid-cols-[2fr_1fr_1fr_1fr]"
+  >
+    <div>
+      <div class="text-[28px] font-extrabold tracking-[-.03em] uppercase">
+        {SITE.name}<span class="text-coral">*</span>
+      </div>
+      <p class="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-cream-muted">
+        Hardware, periféricos y servicio técnico. Santiago, Chile — despacho a todo el país.
+      </p>
+    </div>
+
+    <nav aria-label="Tienda" class="flex flex-col gap-2.5 text-sm">
+      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Tienda</span>
+      <a href="/tienda" class="text-cream/85 no-underline hover:text-coral">Catálogo</a>
+      <a href="/carrito" class="text-cream/85 no-underline hover:text-coral">Carrito</a>
+      <a href="/servicio-tecnico" class="text-cream/85 no-underline hover:text-coral">
+        Servicio técnico
+      </a>
+    </nav>
+
+    <nav aria-label="Ayuda" class="flex flex-col gap-2.5 text-sm">
+      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Ayuda</span>
+      <a href="/contacto" class="text-cream/85 no-underline hover:text-coral">Contacto</a>
+      <span class="text-cream/85">Envíos y devoluciones</span>
+      <span class="text-cream/85">Garantías</span>
+    </nav>
+
+    <nav aria-label="Redes sociales" class="flex flex-col gap-2.5 text-sm">
+      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Síguenos</span
+      >
+      <a
+        href={CONTACT.instagramUrl}
+        target="_blank"
+        rel="noopener"
+        class="text-cream/85 no-underline hover:text-coral"
+      >
+        Instagram {CONTACT.instagramHandle}
+      </a>
+      <a
+        href={CONTACT.whatsappUrl}
+        target="_blank"
+        rel="noopener"
+        class="text-cream/85 no-underline hover:text-coral"
+      >
+        WhatsApp {CONTACT.whatsappDisplay}
+      </a>
+    </nav>
+  </div>
+
+  <div
+    class="flex flex-wrap justify-between gap-4 border-t border-cream-line px-5 py-4.5 font-mono text-[11px] text-cream-faint sm:px-10"
+  >
+    <span>© {currentYear} {SITE.name} — Santiago, Chile</span>
+    <span>pagos procesados por mercado pago</span>
+  </div>
+</footer>

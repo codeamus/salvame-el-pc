@@ -1,0 +1,10 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import CheckoutView from "@/components/cart/CheckoutView";
+---
+
+<BaseLayout title="Checkout" description="Completa tus datos de despacho y paga con Mercado Pago.">
+  <div class="min-h-[60vh]">
+    <CheckoutView client:load />
+  </div>
+</BaseLayout>

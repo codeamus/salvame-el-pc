@@ -1,0 +1,42 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
+
+export const prerender = false;
+
+const supabase = createSupabaseAdminClient();
+const { data: orders } = await supabase
+  .from("orders")
+  .select("id, status, customer_email, total_clp, created_at")
+  .order("created_at", { ascending: false })
+  .limit(50);
+---
+
+<BaseLayout title="Admin · Pedidos">
+  <main class="mx-auto max-w-4xl px-4 py-10">
+    <h1 class="text-2xl font-bold">Pedidos</h1>
+
+    <table class="mt-6 w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-neutral-200 text-neutral-500">
+          <th class="py-2">Fecha</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          orders?.map((o) => (
+            <tr class="border-b border-neutral-100">
+              <td class="py-2">{new Date(o.created_at).toLocaleDateString("es-CL")}</td>
+              <td>{o.customer_email}</td>
+              <td>${o.total_clp.toLocaleString("es-CL")}</td>
+              <td class="capitalize">{o.status}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </main>
+</BaseLayout>

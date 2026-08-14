@@ -1,0 +1,15 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import LoginForm from "@/components/admin/LoginForm";
+
+export const prerender = false;
+---
+
+<BaseLayout title="Admin · Ingresar">
+  <main class="mx-auto max-w-sm px-4 py-20">
+    <h1 class="text-xl font-bold">Panel administrativo</h1>
+    <div class="mt-6">
+      <LoginForm client:load />
+    </div>
+  </main>
+</BaseLayout>

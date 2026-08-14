@@ -1,0 +1,80 @@
+---
+import { ClientRouter } from "astro:transitions";
+import Footer from "@/components/layout/Footer.astro";
+import Header from "@/components/layout/Header.astro";
+import { SITE } from "@/config/site";
+import "@/styles/global.css";
+
+interface Props {
+  /** Título de la página, sin el nombre del sitio (se agrega solo). */
+  title: string;
+  description?: string;
+  /** Ruta de imagen para compartir en redes (Open Graph). */
+  ogImage?: string;
+}
+
+const { title, description = SITE.description, ogImage = "/og-default.png" } = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? SITE.url);
+const ogImageUrl = new URL(ogImage, Astro.site ?? SITE.url);
+const fullTitle = `${title} · ${SITE.name}`;
+---
+
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#F6F1E7" />
+    <meta name="generator" content={Astro.generator} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content="es_CL" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {/* View Transitions nativas: la foto del producto viaja de card → single. */}
+    <ClientRouter />
+  </head>
+
+  <body class="flex min-h-screen flex-col">
+    <a href="#contenido" class="skip-link">Saltar al contenido</a>
+
+    <Header />
+
+    <main id="contenido" class="flex-1">
+      <slot />
+    </main>
+
+    <Footer />
+
+    {/* Toast global "Agregado: … · ver carrito". Lo muestra cart-ui.ts. */}
+    <div
+      data-toast
+      hidden
+      role="status"
+      aria-live="polite"
+      class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 border border-coral bg-ink px-6 py-3 font-mono text-xs whitespace-nowrap text-cream"
+    >
+      <span data-toast-message></span> ·
+      <a href="/carrito" class="text-coral underline">ver carrito</a>
+    </div>
+
+    {
+      /* Estado compartido del header/toast y fallback de fotos rotas —
+        corren una sola vez por visita. */
+    }
+    <script>
+      import "@/lib/cart-ui";
+      import "@/lib/photo-fallback";
+    </script>
+  </body>
+</html>

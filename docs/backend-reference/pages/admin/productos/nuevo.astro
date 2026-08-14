@@ -1,0 +1,15 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = false;
+// TODO: siguiente iteración — formulario de alta de producto (server action o
+// endpoint en src/pages/api/admin/productos.ts) usando createSupabaseAdminClient.
+---
+
+<BaseLayout title="Admin · Nuevo producto">
+  <main class="mx-auto max-w-xl px-4 py-10">
+    <h1 class="text-2xl font-bold">Nuevo producto</h1>
+    <p class="mt-2 text-neutral-500">Formulario pendiente de implementar.</p>
+    <a href="/admin/productos" class="mt-4 inline-block text-sm underline">&larr; Volver</a>
+  </main>
+</BaseLayout>

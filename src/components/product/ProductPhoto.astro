@@ -1,0 +1,43 @@
+---
+import { cn } from "@/lib/cn";
+import { productViewTransitionName, type Product } from "@/types/product";
+
+interface Props {
+  product: Product;
+  class?: string;
+  /** Carga la imagen con prioridad (solo para las primeras del viewport). */
+  eager?: boolean;
+  /**
+   * Participa de la view transition card → single. Se apaga cuando el mismo
+   * producto ya apareció antes en la página: dos elementos con el mismo
+   * view-transition-name abortan la transición completa.
+   */
+  vt?: boolean;
+  /** Vacío = decorativa (el nombre del producto ya está al lado en la card). */
+  alt?: string;
+}
+
+const { product, class: className, eager = false, vt = true, alt = "" } = Astro.props;
+---
+
+{
+  /* Si la foto no carga, photo-fallback.ts la oculta y queda el placeholder
+    rayado con caption mono — comportamiento definido en el handoff. */
+}
+<div
+  class={cn("stripes relative flex items-center justify-center overflow-hidden", className)}
+  style={vt ? { viewTransitionName: productViewTransitionName(product) } : undefined}
+>
+  <span class="px-2 text-center font-mono text-[11px] text-faint" aria-hidden="true">
+    {product.photoCaption}
+  </span>
+  <img
+    src={product.photo}
+    alt={alt}
+    loading={eager ? "eager" : "lazy"}
+    decoding="async"
+    data-photo-fallback
+    class="absolute inset-0 h-full w-full object-cover"
+  />
+  <slot />
+</div>

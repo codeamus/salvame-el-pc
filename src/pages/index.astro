@@ -1,0 +1,212 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import OfferCard from "@/components/product/OfferCard.astro";
+import ProductCard from "@/components/product/ProductCard.astro";
+import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
+import { formatCLP } from "@/lib/format";
+import { SITE } from "@/config/site";
+import { CATEGORIES } from "@/types/product";
+
+const all = await getAllProducts();
+const featured = await getFeaturedProducts();
+const offers = await getOfferProducts();
+
+/* Producto destacado del bento — el handoff usa el teclado Kumara (id 3). */
+const heroProduct = all.find((p) => p.id === 3) ?? all[0];
+if (!heroProduct) {
+  throw new Error("Catálogo vacío: la portada necesita al menos un producto para el bento.");
+}
+
+/* Tiles de categoría: foto de un producto distinto al destacado del bento,
+ * para que la misma imagen no aparezca dos veces en la grilla. */
+const categoryTiles = CATEGORIES.map((category) => {
+  const inCategory = all.filter((p) => p.category === category);
+  return {
+    category,
+    count: `${String(inCategory.length).padStart(2, "0")} productos`,
+    photo: (inCategory.find((p) => p.photo !== heroProduct.photo) ?? inCategory[0])?.photo,
+  };
+});
+
+/* Un mismo producto puede estar en el bento, en destacados y en ofertas.
+ * El view-transition-name debe ser único por página: lo lleva solo la
+ * primera aparición, las siguientes lo apagan con vt={false}. */
+const vtUsed = new Set<number>([heroProduct.id]);
+function claimVt(id: number): boolean {
+  if (vtUsed.has(id)) return false;
+  vtUsed.add(id);
+  return true;
+}
+
+const marqueeContent = Array.from({ length: 3 }, () => ["Redragon", "Logitech"]).flat();
+---
+
+<BaseLayout title="Inicio" description={SITE.description}>
+  {/* ── Hero tipográfico ─────────────────────────────────────────────── */}
+  <section class="border-b border-ink px-5 pt-18 pb-12 sm:px-10">
+    <p class="eyebrow">Tienda de hardware — Santiago, Chile</p>
+    <h1
+      class="mt-4.5 text-[clamp(52px,8.5vw,128px)] leading-[.94] font-extrabold tracking-[-.045em] text-balance uppercase"
+    >
+      Hardware y periféricos<br />
+      <span class="text-coral">sin vueltas.</span>
+    </h1>
+    <div class="mt-9 flex flex-wrap items-center gap-4">
+      <a href="/tienda" class="btn-primary">Ver catálogo →</a>
+      <a href="/servicio-tecnico" class="btn-secondary">Servicio técnico</a>
+      <span class="font-mono text-xs text-muted">envío a todo chile · pago con mercado pago</span>
+    </div>
+  </section>
+
+  {/* ── Bento grid ───────────────────────────────────────────────────── */}
+  <section class="grid auto-rows-42.5 grid-cols-2 border-b border-ink lg:grid-cols-4">
+    {/* Producto destacado 2×2 */}
+    <article
+      class="group relative col-span-2 row-span-2 flex flex-col overflow-hidden border-r border-ink"
+    >
+      <ProductPhoto product={heroProduct} eager class="flex-1">
+        <span
+          class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px] text-coral uppercase"
+        >
+          {heroProduct.brand} · destacado
+        </span>
+      </ProductPhoto>
+      <div
+        class="flex items-baseline justify-between gap-3 border-t border-ink px-4 py-3 transition-colors group-hover:bg-coral"
+      >
+        <span class="text-lg font-extrabold tracking-[-.02em]">
+          <a
+            href={`/producto/${heroProduct.slug}`}
+            class="no-underline after:absolute after:inset-0"
+          >
+            {heroProduct.name}
+          </a>
+        </span>
+        <span class="font-mono text-base font-bold">{formatCLP(heroProduct.priceCLP)}</span>
+      </div>
+    </article>
+
+    {/* 6 tiles de categoría 1×1 */}
+    {
+      categoryTiles.map((tile) => (
+        <a
+          href={`/tienda?cat=${encodeURIComponent(tile.category)}`}
+          class="group stripes relative overflow-hidden border-r border-b border-ink no-underline"
+        >
+          {tile.photo && (
+            <img
+              src={tile.photo}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              data-photo-fallback
+              class="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+          <span class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px]">
+            {tile.count}
+          </span>
+          <span class="absolute right-0 bottom-0 left-0 flex items-baseline justify-between border-t border-ink bg-cream px-4 py-3 transition-colors group-hover:bg-coral">
+            <span class="text-lg font-extrabold tracking-[-.02em]">{tile.category}</span>
+            <span class="text-base">→</span>
+          </span>
+        </a>
+      ))
+    }
+
+    {/* Tile servicio técnico 2×1 */}
+    <a
+      href="/servicio-tecnico"
+      class="col-span-2 flex flex-col justify-between bg-ink p-5 px-6 text-cream no-underline transition-colors hover:text-coral"
+    >
+      <span class="font-mono text-[11px] tracking-[.12em] text-coral uppercase">
+        Servicio técnico
+      </span>
+      <span class="flex items-baseline justify-between gap-4">
+        <span class="text-2xl font-extrabold tracking-[-.02em]">
+          Armamos, reparamos y revivimos tu PC
+        </span>
+        <span class="text-[22px]">→</span>
+      </span>
+    </a>
+  </section>
+
+  {/* ── Marquee de marcas ────────────────────────────────────────────── */}
+  <section class="overflow-hidden border-b border-ink py-5.5" aria-hidden="true">
+    <div
+      class="flex w-max animate-[marquee_22s_linear_infinite] font-mono text-[26px] font-bold tracking-[.04em] whitespace-nowrap uppercase"
+    >
+      {
+        Array.from({ length: 2 }, () => (
+          <span class="pr-12">
+            {marqueeContent.map((brand) => (
+              <>
+                {brand} <span class="text-coral">✱</span>{" "}
+              </>
+            ))}
+          </span>
+        ))
+      }
+    </div>
+  </section>
+
+  {/* ── Destacados ───────────────────────────────────────────────────── */}
+  <section class="border-b border-ink px-5 py-14 sm:px-10">
+    <div class="mb-7 flex items-baseline justify-between">
+      <h2 class="text-[40px] font-extrabold tracking-[-.03em] uppercase">Destacados</h2>
+      <a
+        href="/tienda"
+        class="border-b-2 border-coral font-mono text-[13px] no-underline hover:text-coral"
+      >
+        ver todo →
+      </a>
+    </div>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {featured.map((product) => <ProductCard product={product} vt={claimVt(product.id)} />)}
+    </div>
+  </section>
+
+  {/* ── Ofertas de la semana ─────────────────────────────────────────── */}
+  <section class="border-b border-ink bg-coral px-5 py-14 sm:px-10">
+    <div class="mb-7 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 class="text-[40px] font-extrabold tracking-[-.03em] uppercase">Ofertas de la semana</h2>
+      <span class="font-mono text-[13px]">hasta agotar stock</span>
+    </div>
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+      {offers.map((product) => <OfferCard product={product} vt={claimVt(product.id)} />)}
+    </div>
+  </section>
+
+  {/* ── Banner servicio técnico ──────────────────────────────────────── */}
+  <section class="grid grid-cols-1 border-b border-ink bg-ink text-cream lg:grid-cols-[1.2fr_1fr]">
+    <div class="flex flex-col justify-center gap-5 px-6 py-16 sm:px-12">
+      <p class="eyebrow">Servicio técnico</p>
+      <h2
+        class="text-[clamp(32px,4vw,56px)] leading-none font-extrabold tracking-[-.03em] uppercase"
+      >
+        ¿Tu PC pide ayuda a gritos?
+      </h2>
+      <p class="max-w-[46ch] text-base leading-relaxed text-cream-soft">
+        Armado desde cero, reparación y mantención. Grabamos cada trabajo para que veas exactamente
+        qué hicimos.
+      </p>
+      <a href="/servicio-tecnico" class="btn-primary self-start border-none">
+        Conoce el servicio →
+      </a>
+    </div>
+    {/* Placeholder del video del taller — se reemplaza por el embed real. */}
+    <div
+      class="stripes-dark relative flex min-h-85 items-center justify-center border-t border-cream-line lg:border-t-0 lg:border-l"
+    >
+      <div
+        class="flex h-18 w-18 items-center justify-center rounded-full border-2 border-cream text-[22px]"
+      >
+        ▶
+      </div>
+      <span class="absolute bottom-4.5 left-6 font-mono text-[11px] text-cream-faint">
+        [ video: armado pc gamer / 2:14 ]
+      </span>
+    </div>
+  </section>
+</BaseLayout>

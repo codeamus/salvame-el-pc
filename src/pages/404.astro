@@ -1,0 +1,23 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Página no encontrada">
+  <section
+    class="flex min-h-[60vh] flex-col items-center justify-center gap-4.5 px-5 py-24 text-center"
+  >
+    <p class="font-mono text-[13px] text-muted">[ error 404 ]</p>
+    <h1
+      class="text-[clamp(48px,8vw,104px)] leading-[.94] font-extrabold tracking-[-.045em] uppercase"
+    >
+      Página<br />perdida<span class="text-coral">.</span>
+    </h1>
+    <p class="max-w-md text-[15px] text-ink/70">
+      Puede que el enlace esté roto o que el producto ya no esté disponible.
+    </p>
+    <div class="mt-4 flex flex-wrap justify-center gap-4">
+      <a href="/tienda" class="btn-primary">Ver catálogo →</a>
+      <a href="/" class="btn-secondary">Ir al inicio</a>
+    </div>
+  </section>
+</BaseLayout>

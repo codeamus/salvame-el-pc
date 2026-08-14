@@ -1,0 +1,80 @@
+---
+import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import { formatCLP } from "@/lib/format";
+import { getDiscountPercent, type Product } from "@/types/product";
+
+interface Props {
+  product: Product;
+  /** Carga la imagen con prioridad (solo para las primeras del viewport). */
+  eager?: boolean;
+  /** Ver nota en ProductPhoto: apagar si el producto ya apareció en la página. */
+  vt?: boolean;
+}
+
+const { product, eager = false, vt = true } = Astro.props;
+const { slug, name, brand, priceCLP, compareAtPriceCLP } = product;
+
+const discount = getDiscountPercent(product);
+const href = `/producto/${slug}`;
+
+/* Payload para la delegación de cart-ui.ts (botón "+"). */
+const cartPayload = JSON.stringify({
+  id: product.id,
+  slug,
+  name,
+  brand,
+  photo: product.photo,
+  priceCLP,
+});
+---
+
+{
+  /*
+  `relative` es OBLIGATORIO acá, no decorativo: el enlace del título usa
+  `after:absolute after:inset-0` para que toda la tarjeta sea clickeable, y
+  ese pseudo-elemento se posiciona contra el ancestro posicionado más cercano.
+*/
+}
+<article class="hover-lift-coral relative flex flex-col border border-ink bg-cream">
+  <ProductPhoto product={product} eager={eager} vt={vt} class="aspect-4/3 border-b border-ink">
+    {
+      discount !== null && (
+        <span class="absolute top-2.5 left-2.5 border border-ink bg-coral px-2 py-0.5 font-mono text-[11px] font-bold">
+          -{discount}%
+        </span>
+      )
+    }
+  </ProductPhoto>
+
+  <div class="flex flex-1 flex-col gap-1 p-4 pt-3.5">
+    <p class="font-mono text-[11px] text-coral uppercase">{brand}</p>
+
+    <h3 class="flex-1 text-[15px] leading-[1.3] font-bold">
+      {
+        /* El enlace cubre toda la tarjeta vía ::after, pero el texto accesible
+          sigue siendo el nombre del producto — no un "ver más" genérico. */
+      }
+      <a href={href} class="no-underline after:absolute after:inset-0">{name}</a>
+    </h3>
+
+    <div class="mt-2 flex items-center justify-between">
+      <div class="flex items-baseline gap-2">
+        <span class="font-mono text-[15px] font-bold">{formatCLP(priceCLP)}</span>
+        {
+          compareAtPriceCLP !== undefined && (
+            <s class="font-mono text-xs text-muted-soft">{formatCLP(compareAtPriceCLP)}</s>
+          )
+        }
+      </div>
+      {/* z-10 para quedar por encima del overlay clickeable del enlace. */}
+      <button
+        type="button"
+        data-add-to-cart={cartPayload}
+        aria-label={`Agregar ${name} al carrito`}
+        class="relative z-10 h-7.5 w-7.5 cursor-pointer border border-ink text-base font-bold transition-colors hover:bg-coral"
+      >
+        +
+      </button>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,215 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import ProductCard from "@/components/product/ProductCard.astro";
+import { getAllProducts, getBrands } from "@/data/products";
+import { CATEGORIES } from "@/types/product";
+
+const products = await getAllProducts();
+const brands = await getBrands();
+const categoryChips = ["Todos", ...CATEGORIES];
+---
+
+{
+  /*
+  El sitio es 100% estático, así que los filtros (?cat=&marca=&orden=) se
+  aplican en el cliente: las 12 cards se renderizan en build y el script de
+  abajo muestra/oculta/reordena según la URL. Cuando el catálogo crezca y se
+  conecte backend, esta página pasa a filtrar en el servidor sin cambiar la UI.
+*/
+}
+<BaseLayout
+  title="Tienda"
+  description="Catálogo de hardware y periféricos: mouse, teclados, RAM, audífonos, monitores y GPU."
+>
+  <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-[280px_1fr]" data-catalog>
+    {/* ── Sidebar de filtros ─────────────────────────────────────────── */}
+    <aside
+      class="flex flex-col gap-8 border-b border-ink px-7 py-9 lg:border-r lg:border-b-0"
+      aria-label="Filtros del catálogo"
+    >
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Categoría</p>
+        <div class="flex flex-col gap-1.5">
+          {
+            categoryChips.map((category) => (
+              <button
+                type="button"
+                data-filter-cat={category}
+                class="cursor-pointer border border-ink bg-transparent px-3.5 py-2.5 text-left text-[13px] font-bold transition-colors hover:bg-coral hover:text-ink data-active:bg-ink data-active:text-cream"
+              >
+                {category}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Marca</p>
+        <div class="flex flex-col gap-2">
+          {
+            brands.map((brand) => (
+              <button
+                type="button"
+                data-filter-marca={brand}
+                aria-pressed="false"
+                class="flex cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left text-sm font-semibold transition-colors hover:text-coral"
+              >
+                <span class="font-mono" data-marca-mark>
+                  □
+                </span>
+                {brand}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div>
+        <label
+          for="orden"
+          class="mb-3.5 block font-mono text-[11px] tracking-[.14em] text-muted uppercase"
+        >
+          Ordenar
+        </label>
+        <select
+          id="orden"
+          data-filter-orden
+          class="w-full border border-ink bg-transparent px-3 py-2.5 text-[13px] font-semibold"
+        >
+          <option value="rel">Relevancia</option>
+          <option value="menor">Precio: menor a mayor</option>
+          <option value="mayor">Precio: mayor a menor</option>
+        </select>
+      </div>
+    </aside>
+
+    {/* ── Grilla de productos ────────────────────────────────────────── */}
+    <div>
+      <div class="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-9 pb-6 sm:px-10">
+        <h1 class="text-[44px] font-extrabold tracking-[-.03em] uppercase" data-catalog-title>
+          Catálogo
+        </h1>
+        <p class="font-mono text-[13px] text-muted" aria-live="polite">
+          <span data-catalog-count>{String(products.length).padStart(2, "0")}</span> productos
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 px-5 pb-14 sm:grid-cols-2 sm:px-10 xl:grid-cols-3">
+        {
+          products.map((product, index) => (
+            <div
+              class="grid"
+              data-item
+              data-cat={product.category}
+              data-marca={product.brand}
+              data-precio={product.priceCLP}
+            >
+              <ProductCard product={product} eager={index < 3} />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  type Orden = "rel" | "menor" | "mayor";
+
+  interface CatalogState {
+    cat: string;
+    marcas: string[];
+    orden: Orden;
+  }
+
+  /* Con <ClientRouter /> el módulo corre una vez por visita: el estado y los
+   * listeners se re-arman en cada astro:page-load buscando el DOM nuevo. */
+  function initCatalog(): void {
+    const root = document.querySelector<HTMLElement>("[data-catalog]");
+    if (!root) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const orden = params.get("orden");
+    const state: CatalogState = {
+      cat: params.get("cat") ?? "Todos",
+      marcas: params.getAll("marca"),
+      orden: orden === "menor" || orden === "mayor" ? orden : "rel",
+    };
+
+    const items = [...root.querySelectorAll<HTMLElement>("[data-item]")];
+    const catButtons = [...root.querySelectorAll<HTMLElement>("[data-filter-cat]")];
+    const marcaButtons = [...root.querySelectorAll<HTMLElement>("[data-filter-marca]")];
+    const ordenSelect = root.querySelector<HTMLSelectElement>("[data-filter-orden]");
+    const title = root.querySelector<HTMLElement>("[data-catalog-title]");
+    const count = root.querySelector<HTMLElement>("[data-catalog-count]");
+
+    function syncUrl(): void {
+      const next = new URLSearchParams();
+      if (state.cat !== "Todos") next.set("cat", state.cat);
+      for (const marca of state.marcas) next.append("marca", marca);
+      if (state.orden !== "rel") next.set("orden", state.orden);
+      const query = next.toString();
+      history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+    }
+
+    function apply(): void {
+      let visible = 0;
+      for (const item of items) {
+        const matches =
+          (state.cat === "Todos" || item.dataset.cat === state.cat) &&
+          (state.marcas.length === 0 || state.marcas.includes(item.dataset.marca ?? ""));
+        item.hidden = !matches;
+        if (matches) visible += 1;
+
+        /* El orden se resuelve con la propiedad CSS `order`: no se toca el DOM. */
+        const price = Number(item.dataset.precio);
+        item.style.order =
+          state.orden === "menor" ? String(price) : state.orden === "mayor" ? String(-price) : "";
+      }
+
+      for (const button of catButtons) {
+        button.toggleAttribute("data-active", button.dataset.filterCat === state.cat);
+      }
+      for (const button of marcaButtons) {
+        const active = state.marcas.includes(button.dataset.filterMarca ?? "");
+        button.setAttribute("aria-pressed", String(active));
+        const mark = button.querySelector("[data-marca-mark]");
+        if (mark) mark.textContent = active ? "■" : "□";
+      }
+      if (ordenSelect) ordenSelect.value = state.orden;
+      if (title) title.textContent = state.cat === "Todos" ? "Catálogo" : state.cat;
+      if (count) count.textContent = String(visible).padStart(2, "0");
+    }
+
+    for (const button of catButtons) {
+      button.addEventListener("click", () => {
+        state.cat = button.dataset.filterCat ?? "Todos";
+        syncUrl();
+        apply();
+      });
+    }
+
+    for (const button of marcaButtons) {
+      button.addEventListener("click", () => {
+        const marca = button.dataset.filterMarca ?? "";
+        state.marcas = state.marcas.includes(marca)
+          ? state.marcas.filter((m) => m !== marca)
+          : [...state.marcas, marca];
+        syncUrl();
+        apply();
+      });
+    }
+
+    ordenSelect?.addEventListener("change", () => {
+      const value = ordenSelect.value;
+      state.orden = value === "menor" || value === "mayor" ? value : "rel";
+      syncUrl();
+      apply();
+    });
+
+    apply();
+  }
+
+  document.addEventListener("astro:page-load", initCatalog);
+</script>

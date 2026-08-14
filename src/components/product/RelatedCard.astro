@@ -1,0 +1,27 @@
+---
+import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import { formatCLP } from "@/lib/format";
+import type { Product } from "@/types/product";
+
+/** Card compacta de "Relacionados" en la ficha de producto (foto 16:8). */
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+---
+
+<article class="hover-lift-coral relative flex flex-col border border-ink bg-cream">
+  <ProductPhoto product={product} class="aspect-[16/8] border-b border-ink" />
+
+  <div class="flex items-baseline justify-between gap-2.5 p-4 py-3.5">
+    <h3 class="text-sm font-bold">
+      <a href={`/producto/${product.slug}`} class="no-underline after:absolute after:inset-0">
+        {product.name}
+      </a>
+    </h3>
+    <span class="font-mono text-sm font-bold whitespace-nowrap">
+      {formatCLP(product.priceCLP)}
+    </span>
+  </div>
+</article>

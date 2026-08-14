@@ -1,0 +1,114 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import BuyBox from "@/components/product/BuyBox";
+import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import RelatedCard from "@/components/product/RelatedCard.astro";
+import { getAllProducts, getRelatedProducts } from "@/data/products";
+import { formatCLP } from "@/lib/format";
+import { getDiscountPercent, type Product } from "@/types/product";
+
+export async function getStaticPaths() {
+  const products = await getAllProducts();
+  return products.map((product) => ({
+    params: { slug: product.slug },
+    props: { product },
+  }));
+}
+
+interface Props {
+  product: Product;
+}
+
+const { product } = Astro.props;
+const related = await getRelatedProducts(product);
+const discount = getDiscountPercent(product);
+const description = `${product.name} — ${product.specs.join(", ")}. ${formatCLP(product.priceCLP)}, envío a todo Chile.`;
+---
+
+<BaseLayout title={product.name} description={description}>
+  {/* Breadcrumb */}
+  <nav aria-label="Breadcrumb" class="px-5 py-6 font-mono text-xs text-muted sm:px-10">
+    <a href="/tienda" class="text-muted underline hover:text-coral">Tienda</a>
+    {" / "}
+    <a
+      href={`/tienda?cat=${encodeURIComponent(product.category)}`}
+      class="text-muted no-underline hover:text-coral"
+    >
+      {product.category}
+    </a>
+    {" / "}
+    <span class="text-ink" aria-current="page">{product.name}</span>
+  </nav>
+
+  <section class="grid grid-cols-1 border-t border-b border-ink lg:grid-cols-[1.1fr_1fr]">
+    {/* Foto — llega volando desde la card gracias a la view transition. */}
+    <ProductPhoto
+      product={product}
+      eager
+      alt={product.name}
+      class="aspect-4/3 border-b border-ink lg:border-r lg:border-b-0"
+    >
+      {
+        discount !== null && (
+          <span class="absolute top-4 left-4 border border-ink bg-coral px-3 py-1 font-mono text-[13px] font-bold">
+            -{discount}%
+          </span>
+        )
+      }
+    </ProductPhoto>
+
+    <div class="flex flex-col gap-4.5 px-6 py-11 sm:px-12">
+      <p class="eyebrow">{product.brand} · {product.category}</p>
+
+      <h1 class="text-[clamp(28px,3vw,44px)] leading-[1.05] font-extrabold tracking-[-.03em]">
+        {product.name}
+      </h1>
+
+      <div class="flex items-baseline gap-3.5">
+        <span class="font-mono text-3xl font-bold">{formatCLP(product.priceCLP)}</span>
+        {
+          product.compareAtPriceCLP !== undefined && (
+            <s class="font-mono text-base text-muted-soft">
+              {formatCLP(product.compareAtPriceCLP)}
+            </s>
+          )
+        }
+      </div>
+
+      <ul class="border-t border-ink">
+        {
+          product.specs.map((spec) => (
+            <li class="flex gap-2.5 border-b border-line-soft py-2.5 text-sm">
+              <span class="font-mono text-coral" aria-hidden="true">
+                ■
+              </span>
+              {spec}
+            </li>
+          ))
+        }
+      </ul>
+
+      <BuyBox client:load product={product} />
+
+      <p class="flex flex-wrap gap-4.5 font-mono text-[11px] text-muted">
+        <span>✓ stock disponible</span>
+        <span>✓ envío a todo chile</span>
+        <span>✓ pago con mercado pago</span>
+      </p>
+    </div>
+  </section>
+
+  {/* Relacionados: misma categoría */}
+  {
+    related.length > 0 && (
+      <section class="px-5 pt-12 pb-16 sm:px-10">
+        <h2 class="mb-6 text-[32px] font-extrabold tracking-[-.03em] uppercase">Relacionados</h2>
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {related.map((relatedProduct) => (
+            <RelatedCard product={relatedProduct} />
+          ))}
+        </div>
+      </section>
+    )
+  }
+</BaseLayout>

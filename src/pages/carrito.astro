@@ -1,0 +1,14 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import CartView from "@/components/cart/CartView";
+---
+
+<BaseLayout
+  title="Tu carrito"
+  description="Revisa los productos de tu carrito antes de ir al checkout."
+>
+  {/* client:load: es el contenido principal de la página, sin él no hay nada. */}
+  <div class="min-h-[60vh]">
+    <CartView client:load />
+  </div>
+</BaseLayout>

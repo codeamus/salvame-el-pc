@@ -1,0 +1,172 @@
+[
+  {
+    "id": 1,
+    "slug": "mouse-redragon-cobra-m711",
+    "nombre": "Mouse Redragon Cobra M711",
+    "marca": "Redragon",
+    "cat": "Mouse",
+    "precio": 19990,
+    "antes": 24990,
+    "destacado": true,
+    "foto": "https://images.unsplash.com/photo-1527814050087-3793815479db?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Sensor óptico 10.000 DPI ajustable",
+      "RGB Chroma 16.8M colores",
+      "7 botones programables",
+      "Cable trenzado 1.8 m"
+    ]
+  },
+  {
+    "id": 2,
+    "slug": "mouse-logitech-g502-hero",
+    "nombre": "Mouse Logitech G502 Hero",
+    "marca": "Logitech",
+    "cat": "Mouse",
+    "precio": 44990,
+    "foto": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Sensor HERO 25K DPI",
+      "11 botones programables",
+      "Pesas ajustables (5×3.6 g)",
+      "Memoria integrada 5 perfiles"
+    ]
+  },
+  {
+    "id": 3,
+    "slug": "teclado-redragon-kumara-k552",
+    "nombre": "Teclado Redragon Kumara K552 RGB",
+    "marca": "Redragon",
+    "cat": "Teclados",
+    "precio": 29990,
+    "antes": 34990,
+    "destacado": true,
+    "foto": "https://images.unsplash.com/photo-1541140532154-b024d705b90a?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Mecánico switch red",
+      "Formato TKL 87 teclas",
+      "Retroiluminación RGB por tecla",
+      "Construcción metálica"
+    ]
+  },
+  {
+    "id": 4,
+    "slug": "teclado-logitech-g413-tkl",
+    "nombre": "Teclado Logitech G413 TKL SE",
+    "marca": "Logitech",
+    "cat": "Teclados",
+    "precio": 54990,
+    "foto": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Switches táctiles mecánicos",
+      "Placa superior de aluminio",
+      "Retroiluminación blanca",
+      "Teclas PBT resistentes"
+    ]
+  },
+  {
+    "id": 5,
+    "slug": "ram-kingston-fury-beast-16gb-ddr5",
+    "nombre": "RAM Kingston Fury Beast 16GB DDR5 5200",
+    "marca": "Kingston",
+    "cat": "RAM",
+    "precio": 54990,
+    "destacado": true,
+    "foto": "https://images.unsplash.com/photo-1562976540-1502c2145186?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "16 GB (1×16) DDR5 5200 MT/s",
+      "CL40, 1.25 V",
+      "Perfil Intel XMP 3.0",
+      "Disipador de bajo perfil"
+    ]
+  },
+  {
+    "id": 6,
+    "slug": "ram-corsair-vengeance-32gb-ddr4",
+    "nombre": "RAM Corsair Vengeance 32GB DDR4 3200",
+    "marca": "Corsair",
+    "cat": "RAM",
+    "precio": 79990,
+    "antes": 94990,
+    "foto": "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "32 GB (2×16) DDR4 3200 MHz",
+      "CL16, 1.35 V",
+      "Perfil XMP 2.0",
+      "Compatible Intel y AMD"
+    ]
+  },
+  {
+    "id": 7,
+    "slug": "audifonos-hyperx-cloud-ii",
+    "nombre": "Audífonos HyperX Cloud II",
+    "marca": "HyperX",
+    "cat": "Audífonos",
+    "precio": 64990,
+    "foto": "https://images.unsplash.com/photo-1599669454699-248893623440?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Sonido envolvente 7.1 virtual",
+      "Drivers 53 mm",
+      "Micrófono desmontable",
+      "Almohadillas memory foam"
+    ]
+  },
+  {
+    "id": 8,
+    "slug": "audifonos-logitech-g435",
+    "nombre": "Audífonos Logitech G435 Lightspeed",
+    "marca": "Logitech",
+    "cat": "Audífonos",
+    "precio": 49990,
+    "antes": 59990,
+    "destacado": true,
+    "foto": "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?q=80&w=900&auto=format&fit=crop",
+    "specs": [
+      "Inalámbrico Lightspeed + Bluetooth",
+      "Solo 165 g",
+      "18 h de batería",
+      "Micrófonos beamforming"
+    ]
+  },
+  {
+    "id": 9,
+    "slug": "monitor-samsung-odyssey-g5-27",
+    "nombre": "Monitor Samsung Odyssey G5 27\" 144Hz",
+    "marca": "Samsung",
+    "cat": "Monitores",
+    "precio": 249990,
+    "foto": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?q=80&w=900&auto=format&fit=crop",
+    "specs": ["27\" QHD 2560×1440 curvo", "144 Hz, 1 ms", "FreeSync Premium", "HDR10"]
+  },
+  {
+    "id": 10,
+    "slug": "monitor-lg-ultragear-24",
+    "nombre": "Monitor LG UltraGear 24\" 165Hz",
+    "marca": "LG",
+    "cat": "Monitores",
+    "precio": 179990,
+    "antes": 199990,
+    "foto": "https://images.unsplash.com/photo-1547394765-185e1e68f34e?q=80&w=900&auto=format&fit=crop",
+    "specs": ["24\" FHD IPS 165 Hz", "1 ms MBR", "G-Sync Compatible", "Ajuste de inclinación"]
+  },
+  {
+    "id": 11,
+    "slug": "gpu-geforce-rtx-4060-8gb",
+    "nombre": "GPU GeForce RTX 4060 8GB",
+    "marca": "MSI",
+    "cat": "GPU",
+    "precio": 379990,
+    "foto": "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=900&auto=format&fit=crop",
+    "specs": ["8 GB GDDR6", "DLSS 3 + Ray Tracing", "Doble ventilador", "PCIe 4.0, 115 W"]
+  },
+  {
+    "id": 12,
+    "slug": "gpu-radeon-rx-7600-8gb",
+    "nombre": "GPU Radeon RX 7600 8GB",
+    "marca": "ASUS",
+    "cat": "GPU",
+    "precio": 329990,
+    "antes": 359990,
+    "foto": "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=900&auto=format&fit=crop",
+    "specs": ["8 GB GDDR6", "RDNA 3", "Doble ventilador Axial-tech", "PCIe 4.0, 165 W"]
+  }
+]

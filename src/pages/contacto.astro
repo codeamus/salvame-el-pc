@@ -1,0 +1,137 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { CONTACT } from "@/config/site";
+
+const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pedido", "Otro"];
+---
+
+<BaseLayout
+  title="Contacto"
+  description="Escríbenos por consultas de productos, servicio técnico o el estado de tu pedido. Respondemos dentro del día, de lunes a sábado."
+>
+  <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-2">
+    {/* ── Formulario ─────────────────────────────────────────────────── */}
+    <section class="border-b border-ink px-6 py-14 sm:px-12 lg:border-r lg:border-b-0">
+      <h1 class="mb-2 text-[clamp(40px,5vw,72px)] font-extrabold tracking-[-.04em] uppercase">
+        Hablemos<span class="text-coral">.</span>
+      </h1>
+      <p class="mb-8 text-[15px] text-ink/70">Respondemos dentro del día, de lunes a sábado.</p>
+
+      {
+        /*
+        Sin backend todavía: el submit muestra el estado de éxito sin recargar
+        (comportamiento del prototipo). Cuando haya endpoint de contacto, este
+        form pasa a hacer el POST y el script queda igual.
+      */
+      }
+      <form data-contact-form class="flex flex-col gap-4">
+        <label class="sr-only" for="contacto-nombre">Nombre</label>
+        <input id="contacto-nombre" name="nombre" required placeholder="Nombre" class="field" />
+
+        <label class="sr-only" for="contacto-correo">Correo electrónico</label>
+        <input
+          id="contacto-correo"
+          name="correo"
+          type="email"
+          required
+          placeholder="Correo electrónico"
+          class="field"
+        />
+
+        <label class="sr-only" for="contacto-asunto">Asunto</label>
+        <select id="contacto-asunto" name="asunto" class="field">
+          {subjects.map((subject) => <option>{subject}</option>)}
+        </select>
+
+        <label class="sr-only" for="contacto-mensaje">Mensaje</label>
+        <textarea
+          id="contacto-mensaje"
+          name="mensaje"
+          required
+          rows="5"
+          placeholder="Cuéntanos en qué te ayudamos"
+          class="field resize-y"></textarea>
+
+        <button type="submit" class="btn-primary self-start px-7 py-3.75">
+          Enviar mensaje →
+        </button>
+      </form>
+
+      <div
+        data-contact-success
+        hidden
+        class="border border-ink bg-ink p-8 text-cream"
+        role="status"
+      >
+        <p class="mb-2.5 font-mono text-xs tracking-[.14em] text-coral uppercase">
+          Mensaje enviado ✓
+        </p>
+        <p class="text-lg font-bold">Gracias por escribirnos. Te responderemos dentro del día.</p>
+      </div>
+    </section>
+
+    {/* ── Datos de la tienda ─────────────────────────────────────────── */}
+    <section class="flex flex-col gap-8 px-6 py-14 sm:px-12">
+      <div>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          Taller y tienda
+        </p>
+        <p class="text-base font-bold">
+          {CONTACT.address[0]}<br />{CONTACT.address[1]}
+        </p>
+      </div>
+
+      <div>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Horario</p>
+        <p class="text-base font-bold">
+          {CONTACT.hours[0]}<br />{CONTACT.hours[1]}
+        </p>
+      </div>
+
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          Redes sociales
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a
+            href={CONTACT.instagramUrl}
+            target="_blank"
+            rel="noopener"
+            class="border border-ink px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral"
+          >
+            Instagram {CONTACT.instagramHandle}
+          </a>
+          <a
+            href={CONTACT.whatsappUrl}
+            target="_blank"
+            rel="noopener"
+            class="border border-ink px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral"
+          >
+            WhatsApp →
+          </a>
+        </div>
+      </div>
+
+      {/* Placeholder del mapa — reemplazar por el embed real de Google Maps. */}
+      <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-ink">
+        <span class="font-mono text-xs text-faint">[ mapa: providencia, santiago ]</span>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  function initContactForm(): void {
+    const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+    const success = document.querySelector<HTMLElement>("[data-contact-success]");
+    if (!form || !success) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      form.hidden = true;
+      success.hidden = false;
+    });
+  }
+
+  document.addEventListener("astro:page-load", initContactForm);
+</script>

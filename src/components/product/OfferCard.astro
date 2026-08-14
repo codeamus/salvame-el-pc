@@ -1,0 +1,45 @@
+---
+import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import { formatCLP } from "@/lib/format";
+import { getDiscountPercent, type Product } from "@/types/product";
+
+/**
+ * Card horizontal de "Ofertas de la semana": foto 42% a la izquierda,
+ * badge negro con el descuento y precio anterior tachado.
+ */
+interface Props {
+  product: Product;
+  /** Ver nota en ProductPhoto: apagar si el producto ya apareció en la página. */
+  vt?: boolean;
+}
+
+const { product, vt = true } = Astro.props;
+const discount = getDiscountPercent(product);
+---
+
+<article class="hover-lift-ink relative flex border border-ink bg-cream">
+  <ProductPhoto product={product} vt={vt} class="w-[42%] shrink-0 border-r border-ink" />
+
+  <div class="flex flex-1 flex-col gap-1 p-4">
+    {
+      discount !== null && (
+        <span class="self-start bg-ink px-2 py-0.5 font-mono text-[11px] font-bold text-cream">
+          -{discount}%
+        </span>
+      )
+    }
+    <h3 class="mt-1.5 flex-1 text-sm leading-[1.3] font-bold">
+      <a href={`/producto/${product.slug}`} class="no-underline after:absolute after:inset-0">
+        {product.name}
+      </a>
+    </h3>
+    <div class="flex items-baseline gap-2">
+      <span class="font-mono text-[15px] font-bold">{formatCLP(product.priceCLP)}</span>
+      {
+        product.compareAtPriceCLP !== undefined && (
+          <s class="font-mono text-xs text-muted-soft">{formatCLP(product.compareAtPriceCLP)}</s>
+        )
+      }
+    </div>
+  </div>
+</article>

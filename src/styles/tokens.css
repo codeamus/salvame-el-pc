@@ -1,0 +1,47 @@
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * DESIGN TOKENS — única fuente de verdad de la identidad visual.
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Sistema minimal/brutalista definido en el handoff de diseño
+ * (docs de diseño: carpeta design_handoff_ecommerce_astro):
+ *   - Solo 3 colores + derivados por opacidad. Ningún otro hex en el proyecto.
+ *   - border-radius: 0 en todo. Bordes de 1px tinta.
+ *   - Sombras duras (sin blur) coral o tinta, acompañadas de translate.
+ *   - Manrope para texto/titulares, Space Mono para precios/chips/eyebrows.
+ *
+ * Se declaran con `@theme` de Tailwind v4, así cada token genera además su
+ * utilidad de Tailwind automáticamente:
+ *   --color-coral → bg-coral, text-coral, border-coral, …
+ */
+
+@theme {
+  /* ── Los 3 colores de marca ──────────────────────────────────────────── */
+  --color-ink: #1e1b18; /* tinta / casi negro cálido */
+  --color-coral: #ff5a48; /* acento */
+  --color-cream: #f6f1e7; /* fondo crema */
+  /* Tono de las franjas de los placeholders de imagen (derivado del crema). */
+  --color-stripe: #ede5d4;
+
+  /* ── Derivados por opacidad (los define el handoff) ──────────────────── */
+  --color-muted: rgb(30 27 24 / 0.55); /* texto secundario sobre crema */
+  --color-muted-soft: rgb(30 27 24 / 0.45); /* precios tachados, ✕ */
+  --color-faint: rgb(30 27 24 / 0.5); /* captions de placeholder */
+  --color-line-soft: rgb(30 27 24 / 0.25); /* separadores internos */
+  --color-cream-muted: rgb(246 241 231 / 0.6); /* texto secundario sobre tinta */
+  --color-cream-soft: rgb(246 241 231 / 0.75);
+  --color-cream-faint: rgb(246 241 231 / 0.45);
+  --color-cream-line: rgb(246 241 231 / 0.15); /* separadores sobre tinta */
+
+  /* ── Tipografía ──────────────────────────────────────────────────────── */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* ── Sombras duras (sin blur, estilo brutalista) ─────────────────────── */
+  --shadow-hard-ink: 4px 4px 0 var(--color-ink);
+  --shadow-hard-ink-lg: 5px 5px 0 var(--color-ink);
+  --shadow-hard-coral: 5px 5px 0 var(--color-coral);
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  --header-height: 64px;
+}

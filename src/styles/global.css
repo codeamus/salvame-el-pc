@@ -1,0 +1,211 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Fuentes self-hosted (Fontsource) — sin depender de Google Fonts CDN:
+ * mejor privacidad, sin FOUT por DNS externo, y funciona offline en dev. */
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/700.css";
+@import "@fontsource/manrope/800.css";
+@import "@fontsource/space-mono/400.css";
+@import "@fontsource/space-mono/700.css";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    /* El header es sticky: sin esto, al saltar a un ancla el contenido
+     * queda tapado debajo del header. */
+    scroll-padding-top: calc(var(--header-height) + 1rem);
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Regla del design system: cero border-radius en todo el sitio. */
+  input,
+  select,
+  textarea,
+  button {
+    border-radius: 0;
+    font-family: inherit;
+  }
+
+  ::selection {
+    background: var(--color-coral);
+    color: var(--color-cream);
+  }
+
+  /* Focus según el handoff: outline coral hacia adentro en campos de texto,
+   * hacia afuera en el resto de los controles. */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-coral);
+    outline-offset: -1px;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-coral);
+    outline-offset: 2px;
+  }
+
+  /* La foto del producto transiciona de card → single (ClientRouter). */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.3s;
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Respetar a quien pidió menos animación en su sistema operativo. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Salto al contenido para usuarios de teclado/lector de pantalla. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-ink);
+    color: var(--color-cream);
+    font-weight: 700;
+  }
+
+  .skip-link:focus {
+    left: 0;
+  }
+
+  /* Eyebrow: etiqueta mono uppercase que abre cada sección. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-coral);
+  }
+
+  /* Botón primario: coral, borde tinta, hover levanta con sombra dura. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    background: var(--color-coral);
+    color: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    padding: 16px 32px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-hard-ink);
+  }
+
+  /* Botón secundario: transparente con borde; hover invierte a tinta. */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    background: transparent;
+    color: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    padding: 16px 32px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-ink);
+    color: var(--color-cream);
+  }
+
+  /* Campo de formulario (contacto, checkout). */
+  .field {
+    border: 1px solid var(--color-ink);
+    background: transparent;
+    padding: 13px 14px;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  /* Placeholder rayado de imagen (crema y oscuro). */
+  .stripes {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--color-stripe) 0 12px,
+      var(--color-cream) 12px 24px
+    );
+  }
+
+  .stripes-dark {
+    background: repeating-linear-gradient(
+      45deg,
+      rgb(246 241 231 / 0.05) 0 14px,
+      transparent 14px 28px
+    );
+  }
+
+  /* Hover de cards: levanta y deja sombra dura. */
+  .hover-lift-coral {
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .hover-lift-coral:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-hard-coral);
+  }
+
+  .hover-lift-ink {
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .hover-lift-ink:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-hard-ink-lg);
+  }
+}
