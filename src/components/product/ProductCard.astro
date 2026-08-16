@@ -19,7 +19,7 @@ const { slug, name, brand, priceCLP, compareAtPriceCLP } = product;
 const discount = getDiscountPercent(product);
 const href = `/producto/${slug}`;
 
-/* Payload para la delegación de cart-ui.ts (botón "+"). */
+/* Payload para la delegación de cart-ui.ts (ver el módulo). */
 const cartPayload = JSON.stringify({
   id: product.id,
   slug,
@@ -65,23 +65,62 @@ const cartPayload = JSON.stringify({
       <a href={href} class="no-underline after:absolute after:inset-0">{name}</a>
     </h3>
 
-    <div class="mt-2 flex items-center justify-between">
-      <div class="flex items-baseline gap-2">
-        <span class="font-mono text-[15px] font-bold">{formatCLP(priceCLP)}</span>
-        {
-          compareAtPriceCLP !== undefined && (
-            <s class="font-mono text-xs text-muted-soft">{formatCLP(compareAtPriceCLP)}</s>
-          )
-        }
+    <div class="mt-2 flex items-baseline gap-2">
+      <span class="font-mono text-[15px] font-bold">{formatCLP(priceCLP)}</span>
+      {
+        compareAtPriceCLP !== undefined && (
+          <s class="font-mono text-xs text-muted-soft">{formatCLP(compareAtPriceCLP)}</s>
+        )
+      }
+    </div>
+
+    {
+      /*
+      Selector de cantidad + agregar.
+
+      `relative z-10` es obligatorio: el enlace del nombre cubre toda la card
+      con un ::after, así que sin elevar esta fila los clics caerían en el
+      enlace y navegarían a la ficha en vez de sumar unidades.
+
+      La cantidad vive en el DOM (data-qty-value) y no en un estado de React:
+      la grilla del catálogo son 12 cards y no vale la pena hidratar un
+      framework para un número. Lo maneja cart-ui.ts por delegación.
+    */
+    }
+    <div class="relative z-10 mt-2.5 flex items-stretch gap-2" data-qty-form>
+      <div class="flex shrink-0 border border-ink" role="group" aria-label={`Cantidad de ${name}`}>
+        <button
+          type="button"
+          data-qty-dec
+          aria-label={`Menos unidades de ${name}`}
+          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral"
+        >
+          −
+        </button>
+        <span
+          data-qty-value
+          aria-live="polite"
+          class="flex w-8 items-center justify-center border-x border-ink font-mono text-[13px] font-bold"
+        >
+          1
+        </span>
+        <button
+          type="button"
+          data-qty-inc
+          aria-label={`Más unidades de ${name}`}
+          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral"
+        >
+          +
+        </button>
       </div>
-      {/* z-10 para quedar por encima del overlay clickeable del enlace. */}
+
       <button
         type="button"
         data-add-to-cart={cartPayload}
         aria-label={`Agregar ${name} al carrito`}
-        class="relative z-10 h-7.5 w-7.5 cursor-pointer border border-ink text-base font-bold transition-colors hover:bg-coral"
+        class="flex-1 cursor-pointer border border-ink bg-transparent px-2 text-[13px] font-bold whitespace-nowrap transition-colors hover:bg-coral"
       >
-        +
+        Agregar
       </button>
     </div>
   </div>

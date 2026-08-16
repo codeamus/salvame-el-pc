@@ -76,8 +76,8 @@ test.describe("Flujo del carrito", () => {
     await expect(page.getByText("Todavía no agregas nada.")).toBeVisible();
   });
 
-  test("el botón + de las cards estáticas también agrega", async ({ page }) => {
-    // El catálogo no tiene islands: el botón "+" lo maneja la delegación de
+  test("las cards del catálogo agregan sin hidratar React", async ({ page }) => {
+    // El catálogo no carga React: el botón lo maneja la delegación de
     // cart-ui.ts, que corre antes del evento load.
     await page.goto("/tienda");
 
@@ -87,6 +87,108 @@ test.describe("Flujo del carrito", () => {
 
     await expect(page.getByRole("status")).toContainText("Agregado: Mouse Redragon Cobra M711");
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
+  });
+
+  test("el selector de la card agrega varias unidades de una vez", async ({ page }) => {
+    await page.goto("/tienda");
+    const card = page.locator("article").filter({ hasText: "Mouse Redragon Cobra M711" }).first();
+
+    await card.getByRole("button", { name: /más unidades/i }).click();
+    await card.getByRole("button", { name: /más unidades/i }).click();
+    await expect(card.locator("[data-qty-value]")).toHaveText("3");
+
+    await card.getByRole("button", { name: /agregar mouse redragon .* al carrito/i }).click();
+
+    await expect(page.locator("[data-cart-count]")).toHaveText("3");
+    // Vuelve a 1: si quedara en 3, el siguiente clic agregaría otras 3 sin
+    // que el visitante lo haya pedido.
+    await expect(card.locator("[data-qty-value]")).toHaveText("1");
+  });
+
+  test("el selector de la card nunca baja de 1", async ({ page }) => {
+    await page.goto("/tienda");
+    const card = page.locator("article").filter({ hasText: "Mouse Redragon Cobra M711" }).first();
+
+    await card.getByRole("button", { name: /menos unidades/i }).click();
+    await card.getByRole("button", { name: /menos unidades/i }).click();
+
+    await expect(card.locator("[data-qty-value]")).toHaveText("1");
+  });
+});
+
+test.describe("Panel lateral del carrito", () => {
+  /** Agrega un producto y abre el panel desde el botón del header. */
+  async function abrirPanel(page: Page) {
+    await page.goto("/tienda");
+    await page
+      .getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" })
+      .click();
+    await expect(page.locator("[data-cart-count]")).toHaveText("1");
+
+    await page.locator("[data-cart-open]").click();
+    const panel = page.getByRole("dialog", { name: /carrito/i });
+    await expect(panel).toBeVisible();
+    return panel;
+  }
+
+  test("se abre sin salir de la página que estabas viendo", async ({ page }) => {
+    await abrirPanel(page);
+
+    // El botón es un <a href="/carrito">: si el panel no interceptara el clic
+    // en fase de captura, el ClientRouter ya nos habría navegado.
+    await expect(page).toHaveURL(/\/tienda/);
+    await expect(page.getByTestId("drawer-total")).toHaveText("$23.980");
+  });
+
+  test("sumar y restar en el panel actualiza totales y contador en vivo", async ({ page }) => {
+    const panel = await abrirPanel(page);
+
+    await panel.getByRole("button", { name: /agregar una unidad de mouse/i }).click();
+    await expect(page.getByTestId("drawer-subtotal")).toHaveText("$39.980");
+    await expect(page.locator("[data-cart-count]")).toHaveText("2");
+
+    await panel.getByRole("button", { name: /quitar una unidad de mouse/i }).click();
+    await expect(page.getByTestId("drawer-subtotal")).toHaveText("$19.990");
+    await expect(page.locator("[data-cart-count]")).toHaveText("1");
+  });
+
+  test("el ✕ del panel elimina el producto", async ({ page }) => {
+    const panel = await abrirPanel(page);
+
+    await panel.getByRole("button", { name: /quitar mouse redragon .* del carrito/i }).click();
+
+    await expect(panel.getByText("Todavía no agregas nada.")).toBeVisible();
+    await expect(page.locator("[data-cart-count]")).toHaveText("0");
+  });
+
+  test("se cierra con Escape y devuelve el foco al botón del carrito", async ({ page }) => {
+    await page.goto("/tienda");
+    await page
+      .getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" })
+      .click();
+
+    // Se abre con el teclado a propósito: devolver el foco importa
+    // justamente para quien navega así. Además, en WebKit un clic no enfoca
+    // el enlace, así que abrir con el mouse dejaría el foco en el <body> y
+    // el test mediría algo que no es el comportamiento real.
+    const trigger = page.locator("[data-cart-open]");
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+
+    const panel = page.getByRole("dialog", { name: /carrito/i });
+    await expect(panel).toBeVisible();
+
+    // Se espera a que el foco entre al panel antes de seguir. Es un
+    // requisito de accesibilidad por derecho propio, y además evita una
+    // carrera: `toBeVisible` pasa apenas se pinta el panel, pero el efecto
+    // que registra el listener de Escape corre un instante después, así que
+    // mandar la tecla de inmediato la perdía.
+    await expect(panel.getByRole("button", { name: /cerrar el carrito/i })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+
+    await expect(panel).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 
   test("el checkout simula la salida a Mercado Pago y limpia el carrito", async ({ page }) => {

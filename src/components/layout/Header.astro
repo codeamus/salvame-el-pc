@@ -49,8 +49,14 @@ function isActive(href: string): boolean {
     </ul>
   </nav>
 
+  {
+    /* Sigue siendo un enlace real a /carrito: cart-ui.ts intercepta el clic
+      para abrir el panel lateral solo cuando ese island ya está montado. Si
+      falla el JS, el enlace lleva a la página completa igual. */
+  }
   <a
     href="/carrito"
+    data-cart-open
     class="flex items-center gap-2.5 border border-ink px-4 py-2 text-[13px] font-bold no-underline transition-colors hover:bg-ink hover:text-cream"
   >
     Carrito

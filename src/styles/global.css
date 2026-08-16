@@ -66,6 +66,21 @@
     animation-duration: 0.3s;
   }
 
+  /* Entrada del panel del carrito. El bloque global de prefers-reduced-motion
+   * la reduce a un instante, así que aparece sin desplazamiento. */
+  .animate-drawer-in {
+    animation: drawer-in 0.25s var(--ease-out-drawer, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+
   @keyframes marquee {
     from {
       transform: translateX(0);

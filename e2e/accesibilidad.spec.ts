@@ -44,6 +44,20 @@ for (const { name, path } of PAGES) {
   });
 }
 
+test("el panel lateral del carrito tampoco tiene violaciones", async ({ page }) => {
+  await page.goto("/tienda");
+  await page.getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" }).click();
+  await page.locator("[data-cart-open]").click();
+  await expect(page.getByRole("dialog", { name: /carrito/i })).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .disableRules(["color-contrast"])
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
 test("el carrito con productos tampoco tiene violaciones", async ({ page }) => {
   await page.goto("/producto/mouse-redragon-cobra-m711");
   await waitForIslands(page);

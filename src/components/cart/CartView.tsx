@@ -1,4 +1,5 @@
 import { useStore } from "@nanostores/react";
+import CartLines from "@/components/cart/CartLines";
 import {
   $cart,
   $cartCount,
@@ -6,8 +7,6 @@ import {
   $cartSubtotal,
   $cartTotal,
   FREE_SHIPPING_FROM_CLP,
-  removeFromCart,
-  updateQuantity,
 } from "@/lib/cart-store";
 import { formatCLP } from "@/lib/format";
 
@@ -36,79 +35,10 @@ export default function CartView() {
         </div>
       ) : (
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
-          <ul className="border border-ink">
-            {lines.map((line) => (
-              <li
-                key={line.productId}
-                className="flex flex-wrap items-center gap-4.5 border-b border-line-soft p-4.5 px-5 last:border-b-0"
-              >
-                <div className="stripes relative h-16.5 w-22 shrink-0 overflow-hidden border border-ink">
-                  <img
-                    src={line.photo}
-                    alt=""
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                </div>
-
-                <div className="min-w-32 flex-1">
-                  <p className="font-mono text-[10px] text-coral uppercase">{line.brand}</p>
-                  <a
-                    href={`/producto/${line.slug}`}
-                    className="text-[15px] font-bold no-underline hover:text-coral"
-                  >
-                    {line.name}
-                  </a>
-                  <p className="font-mono text-xs text-muted">{formatCLP(line.priceCLP)} c/u</p>
-                </div>
-
-                <div className="flex border border-ink">
-                  <button
-                    type="button"
-                    aria-label={`Quitar una unidad de ${line.name}`}
-                    onClick={() => {
-                      // Nunca baja de 1: para sacar el producto está el ✕.
-                      updateQuantity(line.productId, Math.max(1, line.quantity - 1));
-                    }}
-                    className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] transition-colors hover:bg-coral"
-                  >
-                    −
-                  </button>
-                  <span className="flex w-9 items-center justify-center border-x border-ink font-mono text-[13px] font-bold">
-                    {line.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Agregar una unidad de ${line.name}`}
-                    onClick={() => {
-                      updateQuantity(line.productId, line.quantity + 1);
-                    }}
-                    className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] transition-colors hover:bg-coral"
-                  >
-                    +
-                  </button>
-                </div>
-
-                <span className="w-27.5 text-right font-mono text-[15px] font-bold">
-                  {formatCLP(line.priceCLP * line.quantity)}
-                </span>
-
-                <button
-                  type="button"
-                  aria-label={`Quitar ${line.name} del carrito`}
-                  onClick={() => {
-                    removeFromCart(line.productId);
-                  }}
-                  className="cursor-pointer border-none bg-transparent text-lg text-muted-soft transition-colors hover:text-coral"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
+          {/* Misma lista que el panel lateral: ver CartLines. */}
+          <div className="border border-ink">
+            <CartLines lines={lines} />
+          </div>
 
           <aside className="sticky top-22 flex flex-col gap-3.5 border border-ink p-7">
             <p className="font-mono text-[11px] tracking-[.14em] text-muted uppercase">Resumen</p>

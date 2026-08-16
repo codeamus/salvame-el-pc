@@ -1,5 +1,5 @@
 import { persistentAtom } from "@nanostores/persistent";
-import { computed } from "nanostores";
+import { atom, computed } from "nanostores";
 import type { PriceCLP, Product } from "@/types/product";
 
 /**
@@ -159,4 +159,24 @@ export function removeFromCart(productId: number): void {
 
 export function clearCart(): void {
   $cart.set([]);
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * PANEL LATERAL DEL CARRITO
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * El estado de abierto/cerrado vive en el store y no dentro del componente
+ * porque los dos extremos están en mundos distintos: lo abre el botón del
+ * header, que es HTML estático manejado por cart-ui.ts, y lo pinta un island
+ * de React. El store es el único punto donde se encuentran.
+ */
+export const $cartDrawerOpen = atom(false);
+
+export function openCartDrawer(): void {
+  $cartDrawerOpen.set(true);
+}
+
+export function closeCartDrawer(): void {
+  $cartDrawerOpen.set(false);
 }
