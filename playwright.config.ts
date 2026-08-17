@@ -15,6 +15,13 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: "./e2e",
+  /*
+   * Fase "próximamente": las specs del sitio completo esperan en e2e/_wip/
+   * porque sus rutas no se publican (ver src/pages/index.astro). Se ignoran
+   * en vez de borrarse — al reactivar las páginas se mueven de vuelta y esta
+   * línea se elimina.
+   */
+  testIgnore: "**/_wip/**",
   fullyParallel: true,
   // En CI, fallar si quedó un test.only olvidado en el código.
   forbidOnly: isCI,

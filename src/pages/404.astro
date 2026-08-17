@@ -1,23 +1,25 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import ComingSoonLayout from "@/layouts/ComingSoonLayout.astro";
+
+/*
+ * Mientras dure la fase "próximamente" esta página es lo que ve cualquiera
+ * que entre a /tienda, /carrito o cualquier otra URL: esas rutas no existen
+ * en el build. Cuando vuelvan las páginas de _wip/, este 404 debería volver
+ * a BaseLayout y a ofrecer el catálogo como salida.
+ */
 ---
 
-<BaseLayout title="Página no encontrada">
-  <section
-    class="flex min-h-[60vh] flex-col items-center justify-center gap-4.5 px-5 py-24 text-center"
-  >
+<ComingSoonLayout title="Página no encontrada">
+  <section class="flex flex-1 flex-col items-center justify-center gap-4.5 px-5 py-24 text-center">
     <p class="font-mono text-[13px] text-muted">[ error 404 ]</p>
     <h1
       class="text-[clamp(48px,8vw,104px)] leading-[.94] font-extrabold tracking-[-.045em] uppercase"
     >
-      Página<br />perdida<span class="text-coral">.</span>
+      Todavía<br />no está<span class="text-coral">.</span>
     </h1>
     <p class="max-w-md text-[15px] text-ink/70">
-      Puede que el enlace esté roto o que el producto ya no esté disponible.
+      Esta página aún no existe. Estamos terminando el sitio y muy pronto va a estar todo acá.
     </p>
-    <div class="mt-4 flex flex-wrap justify-center gap-4">
-      <a href="/tienda" class="btn-primary">Ver catálogo →</a>
-      <a href="/" class="btn-secondary">Ir al inicio</a>
-    </div>
+    <a href="/" class="btn-primary mt-4">Ir al inicio →</a>
   </section>
-</BaseLayout>
+</ComingSoonLayout>

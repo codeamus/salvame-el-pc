@@ -1,0 +1,75 @@
+---
+import Logo from "@/components/brand/Logo.astro";
+import { SITE } from "@/config/site";
+import "@/styles/global.css";
+
+/**
+ * Layout de la fase "próximamente".
+ *
+ * Es deliberadamente mínimo y NO usa BaseLayout: aquel trae navegación,
+ * carrito, panel lateral y ClientRouter, y todos apuntan a rutas que hoy no
+ * se publican. Acá no hay nada que enrutar, así que la página no carga nada
+ * de JavaScript.
+ *
+ * BaseLayout queda intacto esperando a que vuelvan las páginas de
+ * src/pages/_wip/ (ver el comentario de index.astro).
+ */
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = SITE.description } = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? SITE.url);
+const fullTitle = `${title} · ${SITE.name}`;
+---
+
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#F6F1E7" />
+    <meta name="generator" content={Astro.generator} />
+
+    {
+      /* Mientras el sitio no esté publicado de verdad no conviene que los
+        buscadores indexen la página de espera: si lo hacen, esta queda
+        posicionada y después compite con las páginas reales. */
+    }
+    <meta name="robots" content="noindex, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content="es_CL" />
+  </head>
+
+  <body class="flex min-h-screen flex-col">
+    <header class="flex items-center border-b border-ink px-5 py-4 sm:px-10">
+      <Logo size={38} title={SITE.name} />
+    </header>
+
+    <main class="flex flex-1 flex-col">
+      <slot />
+    </main>
+
+    {
+      /* El texto se arma en una sola expresión y no interpolando el año y el
+        nombre por separado: Prettier parte las expresiones seguidas en
+        líneas distintas y el salto se come el espacio, quedando
+        "© 2026Sálvame el PC". */
+    }
+    <footer class="border-t border-ink px-5 py-4 font-mono text-[11px] text-muted sm:px-10">
+      {`© ${String(new Date().getFullYear())} ${SITE.name} — Santiago, Chile`}
+    </footer>
+  </body>
+</html>
