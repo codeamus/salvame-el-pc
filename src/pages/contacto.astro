@@ -11,7 +11,7 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
 >
   <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-2">
     {/* ── Formulario ─────────────────────────────────────────────────── */}
-    <section class="border-b border-ink px-6 py-14 sm:px-12 lg:border-r lg:border-b-0">
+    <section class="border-b border-line px-6 py-14 sm:px-12 lg:border-r lg:border-b-0">
       <h1 class="mb-2 text-[clamp(40px,5vw,72px)] font-extrabold tracking-[-.04em] uppercase">
         Hablemos<span class="text-coral">.</span>
       </h1>
@@ -60,7 +60,7 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
       <div
         data-contact-success
         hidden
-        class="border border-ink bg-ink p-8 text-cream"
+        class="border border-line bg-invert p-8 text-on-invert"
         role="status"
       >
         <p class="mb-2.5 font-mono text-xs tracking-[.14em] text-coral uppercase">
@@ -97,7 +97,7 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
             href={CONTACT.instagramUrl}
             target="_blank"
             rel="noopener"
-            class="border border-ink px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral"
+            class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
           >
             Instagram {CONTACT.instagramHandle}
           </a>
@@ -105,7 +105,7 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
             href={CONTACT.whatsappUrl}
             target="_blank"
             rel="noopener"
-            class="border border-ink px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral"
+            class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
           >
             WhatsApp →
           </a>
@@ -113,7 +113,9 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
       </div>
 
       {/* Placeholder del mapa — reemplazar por el embed real de Google Maps. */}
-      <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-ink">
+      <div
+        class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line"
+      >
         <span class="font-mono text-xs text-faint">[ mapa: providencia, santiago ]</span>
       </div>
     </section>

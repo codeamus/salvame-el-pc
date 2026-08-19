@@ -1,6 +1,29 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+/*
+ * Variante `dark:` para los pocos casos que el intercambio de tokens no
+ * cubre — hoy, el ícono del botón de tema. La regla general es NO usarla: si
+ * hace falta, casi siempre es señal de que falta un token con el papel
+ * correcto (ver tokens.css).
+ *
+ * Tiene dos ramas porque el modo oscuro también tiene dos orígenes: el
+ * atributo (elección explícita) y la media query (sistema, sin elección).
+ * Con solo la primera, el ícono quedaba al revés para quien nunca tocó el
+ * botón y tiene el sistema en oscuro.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
 /* Fuentes self-hosted (Fontsource) — sin depender de Google Fonts CDN:
  * mejor privacidad, sin FOUT por DNS externo, y funciona offline en dev. */
 @import "@fontsource/manrope/400.css";
@@ -39,9 +62,11 @@
     font-family: inherit;
   }
 
+  /* El texto seleccionado va crema sobre coral en los dos modos: `cream`
+   * cambia de papel con el tema y acá el fondo es coral, que no cambia. */
   ::selection {
     background: var(--color-coral);
-    color: var(--color-cream);
+    color: var(--color-on-invert);
   }
 
   /* Focus según el handoff: outline coral hacia adentro en campos de texto,
@@ -90,6 +115,39 @@
     }
   }
 
+  /* ── Fundido al cambiar de tema ───────────────────────────────────────
+   * Sin esto el cambio es un corte seco: la página entera salta de un color
+   * al otro en un fotograma.
+   *
+   * La clase la pone y la saca theme-ui.ts SOLO durante el cambio, y no vive
+   * permanente en <html>, por dos motivos:
+   *
+   *   1. El `transition` con !important sobre `*` pisa el de los botones y
+   *      las cards. Permanente, cada hover pasaría a durar lo que dura el
+   *      cambio de tema y el sitio se sentiría pesado.
+   *   2. Transicionar color en todos los nodos de la página es caro. Que
+   *      exista un cuarto de segundo y desaparezca lo vuelve gratis.
+   *
+   * Se transicionan solo propiedades de color. `opacity` queda fuera a
+   * propósito: la usan el velo de las fotos y las animaciones de scroll, y
+   * meterla acá las haría parpadear en cada cambio de tema.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .theme-switching,
+    .theme-switching *,
+    .theme-switching *::before,
+    .theme-switching *::after {
+      transition:
+        background-color var(--theme-switch-duration) ease,
+        border-color var(--theme-switch-duration) ease,
+        color var(--theme-switch-duration) ease,
+        fill var(--theme-switch-duration) ease,
+        stroke var(--theme-switch-duration) ease,
+        box-shadow var(--theme-switch-duration) ease,
+        outline-color var(--theme-switch-duration) ease !important;
+    }
+  }
+
   /* Respetar a quien pidió menos animación en su sistema operativo. */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -111,8 +169,8 @@
     top: 0;
     z-index: 100;
     padding: 0.75rem 1rem;
-    background-color: var(--color-ink);
-    color: var(--color-cream);
+    background-color: var(--color-invert);
+    color: var(--color-on-invert);
     font-weight: 700;
   }
 
@@ -143,8 +201,8 @@
     justify-content: center;
     gap: 0.5em;
     background: var(--color-coral);
-    color: var(--color-ink);
-    border: 1px solid var(--color-ink);
+    color: var(--color-on-coral);
+    border: 1px solid var(--color-line);
     padding: 16px 32px;
     font-size: 15px;
     font-weight: 800;
@@ -168,7 +226,7 @@
     gap: 0.5em;
     background: transparent;
     color: var(--color-ink);
-    border: 1px solid var(--color-ink);
+    border: 1px solid var(--color-line);
     padding: 16px 32px;
     font-size: 15px;
     font-weight: 700;
@@ -186,7 +244,7 @@
 
   /* Campo de formulario (contacto, checkout). */
   .field {
-    border: 1px solid var(--color-ink);
+    border: 1px solid var(--color-line);
     background: transparent;
     padding: 13px 14px;
     font-size: 14px;
@@ -309,7 +367,9 @@
     .photo-veil {
       position: absolute;
       inset: 0;
-      background: var(--color-ink);
+      /* `scrim` y no `ink`: el velo tiene que oscurecer la foto en los dos
+       * modos, y en oscuro `ink` es crema — aclararía. */
+      background: var(--color-scrim);
       opacity: 0.22;
       pointer-events: none;
       transition: opacity 0.3s ease;

@@ -25,12 +25,18 @@ const discount = getDiscountPercent(product);
     reducida a una franja. Con el aspecto atado al ancho, la card crece con
     la pantalla en vez de aplastarse. */
 }
-<article class="group hover-lift-ink relative flex border border-ink bg-cream">
+{
+  /* `text-ink` explícito y no heredado: esta card vive dentro de la banda
+    coral, que fija su texto en oscuro para leerse sobre el coral. Sin
+    declararlo acá, en modo oscuro la card heredaba ese texto oscuro sobre su
+    propio fondo oscuro y quedaba ilegible. */
+}
+<article class="group hover-lift-ink relative flex border border-line bg-cream text-ink">
   <ProductPhoto
     product={product}
     vt={vt}
     veil={veil}
-    class="aspect-4/3 w-[42%] shrink-0 border-r border-ink"
+    class="aspect-4/3 w-[42%] shrink-0 border-r border-line"
   />
 
   <div class="flex flex-1 flex-col gap-1 p-4">

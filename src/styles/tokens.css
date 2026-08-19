@@ -13,6 +13,44 @@
  * Se declaran con `@theme` de Tailwind v4, así cada token genera además su
  * utilidad de Tailwind automáticamente:
  *   --color-coral → bg-coral, text-coral, border-coral, …
+ *
+ * ── CÓMO FUNCIONA EL MODO OSCURO ─────────────────────────────────────────
+ *
+ * `ink` y `cream` NO son dos colores fijos: son dos PAPELES, como en
+ * imprenta. `ink` es siempre el color con que se escribe y `cream` siempre
+ * el del papel. En modo claro se escribe tinta sobre crema; en oscuro, crema
+ * sobre tinta. Al intercambiar los valores más abajo, las ~90 utilidades
+ * `text-ink` / `bg-cream` / `text-muted` repartidas por el sitio quedan
+ * correctas solas, sin una sola variante `dark:` en el markup.
+ *
+ * Lo que ese intercambio NO resuelve —y por eso existen los tokens de la
+ * segunda mitad— son los colores que deben quedarse quietos:
+ *
+ *   --color-on-coral   texto sobre coral. El coral es el mismo en los dos
+ *                      modos, así que su texto también tiene que serlo: si
+ *                      siguiera a `ink`, en oscuro quedaría crema sobre
+ *                      coral (2,5:1, ilegible).
+ *   --color-invert /   el BLOQUE GRANDE que va a contramano de la página
+ *   --color-on-invert  (footer, banda de servicio técnico, barra promo). En
+ *                      claro es tinta sobre crema; en oscuro NO se vuelve un
+ *                      bloque crema —sería una linterna en medio de la
+ *                      página— sino una superficie elevada, apenas más clara.
+ *
+ *                      Ojo con la regla al revés: un elemento CHICO que se
+ *                      invierte (el chip de categoría activa, el hover del
+ *                      botón del carrito, el chip de descuento) NO usa estos
+ *                      tokens, usa `bg-ink text-cream` cruzados — o sea
+ *                      "pintar con el color del texto y escribir con el del
+ *                      papel", que se da vuelta solo con el tema. Ahí la
+ *                      inversión total es justamente lo que se busca: en un
+ *                      chip de 20 px no encandila y es lo único que lo
+ *                      distingue de sus hermanos apagados.
+ *   --color-line       los bordes de 1px. Comparten valor con `ink` en modo
+ *                      claro, pero a plena crema en oscuro el sitio queda
+ *                      rayado como una jaula: van al 22 %.
+ *   --color-scrim      el velo detrás de los modales. Siempre oscuro, en los
+ *                      dos modos: si siguiera a `ink`, en oscuro el velo
+ *                      sería crema y encandilaría en vez de atenuar.
  */
 
 @theme {
@@ -27,11 +65,22 @@
   --color-muted: rgb(30 27 24 / 0.55); /* texto secundario sobre crema */
   --color-muted-soft: rgb(30 27 24 / 0.45); /* precios tachados, ✕ */
   --color-faint: rgb(30 27 24 / 0.5); /* captions de placeholder */
+  --color-line: #1e1b18; /* bordes de 1px */
   --color-line-soft: rgb(30 27 24 / 0.25); /* separadores internos */
-  --color-cream-muted: rgb(246 241 231 / 0.6); /* texto secundario sobre tinta */
-  --color-cream-soft: rgb(246 241 231 / 0.75);
-  --color-cream-faint: rgb(246 241 231 / 0.45);
-  --color-cream-line: rgb(246 241 231 / 0.15); /* separadores sobre tinta */
+
+  /* ── Texto sobre coral ───────────────────────────────────────────────── */
+  --color-on-coral: #1e1b18;
+
+  /* ── Bloque invertido y lo que va encima ─────────────────────────────── */
+  --color-invert: #1e1b18;
+  --color-on-invert: #f6f1e7;
+  --color-on-invert-muted: rgb(246 241 231 / 0.6);
+  --color-on-invert-soft: rgb(246 241 231 / 0.75);
+  --color-on-invert-faint: rgb(246 241 231 / 0.45);
+  --color-on-invert-line: rgb(246 241 231 / 0.15); /* separadores sobre invertido */
+
+  /* ── Velo de los modales ─────────────────────────────────────────────── */
+  --color-scrim: #1e1b18;
 
   /* ── Tipografía ──────────────────────────────────────────────────────── */
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -42,10 +91,118 @@
   --font-logo: "Chakra Petch", var(--font-sans);
 
   /* ── Sombras duras (sin blur, estilo brutalista) ─────────────────────── */
-  --shadow-hard-ink: 4px 4px 0 var(--color-ink);
-  --shadow-hard-ink-lg: 5px 5px 0 var(--color-ink);
+  --shadow-hard-ink: 4px 4px 0 var(--color-shadow-hard);
+  --shadow-hard-ink-lg: 5px 5px 0 var(--color-shadow-hard);
   --shadow-hard-coral: 5px 5px 0 var(--color-coral);
+  /* Se separa del token de la sombra porque en oscuro no puede ser `ink`:
+   * una sombra dura a plena crema tapa más de lo que sugiere relieve. */
+  --color-shadow-hard: #1e1b18;
 
   /* ── Layout ──────────────────────────────────────────────────────────── */
   --header-height: 64px;
+
+  /* Cuánto dura el fundido al cambiar de tema. Es la única fuente: el CSS lo
+   * usa en la transición y theme-ui.ts lo lee de acá para saber cuándo sacar
+   * la clase, en vez de repetir el número en JavaScript. */
+  --theme-switch-duration: 260ms;
+}
+
+/**
+ * PALETA OSCURA — los valores, una sola vez.
+ *
+ * Viven en variables propias (`--dark-*`) y no directamente en los tokens
+ * porque hay que asignarlos desde DOS contextos: el atributo data-theme y la
+ * media query del sistema. CSS no deja compartir un bloque de declaraciones
+ * entre una regla y una media query, así que lo que se repite abajo son las
+ * asignaciones; los colores se tocan acá y en ningún otro lado.
+ *
+ * Van fuera de `@theme` para no generar utilidades (`bg-dark-cream` y
+ * compañía serían ruido: nadie debe usarlas desde el markup).
+ */
+:root {
+  /* El fondo no es negro puro sino la misma tinta cálida de la marca, un
+   * punto más profunda. */
+  --dark-cream: #15120f;
+  --dark-ink: #f1ebe0;
+  /* Los tres grises secundarios suben de opacidad respecto del modo claro
+   * (.55 / .5 / .45) y conservan su jerarquía. No es un capricho: con los
+   * valores del modo claro, sobre este fondo el precio tachado quedaba en
+   * 4,01:1 y no pasaba AA. Con estos, los tres superan 4,5:1 tanto sobre el
+   * fondo de página como sobre la superficie elevada. El test de
+   * accesibilidad en oscuro corre CON la regla de contraste activada
+   * justamente para que esto no se pierda de vista (ver e2e/tema.spec.ts). */
+  --dark-muted: rgb(241 235 224 / 0.62);
+  --dark-muted-soft: rgb(241 235 224 / 0.53);
+  --dark-faint: rgb(241 235 224 / 0.57);
+  --dark-line: rgb(241 235 224 / 0.22);
+  --dark-line-soft: rgb(241 235 224 / 0.14);
+  --dark-stripe: #211d18;
+  /* El bloque invertido sube en vez de bajar: sobre un fondo oscuro lo que
+   * destaca es la superficie elevada, no otra más oscura todavía. */
+  --dark-invert: #241f19;
+  --dark-on-invert: #f1ebe0;
+  /* El único token de la familia on-invert que se retoca en oscuro: al 45 %
+   * sobre la superficie elevada quedaba en 4,05:1. Los otros dos (muted .6 y
+   * soft .75) ya pasan AA sin ayuda.
+   *
+   * Se corrige acá y no en el token compartido a propósito: en modo claro el
+   * mismo 45 % sobre tinta tampoco llega a 4,5:1, pero eso es una decisión
+   * del handoff ya aprobada por el cliente y no es este el cambio que
+   * corresponde para revisarla. */
+  --dark-on-invert-faint: rgb(241 235 224 / 0.52);
+  /* Más denso que en claro: sobre una página ya oscura, un velo al 60 % casi
+   * no se nota y el modal deja de leerse como una capa aparte. */
+  --dark-scrim: #060505;
+  --dark-shadow-hard: #574e44;
+}
+
+/**
+ * Las asignaciones. Van fuera de `@theme` a propósito: `@theme` entra en la
+ * cascade layer de Tailwind y una regla sin capa siempre le gana, sin
+ * importar la especificidad. Así basta con poner data-theme="dark" en <html>
+ * para que todas las utilidades ya generadas cambien de valor.
+ *
+ * El atributo lo escribe el script en línea de BaseLayout antes del primer
+ * pintado — ver src/lib/theme.ts.
+ */
+:root[data-theme="dark"] {
+  --color-cream: var(--dark-cream);
+  --color-ink: var(--dark-ink);
+  --color-muted: var(--dark-muted);
+  --color-muted-soft: var(--dark-muted-soft);
+  --color-faint: var(--dark-faint);
+  --color-line: var(--dark-line);
+  --color-line-soft: var(--dark-line-soft);
+  --color-stripe: var(--dark-stripe);
+  --color-invert: var(--dark-invert);
+  --color-on-invert: var(--dark-on-invert);
+  --color-on-invert-faint: var(--dark-on-invert-faint);
+  --color-scrim: var(--dark-scrim);
+  --color-shadow-hard: var(--dark-shadow-hard);
+}
+
+/**
+ * Sin elección guardada se sigue al sistema operativo, y sin JavaScript
+ * también: esta media query es la que hace que el modo oscuro funcione
+ * aunque el script en línea nunca llegue a correr.
+ *
+ * El :not() es lo que hace que elegir "claro" a mano gane sobre un sistema
+ * en oscuro — sin él, el toggle no tendría efecto en esas máquinas.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-cream: var(--dark-cream);
+    --color-ink: var(--dark-ink);
+    --color-muted: var(--dark-muted);
+    --color-muted-soft: var(--dark-muted-soft);
+    --color-faint: var(--dark-faint);
+    --color-line: var(--dark-line);
+    --color-line-soft: var(--dark-line-soft);
+    --color-stripe: var(--dark-stripe);
+    --color-invert: var(--dark-invert);
+    --color-on-invert: var(--dark-on-invert);
+    --color-on-invert-faint: var(--dark-on-invert-faint);
+    --color-scrim: var(--dark-scrim);
+    --color-shadow-hard: var(--dark-shadow-hard);
+  }
 }

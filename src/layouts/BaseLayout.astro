@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions";
 import Footer from "@/components/layout/Footer.astro";
 import Header from "@/components/layout/Header.astro";
 import { SITE } from "@/config/site";
+import { THEME_COLOR, THEME_STORAGE_KEY } from "@/lib/theme";
 import "@/styles/global.css";
 
 interface Props {
@@ -29,8 +30,46 @@ const fullTitle = `${title} · ${SITE.name}`;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#F6F1E7" />
+    <meta name="theme-color" content={THEME_COLOR.light} />
     <meta name="generator" content={Astro.generator} />
+
+    {
+      /*
+        Modo oscuro sin flash.
+
+        Corre acá, en línea y en el <head>, porque es lo único que ocurre
+        ANTES del primer pintado. Cualquier otra opción —un módulo, un
+        script al final del body, un efecto de React— llega después de que
+        el navegador ya dibujó la página en claro, y el visitante ve el
+        parpadeo blanco que este bloque existe para evitar.
+
+        Solo escribe el atributo cuando hay una elección guardada: sin
+        atributo, la media query de tokens.css sigue al sistema sola. El
+        resto del comportamiento (el clic, la etiqueta) vive en
+        theme-ui.ts, que sí puede esperar.
+      */
+    }
+    <script is:inline define:vars={{ storageKey: THEME_STORAGE_KEY, themeColor: THEME_COLOR }}>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem(storageKey);
+        } catch (error) {
+          /* Navegación privada o bloqueador: se sigue al sistema. */
+        }
+
+        if (stored === "light" || stored === "dark") {
+          document.documentElement.dataset.theme = stored;
+        }
+
+        var dark =
+          stored === "dark" ||
+          (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", dark ? themeColor.dark : themeColor.light);
+      })();
+    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={SITE.name} />
@@ -70,7 +109,7 @@ const fullTitle = `${title} · ${SITE.name}`;
       hidden
       role="status"
       aria-live="polite"
-      class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 border border-coral bg-ink px-6 py-3 font-mono text-xs whitespace-nowrap text-cream"
+      class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 border border-coral bg-invert px-6 py-3 font-mono text-xs whitespace-nowrap text-on-invert"
     >
       <span data-toast-message></span> ·
       <a href="/carrito" class="text-coral underline">ver carrito</a>
@@ -84,6 +123,7 @@ const fullTitle = `${title} · ${SITE.name}`;
       import "@/lib/cart-ui";
       import "@/lib/photo-fallback";
       import "@/lib/catalog-filter";
+      import "@/lib/theme-ui";
     </script>
   </body>
 </html>

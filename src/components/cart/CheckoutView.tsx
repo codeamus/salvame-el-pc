@@ -181,7 +181,7 @@ export default function CheckoutView() {
         <h1 className="mb-8 text-[clamp(36px,5vw,64px)] font-extrabold tracking-[-.04em] uppercase">
           Checkout
         </h1>
-        <div className="flex flex-col items-center gap-4.5 border border-ink p-14 text-center">
+        <div className="flex flex-col items-center gap-4.5 border border-line p-14 text-center">
           <p className="font-mono text-[13px] text-muted">[ carrito vacío ]</p>
           <p className="text-[22px] font-extrabold">No hay nada que pagar todavía.</p>
           <a href="/tienda" className="btn-primary px-7 py-3.5">
@@ -210,7 +210,7 @@ export default function CheckoutView() {
           {/* La forma de entrega va primero: define si más abajo se pide
               dirección o no. El fieldset + legend ya agrupa los radios para
               lectores de pantalla, sin necesidad de un role extra. */}
-          <fieldset className="m-0 flex flex-col gap-3.5 border border-ink p-6">
+          <fieldset className="m-0 flex flex-col gap-3.5 border border-line p-6">
             <legend className="px-2 font-mono text-[11px] tracking-[.14em] uppercase">
               Cómo lo recibes
             </legend>
@@ -225,7 +225,7 @@ export default function CheckoutView() {
                     className={cn(
                       "flex cursor-pointer flex-col gap-2 border p-4.5 transition-colors",
                       "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-coral",
-                      selected ? "border-coral bg-coral/8" : "border-ink hover:bg-ink/4",
+                      selected ? "border-coral bg-coral/8" : "border-line hover:bg-ink/4",
                     )}
                   >
                     <span className="flex items-center gap-2.5">
@@ -250,7 +250,7 @@ export default function CheckoutView() {
                         aria-hidden="true"
                         className={cn(
                           "grid size-4 shrink-0 place-items-center border",
-                          selected ? "border-coral" : "border-ink",
+                          selected ? "border-coral" : "border-line",
                         )}
                       >
                         {selected && <span className="size-2 bg-coral" />}
@@ -266,7 +266,7 @@ export default function CheckoutView() {
             </div>
           </fieldset>
 
-          <fieldset className="m-0 flex flex-col gap-3.5 border border-ink p-6">
+          <fieldset className="m-0 flex flex-col gap-3.5 border border-line p-6">
             <legend className="px-2 font-mono text-[11px] tracking-[.14em] uppercase">
               Contacto
             </legend>
@@ -339,7 +339,7 @@ export default function CheckoutView() {
           </fieldset>
 
           {isDespacho ? (
-            <fieldset className="m-0 flex flex-col gap-3.5 border border-ink p-6">
+            <fieldset className="m-0 flex flex-col gap-3.5 border border-line p-6">
               <legend className="px-2 font-mono text-[11px] tracking-[.14em] uppercase">
                 Dirección de despacho
               </legend>
@@ -419,7 +419,7 @@ export default function CheckoutView() {
           ) : (
             <div
               data-testid="acordar-entrega-nota"
-              className="flex flex-col gap-2 border border-ink p-6"
+              className="flex flex-col gap-2 border border-line p-6"
             >
               <p className="font-mono text-[11px] tracking-[.14em] text-muted uppercase">
                 Acordamos la entrega
@@ -435,7 +435,7 @@ export default function CheckoutView() {
           )}
         </div>
 
-        <aside className="sticky top-22 flex flex-col gap-3.5 border border-ink p-7">
+        <aside className="sticky top-22 flex flex-col gap-3.5 border border-line p-7">
           <p className="font-mono text-[11px] tracking-[.14em] text-muted uppercase">Tu pedido</p>
 
           {lines.map((line) => (
@@ -459,7 +459,7 @@ export default function CheckoutView() {
             </span>
           </div>
 
-          <div className="flex justify-between border-t border-ink pt-3.5 text-[17px] font-extrabold">
+          <div className="flex justify-between border-t border-line pt-3.5 text-[17px] font-extrabold">
             <span>Total</span>
             <span data-testid="checkout-total" className="font-mono">
               {formatCLP(total)}
@@ -493,9 +493,9 @@ export default function CheckoutView() {
           role="dialog"
           aria-modal="true"
           aria-label="Redirección a Mercado Pago"
-          className="fixed inset-0 z-200 flex items-center justify-center bg-ink/75 p-6"
+          className="fixed inset-0 z-200 flex items-center justify-center bg-scrim/75 p-6"
         >
-          <div className="flex max-w-110 flex-col items-center gap-4 border border-ink bg-cream px-12 py-11 text-center">
+          <div className="flex max-w-110 flex-col items-center gap-4 border border-line bg-cream px-12 py-11 text-center">
             <p className="font-mono text-[11px] tracking-[.14em] text-coral uppercase">
               conectando con mercado pago…
             </p>

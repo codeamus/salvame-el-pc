@@ -40,17 +40,17 @@ const description = `${product.name} — ${product.specs.join(", ")}. ${formatCL
     <span class="text-ink" aria-current="page">{product.name}</span>
   </nav>
 
-  <section class="grid grid-cols-1 border-t border-b border-ink lg:grid-cols-[1.1fr_1fr]">
+  <section class="grid grid-cols-1 border-t border-b border-line lg:grid-cols-[1.1fr_1fr]">
     {/* Foto — llega volando desde la card gracias a la view transition. */}
     <ProductPhoto
       product={product}
       eager
       alt={product.name}
-      class="aspect-4/3 border-b border-ink lg:border-r lg:border-b-0"
+      class="aspect-4/3 border-b border-line lg:border-r lg:border-b-0"
     >
       {
         discount !== null && (
-          <span class="absolute top-4 left-4 border border-ink bg-coral px-3 py-1 font-mono text-[13px] font-bold">
+          <span class="absolute top-4 left-4 border border-line bg-coral px-3 py-1 font-mono text-[13px] font-bold text-on-coral">
             -{discount}%
           </span>
         )
@@ -75,7 +75,7 @@ const description = `${product.name} — ${product.specs.join(", ")}. ${formatCL
         }
       </div>
 
-      <ul class="border-t border-ink">
+      <ul class="border-t border-line">
         {
           product.specs.map((spec) => (
             <li class="flex gap-2.5 border-b border-line-soft py-2.5 text-sm">

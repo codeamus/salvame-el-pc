@@ -96,16 +96,16 @@ export default function CartDrawer() {
     <div className="fixed inset-0 z-200 flex justify-end">
       {/* Fondo: cierra al hacer clic. Es decorativo — la tecla Escape y el
           botón de cerrar cubren el mismo camino para quien usa teclado. */}
-      <div className="absolute inset-0 bg-ink/60" onClick={closeCartDrawer} aria-hidden="true" />
+      <div className="absolute inset-0 bg-scrim/60" onClick={closeCartDrawer} aria-hidden="true" />
 
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Carrito de compras"
-        className="animate-drawer-in relative flex h-full w-full flex-col border-l border-ink bg-cream sm:w-105"
+        className="animate-drawer-in relative flex h-full w-full flex-col border-l border-line bg-cream sm:w-105"
       >
-        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-ink px-5 py-4">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-line px-5 py-4">
           <h2 className="text-xl font-extrabold tracking-[-.02em] uppercase">
             Tu carrito <span className="font-mono text-[.7em] text-coral">({count})</span>
           </h2>
@@ -114,7 +114,7 @@ export default function CartDrawer() {
             data-autofocus
             aria-label="Cerrar el carrito"
             onClick={closeCartDrawer}
-            className="cursor-pointer border border-ink bg-transparent px-2.5 py-1 text-sm leading-none transition-colors hover:bg-coral"
+            className="cursor-pointer border border-line bg-transparent px-2.5 py-1 text-sm leading-none transition-colors hover:bg-coral hover:text-on-coral"
           >
             ✕
           </button>
@@ -136,7 +136,7 @@ export default function CartDrawer() {
               <CartLines lines={lines} onNavigate={closeCartDrawer} />
             </div>
 
-            <footer className="flex shrink-0 flex-col gap-2.5 border-t border-ink px-5 py-4">
+            <footer className="flex shrink-0 flex-col gap-2.5 border-t border-line px-5 py-4">
               <div className="flex justify-between text-sm">
                 <span>Subtotal</span>
                 <span className="font-mono font-bold" data-testid="drawer-subtotal">
@@ -151,7 +151,7 @@ export default function CartDrawer() {
                 </span>
               </div>
 
-              <div className="flex justify-between border-t border-ink pt-2.5 text-base font-extrabold">
+              <div className="flex justify-between border-t border-line pt-2.5 text-base font-extrabold">
                 <span>Total</span>
                 <span className="font-mono" data-testid="drawer-total">
                   {formatCLP(total)}

@@ -36,18 +36,18 @@ export default function BuyBox({ product }: BuyBoxProps) {
 
   return (
     <div className="mt-1.5 flex items-stretch gap-3.5">
-      <div className="flex border border-ink">
+      <div className="flex border border-line">
         <button
           type="button"
           onClick={decrement}
           aria-label="Quitar una unidad"
-          className="w-11 cursor-pointer border-none bg-transparent text-lg transition-colors hover:bg-coral"
+          className="w-11 cursor-pointer border-none bg-transparent text-lg transition-colors hover:bg-coral hover:text-on-coral"
         >
           −
         </button>
         <span
           aria-label={`Cantidad: ${quantity}`}
-          className="flex w-12 items-center justify-center border-x border-ink font-mono font-bold"
+          className="flex w-12 items-center justify-center border-x border-line font-mono font-bold"
         >
           {quantity}
         </span>
@@ -55,7 +55,7 @@ export default function BuyBox({ product }: BuyBoxProps) {
           type="button"
           onClick={increment}
           aria-label="Agregar una unidad"
-          className="w-11 cursor-pointer border-none bg-transparent text-lg transition-colors hover:bg-coral"
+          className="w-11 cursor-pointer border-none bg-transparent text-lg transition-colors hover:bg-coral hover:text-on-coral"
         >
           +
         </button>

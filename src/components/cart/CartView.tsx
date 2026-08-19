@@ -26,7 +26,7 @@ export default function CartView() {
       </h1>
 
       {lines.length === 0 ? (
-        <div className="flex flex-col items-center gap-4.5 border border-ink p-14 text-center">
+        <div className="flex flex-col items-center gap-4.5 border border-line p-14 text-center">
           <p className="font-mono text-[13px] text-muted">[ carrito vacío ]</p>
           <p className="text-[22px] font-extrabold">Todavía no agregas nada.</p>
           <a href="/tienda" className="btn-primary px-7 py-3.5">
@@ -36,11 +36,11 @@ export default function CartView() {
       ) : (
         <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
           {/* Misma lista que el panel lateral: ver CartLines. */}
-          <div className="border border-ink">
+          <div className="border border-line">
             <CartLines lines={lines} />
           </div>
 
-          <aside className="sticky top-22 flex flex-col gap-3.5 border border-ink p-7">
+          <aside className="sticky top-22 flex flex-col gap-3.5 border border-line p-7">
             <p className="font-mono text-[11px] tracking-[.14em] text-muted uppercase">Resumen</p>
 
             <div className="flex justify-between text-sm">
@@ -57,7 +57,7 @@ export default function CartView() {
               </span>
             </div>
 
-            <div className="flex justify-between border-t border-ink pt-3.5 text-[17px] font-extrabold">
+            <div className="flex justify-between border-t border-line pt-3.5 text-[17px] font-extrabold">
               <span>Total</span>
               <span className="font-mono" data-testid="cart-total">
                 {formatCLP(total)}

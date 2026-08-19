@@ -76,7 +76,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
 
 <BaseLayout title="Inicio" description={SITE.description}>
   {/* ── Hero tipográfico ─────────────────────────────────────────────── */}
-  <section class="border-b border-ink px-5 pt-18 pb-12 sm:px-10">
+  <section class="border-b border-line px-5 pt-18 pb-12 sm:px-10">
     <p class="eyebrow">Tienda de hardware — Santiago, Chile</p>
     <h1
       class="mt-4.5 text-[clamp(52px,8.5vw,128px)] leading-[.94] font-extrabold tracking-[-.045em] text-balance uppercase"
@@ -92,20 +92,20 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   </section>
 
   {/* ── Bento grid ───────────────────────────────────────────────────── */}
-  <section class="grid auto-rows-42.5 grid-cols-2 border-b border-ink lg:grid-cols-4">
+  <section class="grid auto-rows-42.5 grid-cols-2 border-b border-line lg:grid-cols-4">
     {/* Producto destacado 2×2 */}
     <article
-      class="group relative col-span-2 row-span-2 flex flex-col overflow-hidden border-r border-ink"
+      class="group relative col-span-2 row-span-2 flex flex-col overflow-hidden border-r border-line"
     >
       <ProductPhoto product={heroProduct} eager veil class="flex-1">
         <span
-          class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px] text-coral uppercase"
+          class="absolute top-2.5 left-2.5 border border-line bg-cream px-2 py-0.5 font-mono text-[10px] text-coral uppercase"
         >
           {heroProduct.brand} · destacado
         </span>
       </ProductPhoto>
       <div
-        class="flex items-baseline justify-between gap-3 border-t border-ink px-4 py-3 transition-colors group-hover:bg-coral"
+        class="flex items-baseline justify-between gap-3 border-t border-line px-4 py-3 transition-colors group-hover:bg-coral group-hover:text-on-coral"
       >
         <span class="text-lg font-extrabold tracking-[-.02em]">
           <a
@@ -124,7 +124,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
       categoryTiles.map((tile) => (
         <a
           href={`/tienda?cat=${encodeURIComponent(tile.category)}`}
-          class="group stripes photo-veiled relative overflow-hidden border-r border-b border-ink no-underline"
+          class="group stripes photo-veiled relative overflow-hidden border-r border-b border-line no-underline"
         >
           {tile.product && (
             /* El nombre va en la <img> y no en el <a>: así lo que vuela es
@@ -147,10 +147,10 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
           {/* El velo va justo sobre la foto: el chip y la barra inferior se
               pintan después y quedan sin teñir. */}
           <span class="photo-veil" aria-hidden="true" />
-          <span class="absolute top-2.5 left-2.5 border border-ink bg-cream px-2 py-0.5 font-mono text-[10px]">
+          <span class="absolute top-2.5 left-2.5 border border-line bg-cream px-2 py-0.5 font-mono text-[10px]">
             {tile.count}
           </span>
-          <span class="absolute right-0 bottom-0 left-0 flex items-baseline justify-between border-t border-ink bg-cream px-4 py-3 transition-colors group-hover:bg-coral">
+          <span class="absolute right-0 bottom-0 left-0 flex items-baseline justify-between border-t border-line bg-cream px-4 py-3 transition-colors group-hover:bg-coral group-hover:text-on-coral">
             <span class="text-lg font-extrabold tracking-[-.02em]">{tile.category}</span>
             <span class="text-base">→</span>
           </span>
@@ -161,7 +161,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
     {/* Tile servicio técnico 2×1 */}
     <a
       href="/servicio-tecnico"
-      class="col-span-2 flex flex-col justify-between bg-ink p-5 px-6 text-cream no-underline transition-colors hover:text-coral"
+      class="col-span-2 flex flex-col justify-between bg-invert p-5 px-6 text-on-invert no-underline transition-colors hover:text-coral"
     >
       <span class="font-mono text-[11px] tracking-[.12em] text-coral uppercase">
         Servicio técnico
@@ -176,7 +176,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   </section>
 
   {/* ── Marquee de marcas ────────────────────────────────────────────── */}
-  <section class="overflow-hidden border-b border-ink py-5.5" aria-hidden="true">
+  <section class="overflow-hidden border-b border-line py-5.5" aria-hidden="true">
     <div
       class="marquee-track flex w-max font-mono text-[26px] font-bold tracking-[.04em] whitespace-nowrap uppercase"
       style={`--marquee-duration: ${marqueeSeconds}s`}
@@ -196,7 +196,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   </section>
 
   {/* ── Destacados ───────────────────────────────────────────────────── */}
-  <section class="border-b border-ink px-5 py-14 sm:px-10">
+  <section class="border-b border-line px-5 py-14 sm:px-10">
     <div class="mb-7 flex items-baseline justify-between">
       <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">Destacados</h2>
       <a
@@ -212,7 +212,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   </section>
 
   {/* ── Ofertas de la semana ─────────────────────────────────────────── */}
-  <section class="border-b border-ink bg-coral px-5 py-14 sm:px-10">
+  <section class="border-b border-line bg-coral px-5 py-14 text-on-coral sm:px-10">
     <div class="mb-7 flex flex-wrap items-baseline justify-between gap-2">
       <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">
         Ofertas de la semana
@@ -225,7 +225,9 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   </section>
 
   {/* ── Banner servicio técnico ──────────────────────────────────────── */}
-  <section class="grid grid-cols-1 border-b border-ink bg-ink text-cream lg:grid-cols-[1.2fr_1fr]">
+  <section
+    class="grid grid-cols-1 border-b border-line bg-invert text-on-invert lg:grid-cols-[1.2fr_1fr]"
+  >
     {/* Bloque de texto sin VT adentro: es seguro revelarlo (ver global.css). */}
     <div class="reveal-up flex flex-col justify-center gap-5 px-6 py-16 sm:px-12">
       <p class="eyebrow">Servicio técnico</p>
@@ -234,7 +236,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
       >
         ¿Tu PC pide ayuda a gritos?
       </h2>
-      <p class="max-w-[46ch] text-base leading-relaxed text-cream-soft">
+      <p class="max-w-[46ch] text-base leading-relaxed text-on-invert-soft">
         Armado desde cero, reparación y mantención. Grabamos cada trabajo para que veas exactamente
         qué hicimos.
       </p>
@@ -244,14 +246,14 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
     </div>
     {/* Placeholder del video del taller — se reemplaza por el embed real. */}
     <div
-      class="stripes-dark relative flex min-h-85 items-center justify-center border-t border-cream-line lg:border-t-0 lg:border-l"
+      class="stripes-dark relative flex min-h-85 items-center justify-center border-t border-on-invert-line lg:border-t-0 lg:border-l"
     >
       <div
-        class="flex h-18 w-18 items-center justify-center rounded-full border-2 border-cream text-[22px]"
+        class="flex h-18 w-18 items-center justify-center rounded-full border-2 border-on-invert text-[22px]"
       >
         ▶
       </div>
-      <span class="absolute bottom-4.5 left-6 font-mono text-[11px] text-cream-faint">
+      <span class="absolute bottom-4.5 left-6 font-mono text-[11px] text-on-invert-faint">
         [ video: armado pc gamer / 2:14 ]
       </span>
     </div>

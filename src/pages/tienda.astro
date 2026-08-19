@@ -26,7 +26,7 @@ const categoryChips = ["Todos", ...CATEGORIES];
   <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-[280px_1fr]" data-catalog>
     {/* ── Sidebar de filtros ─────────────────────────────────────────── */}
     <aside
-      class="flex flex-col gap-8 border-b border-ink px-7 py-9 lg:border-r lg:border-b-0"
+      class="flex flex-col gap-8 border-b border-line px-7 py-9 lg:border-r lg:border-b-0"
       aria-label="Filtros del catálogo"
     >
       <div>
@@ -37,7 +37,7 @@ const categoryChips = ["Todos", ...CATEGORIES];
               <button
                 type="button"
                 data-filter-cat={category}
-                class="cursor-pointer border border-ink bg-transparent px-3.5 py-2.5 text-left text-[13px] font-bold transition-colors hover:bg-coral hover:text-ink data-active:bg-ink data-active:text-cream"
+                class="cursor-pointer border border-line bg-transparent px-3.5 py-2.5 text-left text-[13px] font-bold transition-colors hover:bg-coral hover:text-on-coral data-active:bg-ink data-active:text-cream"
               >
                 {category}
               </button>
@@ -77,7 +77,7 @@ const categoryChips = ["Todos", ...CATEGORIES];
         <select
           id="orden"
           data-filter-orden
-          class="w-full border border-ink bg-transparent px-3 py-2.5 text-[13px] font-semibold"
+          class="w-full border border-line bg-transparent px-3 py-2.5 text-[13px] font-semibold"
         >
           <option value="rel">Relevancia</option>
           <option value="menor">Precio: menor a mayor</option>

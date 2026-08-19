@@ -39,7 +39,7 @@ const videos = [
   description="Armado de PC, reparación y mantención en Santiago. Diagnóstico en 24 horas, repuestos originales y videos reales de cada trabajo."
 >
   {/* ── Hero ─────────────────────────────────────────────────────────── */}
-  <section class="border-b border-ink px-5 pt-18 pb-12 sm:px-10">
+  <section class="border-b border-line px-5 pt-18 pb-12 sm:px-10">
     <p class="eyebrow">No lo botes todavía</p>
     <h1
       class="mt-4 text-[clamp(48px,7vw,104px)] leading-[.94] font-extrabold tracking-[-.045em] uppercase"
@@ -53,12 +53,12 @@ const videos = [
   </section>
 
   {/* ── Los 3 servicios ──────────────────────────────────────────────── */}
-  <section class="grid grid-cols-1 border-b border-ink md:grid-cols-3">
+  <section class="grid grid-cols-1 border-b border-line md:grid-cols-3">
     {
       services.map((service, index) => (
         <div
           class:list={[
-            "flex flex-col gap-3.5 border-ink px-8 py-9",
+            "flex flex-col gap-3.5 border-line px-8 py-9",
             index < services.length - 1 && "border-b md:border-r md:border-b-0",
           ]}
         >
@@ -72,18 +72,18 @@ const videos = [
   </section>
 
   {/* ── Videos del taller ────────────────────────────────────────────── */}
-  <section class="border-b border-ink bg-ink px-5 py-14 text-cream sm:px-10">
+  <section class="border-b border-line bg-invert px-5 py-14 text-on-invert sm:px-10">
     <h2 class="mb-7 text-[32px] font-extrabold tracking-[-.03em] uppercase">
       Así trabajamos <span class="text-coral">(en video)</span>
     </h2>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
       {
         videos.map((caption) => (
-          <div class="stripes-dark relative flex aspect-video cursor-pointer items-center justify-center border border-cream/30 transition-colors hover:border-coral">
-            <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-cream text-[17px]">
+          <div class="stripes-dark relative flex aspect-video cursor-pointer items-center justify-center border border-on-invert/30 transition-colors hover:border-coral">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]">
               ▶
             </div>
-            <span class="absolute bottom-3 left-4 font-mono text-[11px] text-cream-faint">
+            <span class="absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint">
               {caption}
             </span>
           </div>
@@ -94,7 +94,7 @@ const videos = [
 
   {/* ── CTA WhatsApp ─────────────────────────────────────────────────── */}
   <section
-    class="flex flex-wrap items-center justify-between gap-6 border-b border-ink px-5 py-12 sm:px-10"
+    class="flex flex-wrap items-center justify-between gap-6 border-b border-line px-5 py-12 sm:px-10"
   >
     <h2 class="text-[clamp(24px,3vw,40px)] font-extrabold tracking-[-.03em] uppercase">
       Agenda por WhatsApp

@@ -5,7 +5,7 @@ import { CONTACT, SITE } from "@/config/site";
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class="bg-ink text-cream">
+<footer class="bg-invert text-on-invert">
   <div
     class="grid grid-cols-1 gap-8 px-5 pt-14 pb-10 sm:grid-cols-2 sm:px-10 lg:grid-cols-[2fr_1fr_1fr_1fr]"
   >
@@ -15,35 +15,40 @@ const currentYear = new Date().getFullYear();
           y el texto del wordmark ya hereda el color del footer. */
       }
       <Logo size={46} title={null} />
-      <p class="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-cream-muted">
+      <p class="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-on-invert-muted">
         Hardware, periféricos y servicio técnico. Santiago, Chile — despacho a todo el país.
       </p>
     </div>
 
     <nav aria-label="Tienda" class="flex flex-col gap-2.5 text-sm">
-      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Tienda</span>
-      <a href="/tienda" class="text-cream/85 no-underline hover:text-coral">Catálogo</a>
-      <a href="/carrito" class="text-cream/85 no-underline hover:text-coral">Carrito</a>
-      <a href="/servicio-tecnico" class="text-cream/85 no-underline hover:text-coral">
+      <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
+        >Tienda</span
+      >
+      <a href="/tienda" class="text-on-invert/85 no-underline hover:text-coral">Catálogo</a>
+      <a href="/carrito" class="text-on-invert/85 no-underline hover:text-coral">Carrito</a>
+      <a href="/servicio-tecnico" class="text-on-invert/85 no-underline hover:text-coral">
         Servicio técnico
       </a>
     </nav>
 
     <nav aria-label="Ayuda" class="flex flex-col gap-2.5 text-sm">
-      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Ayuda</span>
-      <a href="/contacto" class="text-cream/85 no-underline hover:text-coral">Contacto</a>
-      <span class="text-cream/85">Envíos y devoluciones</span>
-      <span class="text-cream/85">Garantías</span>
+      <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
+        >Ayuda</span
+      >
+      <a href="/contacto" class="text-on-invert/85 no-underline hover:text-coral">Contacto</a>
+      <span class="text-on-invert/85">Envíos y devoluciones</span>
+      <span class="text-on-invert/85">Garantías</span>
     </nav>
 
     <nav aria-label="Redes sociales" class="flex flex-col gap-2.5 text-sm">
-      <span class="font-mono text-[11px] tracking-[.14em] text-cream-faint uppercase">Síguenos</span
+      <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
+        >Síguenos</span
       >
       <a
         href={CONTACT.instagramUrl}
         target="_blank"
         rel="noopener"
-        class="text-cream/85 no-underline hover:text-coral"
+        class="text-on-invert/85 no-underline hover:text-coral"
       >
         Instagram {CONTACT.instagramHandle}
       </a>
@@ -51,7 +56,7 @@ const currentYear = new Date().getFullYear();
         href={CONTACT.whatsappUrl}
         target="_blank"
         rel="noopener"
-        class="text-cream/85 no-underline hover:text-coral"
+        class="text-on-invert/85 no-underline hover:text-coral"
       >
         WhatsApp {CONTACT.whatsappDisplay}
       </a>
@@ -59,7 +64,7 @@ const currentYear = new Date().getFullYear();
   </div>
 
   <div
-    class="flex flex-wrap justify-between gap-4 border-t border-cream-line px-5 py-4.5 font-mono text-[11px] text-cream-faint sm:px-10"
+    class="flex flex-wrap justify-between gap-4 border-t border-on-invert-line px-5 py-4.5 font-mono text-[11px] text-on-invert-faint sm:px-10"
   >
     <span>© {currentYear} {SITE.name} — Santiago, Chile</span>
     <span>pagos procesados por mercado pago</span>

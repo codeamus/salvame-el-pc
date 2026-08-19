@@ -13,13 +13,13 @@ function isActive(href: string): boolean {
 
 {/* Barra promo sobre el header (mono, negra) — definida en el handoff. */}
 <div
-  class="bg-ink px-4 py-2 text-center font-mono text-[11px] tracking-[.08em] text-cream uppercase"
+  class="bg-invert px-4 py-2 text-center font-mono text-[11px] tracking-[.08em] text-on-invert uppercase"
 >
   {PROMO_TEXT}
 </div>
 
 <header
-  class="sticky top-0 z-50 flex min-h-(--header-height) flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-ink bg-cream px-5 py-2 sm:px-10 sm:py-0"
+  class="sticky top-0 z-50 flex min-h-(--header-height) flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-line bg-cream px-5 py-2 sm:px-10 sm:py-0"
 >
   {
     /* El nombre accesible lo da el aria-label del enlace, así que el logo va
@@ -49,17 +49,91 @@ function isActive(href: string): boolean {
     </ul>
   </nav>
 
-  {
-    /* Sigue siendo un enlace real a /carrito: cart-ui.ts intercepta el clic
-      para abrir el panel lateral solo cuando ese island ya está montado. Si
-      falla el JS, el enlace lleva a la página completa igual. */
-  }
-  <a
-    href="/carrito"
-    data-cart-open
-    class="flex items-center gap-2.5 border border-ink px-4 py-2 text-[13px] font-bold no-underline transition-colors hover:bg-ink hover:text-cream"
-  >
-    Carrito
-    <span data-cart-count class="bg-coral px-[7px] py-px font-mono text-xs text-ink">0</span>
-  </a>
+  <div class="flex items-center gap-2.5">
+    {
+      /*
+        Botón de tema.
+
+        El ícono lo elige el CSS (`dark:`) y no el servidor: en un sitio
+        estático el HTML es el mismo para todos, así que si el ícono
+        dependiera de JavaScript aparecería el equivocado durante un
+        instante en cada carga. Con la variante, el botón ya sale correcto
+        del primer pintado.
+
+        La etiqueta arranca genérica y theme-ui.ts la precisa a "cambiar a
+        modo oscuro/claro" apenas hidrata: sin JS el botón no hace nada,
+        pero tampoco miente sobre lo que haría.
+      */
+    }
+    <button
+      type="button"
+      data-theme-toggle
+      aria-label="Cambiar entre modo claro y oscuro"
+      title="Cambiar entre modo claro y oscuro"
+      class="flex h-9.5 w-9.5 shrink-0 cursor-pointer items-center justify-center border border-line bg-transparent transition-colors hover:bg-ink hover:text-cream"
+    >
+      {
+        /*
+          Los dos íconos van apilados en la misma celda de grid y se cruzan
+          con opacidad y giro, en vez de aparecer y desaparecer con `hidden`.
+          Un display:none corta seco justo en el elemento que el visitante
+          está mirando —es el que acaba de pulsar— y delataba el corte que el
+          resto de la página ya no tiene.
+
+          La duración sale del mismo token que el fundido general, así los dos
+          gestos terminan juntos.
+        */
+      }
+      <span class="grid place-items-center [&>*]:[grid-area:1/1]">
+        {/* Luna: en claro, el botón ofrece ir a oscuro. */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          class="opacity-100 transition-[opacity,transform] duration-(--theme-switch-duration) ease-out dark:-rotate-90 dark:opacity-0"
+        >
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+        </svg>
+
+        {/* Sol: en oscuro, ofrece volver a claro. */}
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          class="rotate-90 opacity-0 transition-[opacity,transform] duration-(--theme-switch-duration) ease-out dark:rotate-0 dark:opacity-100"
+        >
+          <circle cx="12" cy="12" r="4.2"></circle>
+          <path
+            d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"
+          ></path>
+        </svg>
+      </span>
+    </button>
+
+    {
+      /* Sigue siendo un enlace real a /carrito: cart-ui.ts intercepta el clic
+        para abrir el panel lateral solo cuando ese island ya está montado. Si
+        falla el JS, el enlace lleva a la página completa igual. */
+    }
+    <a
+      href="/carrito"
+      data-cart-open
+      class="flex items-center gap-2.5 border border-line px-4 py-2 text-[13px] font-bold no-underline transition-colors hover:bg-ink hover:text-cream"
+    >
+      Carrito
+      <span data-cart-count class="bg-coral px-[7px] py-px font-mono text-xs text-on-coral">0</span>
+    </a>
+  </div>
 </header>
