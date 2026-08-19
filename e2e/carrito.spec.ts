@@ -198,13 +198,13 @@ test.describe("Panel lateral del carrito", () => {
     await page.goto("/checkout");
     await waitForIslands(page);
 
-    await page.getByPlaceholder("Nombre y apellido").fill("Ada Lovelace");
-    await page.getByPlaceholder("RUT (12.345.678-9)").fill("12.345.678-9");
-    await page.getByPlaceholder("Correo electrónico").fill("ada@example.com");
-    await page.getByPlaceholder("Teléfono (+56 9)").fill("+56 9 1234 5678");
-    await page.getByRole("combobox").selectOption("Región Metropolitana");
-    await page.getByPlaceholder("Comuna").fill("Providencia");
-    await page.getByPlaceholder("Calle y número").fill("Av. Providencia 1234");
+    await page.getByLabel("Nombre y apellido", { exact: true }).fill("Ada Lovelace");
+    await page.getByLabel("RUT", { exact: true }).fill("123456785");
+    await page.getByLabel("Correo electrónico", { exact: true }).fill("ada@example.com");
+    await page.getByLabel(/^Teléfono/).fill("957243741");
+    await page.getByLabel("Región", { exact: true }).selectOption("Metropolitana de Santiago");
+    await page.getByLabel("Comuna", { exact: true }).selectOption("Providencia");
+    await page.getByLabel("Calle y número", { exact: true }).fill("Av. Providencia 1234");
 
     await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
 
