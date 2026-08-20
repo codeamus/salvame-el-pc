@@ -1,0 +1,298 @@
+---
+import LegalLayout, { type LegalSection } from "@/layouts/LegalLayout.astro";
+import Pendiente from "@/components/legal/Pendiente.astro";
+import { CONTACT, LEGAL, SITE } from "@/config/site";
+import { formatCLP } from "@/lib/format";
+import { FREE_SHIPPING_FROM_CLP, SHIPPING_COST_CLP } from "@/lib/cart-store";
+
+/**
+ * Términos y condiciones de venta.
+ *
+ * El contenido sigue la Ley 19.496 sobre protección de los derechos de los
+ * consumidores, con las modificaciones de la Ley 21.398 ("Pro Consumidor",
+ * vigente desde el 24 de marzo de 2022): garantía legal de 6 meses a
+ * elección del consumidor, derecho a retracto obligatorio en compras a
+ * distancia y deber de informar el precio total con despacho incluido.
+ *
+ * ⚠️ Es un documento redactado sobre la normativa vigente, NO una asesoría
+ * legal. Antes de publicar tiene que revisarlo un abogado y hay que
+ * completar los datos de LEGAL en config/site.ts.
+ *
+ * Los montos de despacho salen de cart-store.ts y no están escritos a mano:
+ * si mañana cambia el umbral de envío gratis, cambia en el carrito y en este
+ * documento a la vez. Que la letra chica contradiga al checkout es
+ * exactamente el tipo de incumplimiento que sanciona el SERNAC.
+ */
+
+const sections: readonly LegalSection[] = [
+  { id: "quienes-somos", title: "Quiénes somos" },
+  { id: "aceptacion", title: "Aceptación de estos términos" },
+  { id: "productos-precios", title: "Productos, precios y stock" },
+  { id: "compra", title: "Cómo se compra" },
+  { id: "pago", title: "Medios de pago" },
+  { id: "despacho", title: "Despacho y entrega" },
+  { id: "retracto", title: "Derecho a retracto" },
+  { id: "garantia", title: "Garantía legal" },
+  { id: "servicio-tecnico", title: "Servicio técnico" },
+  { id: "responsabilidad", title: "Responsabilidad" },
+  { id: "propiedad-intelectual", title: "Propiedad intelectual" },
+  { id: "cambios", title: "Cambios a estos términos" },
+  { id: "ley-aplicable", title: "Ley aplicable y reclamos" },
+];
+---
+
+<LegalLayout
+  title="Términos y condiciones"
+  description="Condiciones de venta de Sálvame el PC: precios, despacho, derecho a retracto, garantía legal y servicio técnico."
+  intro="Estas son las condiciones bajo las que vendemos en este sitio. Están escritas para que se entiendan: si algo no queda claro, escríbenos antes de comprar."
+  sections={sections}
+>
+  <h2 id="quienes-somos">Quiénes somos</h2>
+  <p>
+    Este sitio es operado por <Pendiente value={LEGAL.razonSocial} />, RUT <Pendiente
+      value={LEGAL.rut}
+    />, con domicilio en <Pendiente value={LEGAL.domicilio} />, en adelante «{SITE.name}»,
+    «nosotros» o «el proveedor».
+  </p>
+  <p>
+    Para cualquier consulta, reclamo o gestión relacionada con tu compra puedes escribirnos a
+    <Pendiente value={LEGAL.correoContacto} />, por WhatsApp al {CONTACT.whatsappDisplay} o desde nuestra{
+      " "
+    }
+    <a href="/contacto">página de contacto</a>.
+  </p>
+
+  <h2 id="aceptacion">Aceptación de estos términos</h2>
+  <p>
+    Al comprar en este sitio aceptas estas condiciones en la versión publicada al momento de tu
+    compra. Te recomendamos guardar una copia junto con el comprobante: es el respaldo de lo que
+    acordamos.
+  </p>
+  <p>
+    Estas condiciones no reemplazan ni limitan los derechos que te da la Ley N° 19.496 sobre
+    protección de los derechos de los consumidores. Si alguna cláusula la contradijera, manda la
+    ley. Y si una cláusula resultara ambigua, se interpreta a tu favor, como dispone la Ley N°
+    21.398.
+  </p>
+
+  <h2 id="productos-precios">Productos, precios y stock</h2>
+  <ul>
+    <li>
+      Todos los precios están expresados en <strong>pesos chilenos (CLP) e incluyen IVA</strong>.
+    </li>
+    <li>
+      Antes de pagar verás el <strong>precio total</strong>, con el costo de despacho incluido. No
+      agregamos cargos después de esa pantalla.
+    </li>
+    <li>
+      Publicamos solo productos con stock disponible. Si detectamos que un producto quedó sin stock
+      después de tu compra, te contactamos de inmediato y te devolvemos el total pagado.
+    </li>
+    <li>
+      Las fotografías son referenciales. Las características relevantes de cada producto —marca,
+      modelo y especificaciones— están en su ficha.
+    </li>
+    <li>
+      Un error evidente de precio (por ejemplo, un producto de $200.000 publicado en $200) no
+      constituye una oferta válida. En ese caso te avisamos y anulamos la compra con devolución
+      total, sin costo para ti.
+    </li>
+  </ul>
+
+  <h2 id="compra">Cómo se compra</h2>
+  <ol>
+    <li>Agregas productos al carrito y vas al checkout.</li>
+    <li>Eliges cómo quieres recibir el pedido y completas tus datos.</li>
+    <li>Pagas a través de Mercado Pago.</li>
+    <li>
+      Te enviamos por correo la <strong>confirmación escrita</strong> del pedido, con el detalle de lo
+      comprado, el precio total, la forma de entrega y estas condiciones.
+    </li>
+  </ol>
+  <p>
+    Esa confirmación no es un trámite: la ley nos obliga a enviarla. Si no la recibes, tu plazo para
+    retractarte se extiende de 10 a <strong>90 días corridos</strong>. Revisa tu carpeta de spam y,
+    si no está, escríbenos.
+  </p>
+  <p>
+    Para comprar necesitas ser mayor de 18 años y entregar datos verdaderos. Los datos que nos das
+    los tratamos según nuestra <a href="/politica-de-privacidad">política de privacidad</a>.
+  </p>
+
+  <h2 id="pago">Medios de pago</h2>
+  <p>
+    Los pagos se procesan a través de <strong>Mercado Pago</strong>, que admite tarjetas de crédito,
+    débito y otros medios habilitados por esa plataforma.
+  </p>
+  <p>
+    El pago ocurre en el entorno de Mercado Pago, no en este sitio:
+    <strong>no vemos ni almacenamos los datos de tu tarjeta</strong> en ningún momento. Nosotros solo
+    recibimos la confirmación de que el pago se aprobó.
+  </p>
+  <p>
+    Si desconoces un cargo hecho con tu tarjeta, además de avisarnos debes reclamarlo ante tu banco
+    o emisor, que es quien responde según la Ley N° 20.009.
+  </p>
+
+  <h2 id="despacho">Despacho y entrega</h2>
+  <p>Al momento de comprar eliges entre dos formas de recibir tu pedido:</p>
+  <ul>
+    <li>
+      <strong>Despacho a domicilio.</strong> Llevamos el pedido a la dirección que indiques. El costo
+      es de {formatCLP(SHIPPING_COST_CLP)} y es{" "}
+      <strong>gratis en compras iguales o superiores a {formatCLP(FREE_SHIPPING_FROM_CLP)}</strong>.
+      Despachamos a todo Chile.
+    </li>
+    <li>
+      <strong>Acordar entrega.</strong> Coordinamos contigo el punto y la hora de entrega. No tiene costo
+      de despacho.
+    </li>
+  </ul>
+  <p>
+    El plazo estimado de entrega se te informa antes de pagar y se repite en la confirmación del
+    pedido. Los plazos se cuentan en días hábiles desde que el pago queda aprobado.
+  </p>
+  <p>
+    Si nadie recibe el pedido en la dirección indicada, el transportista dejará aviso e intentará
+    una segunda entrega. Un tercer intento por dirección incorrecta o ausencia reiterada puede tener
+    un costo adicional, que te informaremos antes de cobrarlo.
+  </p>
+  <p>
+    Revisa el paquete al recibirlo. Si llega con daño visible, déjalo consignado con el
+    transportista y avísanos dentro de las 24 horas siguientes para resolverlo sin que tengas que
+    hacer nada más.
+  </p>
+
+  <h2 id="retracto">Derecho a retracto</h2>
+  <p>
+    Como compraste a distancia, tienes <strong
+      >10 días corridos desde que recibiste el producto</strong
+    >{" "}
+    para arrepentirte sin necesidad de dar explicaciones. Es un derecho que te da el artículo 3° bis de
+    la Ley N° 19.496 y que no te podemos quitar.
+  </p>
+  <p>Para ejercerlo:</p>
+  <ol>
+    <li>
+      Escríbenos a <Pendiente value={LEGAL.correoContacto} /> o por WhatsApp indicando tu número de pedido.
+      Basta con que digas que te retractas.
+    </li>
+    <li>
+      Devuelve el producto <strong>sin uso</strong>, completo, con sus accesorios y su embalaje
+      original en buen estado.
+    </li>
+    <li>
+      Te devolvemos el <strong>total pagado, sin descontar gastos</strong>, a la brevedad y siempre
+      dentro de los <strong>45 días</strong> siguientes a tu aviso, por el mismo medio con que pagaste.
+    </li>
+  </ol>
+  <p>
+    El costo de enviarnos el producto de vuelta es de tu cargo, salvo que la devolución se deba a un
+    problema nuestro (producto equivocado, defectuoso o dañado en el transporte): en ese caso lo
+    asumimos nosotros.
+  </p>
+  <p>
+    El retracto no se aplica a productos hechos a pedido según tus especificaciones, ni a servicios
+    ya prestados. Si un producto está excluido, te lo advertimos de forma destacada antes de que
+    pagues.
+  </p>
+
+  <h2 id="garantia">Garantía legal</h2>
+  <p>
+    Todos los productos tienen <strong>garantía legal de 6 meses</strong> contados desde que recibiste
+    el producto, según la Ley N° 19.496 modificada por la Ley N° 21.398.
+  </p>
+  <p>
+    Si el producto sale malo, no sirve para lo que se ofreció o no corresponde a lo que compraste,
+    <strong>tú eliges</strong> entre estas tres opciones —no las elegimos nosotros—:
+  </p>
+  <ul>
+    <li>el <strong>cambio</strong> por otro producto igual;</li>
+    <li>la <strong>reparación</strong> gratuita; o</li>
+    <li>la <strong>devolución</strong> de lo que pagaste.</li>
+  </ul>
+  <p>
+    Para hacerla efectiva basta con la boleta, factura o cualquier otro comprobante de la compra: no
+    exigimos el envase ni el embalaje original. Los costos de traslado del producto para hacer
+    efectiva la garantía son de nuestro cargo.
+  </p>
+  <p>
+    Además de la garantía legal, algunos productos tienen <strong>garantía del fabricante</strong>{
+      " "
+    }
+    por un plazo mayor. Esa garantía es adicional y no reemplaza la legal ni la limita; te indicamos en
+    la ficha cuando corresponde.
+  </p>
+  <p>
+    La garantía no cubre el desgaste normal por uso, ni daños por mal uso, golpes, líquidos,
+    alteraciones o reparaciones hechas por terceros no autorizados.
+  </p>
+
+  <h2 id="servicio-tecnico">Servicio técnico</h2>
+  <p>Para los trabajos de armado, reparación y mantención rigen además estas condiciones:</p>
+  <ul>
+    <li>
+      El diagnóstico tiene el valor publicado en la página de{" "}
+      <a href="/servicio-tecnico">servicio técnico</a> y se descuenta del valor final si aceptas la reparación.
+    </li>
+    <li>
+      Antes de intervenir tu equipo te entregamos un <strong>presupuesto</strong>. No hacemos ningún
+      trabajo que no hayas aprobado.
+    </li>
+    <li>
+      En la boleta del trabajo <strong>dejamos escrito el plazo por el que respondemos</strong> por esa
+      reparación, como exige el artículo 41 de la Ley N° 19.496.
+    </li>
+    <li>
+      Si el servicio quedó defectuoso, puedes reclamarlo dentro de{" "}
+      <strong>30 días hábiles</strong> desde que te entregamos el equipo reparado. Volvemos a prestarte
+      el servicio sin costo o te devolvemos lo que pagaste.
+    </li>
+    <li>
+      <strong>Respalda tu información antes de dejarnos el equipo.</strong> Hacemos todo lo posible por
+      conservarla, pero una reparación puede implicar formatear o reemplazar el disco, y no respondemos
+      por la pérdida de datos.
+    </li>
+    <li>
+      Los equipos deben retirarse dentro de los 30 días siguientes al aviso de que están listos.
+      Pasado ese plazo podemos cobrar bodegaje.
+    </li>
+  </ul>
+
+  <h2 id="responsabilidad">Responsabilidad</h2>
+  <p>
+    Respondemos por lo que la ley nos hace responsable: que el producto sea el ofrecido, que
+    funcione, que llegue y que la garantía se cumpla.
+  </p>
+  <p>
+    No respondemos por interrupciones del sitio por causas fuera de nuestro control, ni por el uso
+    que le des a un producto fuera de lo que indica su fabricante. Nada en esta sección limita los
+    derechos que te da la Ley N° 19.496.
+  </p>
+
+  <h2 id="propiedad-intelectual">Propiedad intelectual</h2>
+  <p>
+    La marca, el logo, los textos y el diseño de este sitio son de {SITE.name}. Las marcas y
+    fotografías de los productos pertenecen a sus respectivos fabricantes y se usan para
+    identificarlos.
+  </p>
+
+  <h2 id="cambios">Cambios a estos términos</h2>
+  <p>
+    Podemos actualizar estas condiciones. Los cambios rigen para las compras hechas{" "}
+    <strong>después</strong> de su publicación: la compra que ya hiciste se rige por la versión vigente
+    ese día. Arriba de esta página siempre está la fecha de la última actualización.
+  </p>
+
+  <h2 id="ley-aplicable">Ley aplicable y reclamos</h2>
+  <p>
+    Estas condiciones se rigen por la ley chilena. Cualquier controversia queda sometida a los
+    tribunales competentes según la Ley N° 19.496.
+  </p>
+  <p>
+    Si tienes un problema, escríbenos primero a <Pendiente value={LEGAL.correoContacto} />: lo más
+    probable es que lo resolvamos ahí mismo. Si no quedas conforme, puedes reclamar ante el{" "}
+    <strong>SERNAC</strong> en <a href="https://www.sernac.cl" rel="noopener">sernac.cl</a> o al 800 700
+    100.
+  </p>
+</LegalLayout>

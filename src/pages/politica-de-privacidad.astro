@@ -1,0 +1,255 @@
+---
+import LegalLayout, { type LegalSection } from "@/layouts/LegalLayout.astro";
+import Pendiente from "@/components/legal/Pendiente.astro";
+import { LEGAL, SITE } from "@/config/site";
+
+/**
+ * Política de privacidad.
+ *
+ * Escrita contra la Ley N° 21.719, que reemplaza a la Ley N° 19.628 y entra
+ * en vigencia el 1 de diciembre de 2026. Se redacta con el estándar nuevo
+ * —bases de licitud, derechos ARCOP, plazos de respuesta, notificación de
+ * brechas— y no con el viejo, porque faltan meses para esa fecha y no tiene
+ * sentido publicar un documento que nace obsoleto.
+ *
+ * ⚠️ Redactada sobre la normativa vigente, NO es asesoría legal. Antes de
+ * publicar tiene que revisarla un abogado y hay que completar LEGAL en
+ * config/site.ts.
+ *
+ * SOBRE LA SECCIÓN DE COOKIES: hoy este sitio NO usa cookies ni analítica ni
+ * píxeles de terceros. Lo único que guarda en el navegador es el carrito y
+ * la preferencia de tema, en localStorage. Por eso la política lo dice así y
+ * NO hay banner de consentimiento: un banner que pide permiso para
+ * seguimiento que no existe es tan incorrecto como no tenerlo cuando sí
+ * corresponde. Si mañana se agrega Google Analytics, Meta Pixel o similar,
+ * hay que actualizar esta sección Y agregar el banner con aceptar/rechazar
+ * en igualdad de condiciones.
+ */
+
+const sections: readonly LegalSection[] = [
+  { id: "responsable", title: "Quién trata tus datos" },
+  { id: "que-datos", title: "Qué datos recopilamos" },
+  { id: "para-que", title: "Para qué los usamos" },
+  { id: "con-quien", title: "Con quién los compartimos" },
+  { id: "cuanto-tiempo", title: "Cuánto tiempo los guardamos" },
+  { id: "tus-derechos", title: "Tus derechos" },
+  { id: "seguridad", title: "Seguridad" },
+  { id: "cookies", title: "Cookies y almacenamiento local" },
+  { id: "menores", title: "Menores de edad" },
+  { id: "cambios", title: "Cambios a esta política" },
+  { id: "reclamos", title: "Consultas y reclamos" },
+];
+---
+
+<LegalLayout
+  title="Política de privacidad"
+  description="Cómo Sálvame el PC recopila, usa y protege tus datos personales, y cómo puedes ejercer tus derechos."
+  intro="Qué datos tuyos guardamos, para qué los usamos y cómo puedes pedirnos que los corrijamos o los borremos. Sin letra chica escondida."
+  sections={sections}
+>
+  <h2 id="responsable">Quién trata tus datos</h2>
+  <p>
+    El responsable del tratamiento de tus datos personales es <Pendiente
+      value={LEGAL.razonSocial}
+    />, RUT <Pendiente value={LEGAL.rut} />, con domicilio en <Pendiente value={LEGAL.domicilio} />,
+    que opera este sitio bajo la marca «{SITE.name}».
+  </p>
+  <p>
+    Para cualquier tema relacionado con tus datos personales, escríbenos a
+    <Pendiente value={LEGAL.correoDatos} />.
+  </p>
+
+  <h2 id="que-datos">Qué datos recopilamos</h2>
+  <p>Solo pedimos lo que necesitamos para venderte y entregarte lo que compraste.</p>
+  <h3>Los que tú nos entregas</h3>
+  <ul>
+    <li>
+      <strong>Al comprar:</strong> nombre y apellido, RUT, correo electrónico y teléfono. Si eliges despacho
+      a domicilio, además tu región, comuna, calle y número. Si eliges acordar la entrega, no te pedimos
+      dirección.
+    </li>
+    <li>
+      <strong>Al escribirnos:</strong> nombre, correo y el contenido de tu mensaje.
+    </li>
+    <li>
+      <strong>Al dejar tu equipo en servicio técnico:</strong> tus datos de contacto y los del equipo.
+    </li>
+  </ul>
+  <h3>Los que se generan solos</h3>
+  <ul>
+    <li>
+      Registros técnicos del servidor (dirección IP, fecha y hora, navegador), que se generan por el
+      solo hecho de visitar cualquier sitio web y sirven para operarlo y detectar abusos.
+    </li>
+  </ul>
+  <p>
+    <strong>No pedimos datos sensibles</strong> —salud, origen étnico, situación socioeconómica, afiliación
+    política o sindical, entre otros— y te pedimos que no nos los envíes.
+  </p>
+  <p>
+    <strong>No guardamos datos de tu tarjeta.</strong> El pago ocurre dentro de Mercado Pago; el número,
+    la fecha de vencimiento y el código de seguridad nunca pasan por este sitio ni por nuestros servidores.
+  </p>
+
+  <h2 id="para-que">Para qué los usamos</h2>
+  <p>
+    Cada uso tiene una finalidad concreta y una base que lo permite. No usamos tus datos para nada
+    que no esté en esta lista.
+  </p>
+  <ul>
+    <li>
+      <strong>Procesar tu compra y entregártela</strong> — nombre, RUT, contacto y dirección.
+      <em>Base:</em> ejecución del contrato de compraventa que celebraste con nosotros.
+    </li>
+    <li>
+      <strong>Emitir la boleta o factura y llevar la contabilidad</strong> — nombre y RUT.
+      <em>Base:</em> cumplimiento de una obligación legal tributaria.
+    </li>
+    <li>
+      <strong>Responder tus consultas y reclamos, y atender la garantía</strong> — datos de contacto e
+      historial de tu compra. <em>Base:</em> ejecución del contrato y cumplimiento de la Ley N° 19.496.
+    </li>
+    <li>
+      <strong>Coordinar contigo la entrega</strong>, cuando elegiste acordarla — teléfono.
+      <em>Base:</em> ejecución del contrato.
+    </li>
+    <li>
+      <strong>Mantener el sitio seguro y funcionando</strong> — registros técnicos.
+      <em>Base:</em> interés legítimo en operar el servicio y prevenir fraudes.
+    </li>
+    <li>
+      <strong>Enviarte novedades u ofertas</strong>, solo si te suscribiste — correo.
+      <em>Base:</em> tu consentimiento, que puedes retirar cuando quieras desde el enlace de cualquiera
+      de esos correos.
+    </li>
+  </ul>
+  <p>
+    <strong>No vendemos tus datos</strong> ni los entregamos a terceros para que te hagan publicidad.
+  </p>
+
+  <h2 id="con-quien">Con quién los compartimos</h2>
+  <p>Compartimos lo mínimo, y solo con quienes necesitamos para que tu compra llegue a destino:</p>
+  <ul>
+    <li>
+      <strong>Mercado Pago</strong>, que procesa el pago. Ellos tratan tus datos de pago bajo su
+      propia política de privacidad.
+    </li>
+    <li>
+      <strong>La empresa de transporte</strong> que despacha tu pedido, cuando elegiste despacho a domicilio.
+      Recibe tu nombre, dirección y teléfono para poder entregarte.
+    </li>
+    <li>
+      <strong>Nuestros proveedores de infraestructura</strong> (alojamiento del sitio y correo), que actúan
+      como encargados y solo pueden tratar los datos siguiendo nuestras instrucciones.
+    </li>
+    <li>
+      <strong>Autoridades</strong>, cuando una ley o una resolución judicial nos obliga a
+      entregarlos.
+    </li>
+  </ul>
+  <p>
+    Algunos de estos proveedores tienen servidores fuera de Chile, por lo que puede haber
+    transferencia internacional de datos. En esos casos exigimos que ofrezcan un nivel de protección
+    equivalente al de la ley chilena.
+  </p>
+
+  <h2 id="cuanto-tiempo">Cuánto tiempo los guardamos</h2>
+  <ul>
+    <li>
+      <strong>Datos de compras:</strong> mientras dure la relación y, después, el plazo que exigen las
+      normas tributarias y de consumo para poder responder por la garantía y ante un eventual reclamo.
+    </li>
+    <li>
+      <strong>Consultas por contacto:</strong> hasta un año después de haberlas respondido.
+    </li>
+    <li>
+      <strong>Suscripción a novedades:</strong> hasta que te des de baja.
+    </li>
+    <li><strong>Registros técnicos:</strong> plazos acotados, del orden de meses.</li>
+  </ul>
+  <p>Cumplido el plazo, los eliminamos o los dejamos de forma que no permitan identificarte.</p>
+
+  <h2 id="tus-derechos">Tus derechos</h2>
+  <p>Sobre tus datos personales puedes ejercer, en cualquier momento y gratis:</p>
+  <ul>
+    <li><strong>Acceso:</strong> saber qué datos tuyos tenemos y qué hacemos con ellos.</li>
+    <li><strong>Rectificación:</strong> corregirlos si están errados o incompletos.</li>
+    <li><strong>Supresión:</strong> pedir que los borremos.</li>
+    <li><strong>Oposición:</strong> oponerte a un uso determinado.</li>
+    <li>
+      <strong>Portabilidad:</strong> pedir tus datos en un formato que puedas llevarte a otro lado.
+    </li>
+    <li><strong>Bloqueo:</strong> suspender temporalmente su uso.</li>
+  </ul>
+  <p>
+    Para ejercerlos escríbenos a <Pendiente value={LEGAL.correoDatos} /> indicando cuál quieres ejercer.
+    Podemos pedirte que acredites tu identidad, para no entregarle tus datos a otra persona.
+    <strong>Te respondemos dentro de 30 días corridos.</strong>
+  </p>
+  <p>
+    Algunos derechos tienen límites: no podemos borrar datos que una ley nos obliga a conservar —una
+    boleta, por ejemplo—. Si es el caso, te explicamos por qué.
+  </p>
+
+  <h2 id="seguridad">Seguridad</h2>
+  <p>
+    El sitio funciona sobre HTTPS, el acceso a los datos está restringido a quienes lo necesitan
+    para su trabajo, y el pago se delega en Mercado Pago justamente para no manipular datos de
+    tarjetas.
+  </p>
+  <p>
+    Ningún sistema es infalible. Si ocurre una vulneración de seguridad que afecte tus datos y pueda
+    perjudicarte, <strong>te lo informaremos</strong> y lo notificaremos a la autoridad dentro de las{
+      " "
+    }
+    <strong>72 horas</strong> siguientes a haberla detectado.
+  </p>
+
+  <h2 id="cookies">Cookies y almacenamiento local</h2>
+  <p>
+    <strong>Este sitio no usa cookies de seguimiento, analítica ni publicidad.</strong> No tenemos Google
+    Analytics, ni píxeles de redes sociales, ni herramientas que registren tu navegación.
+  </p>
+  <p>Lo único que guardamos en tu navegador son dos cosas, ambas técnicas:</p>
+  <ul>
+    <li>
+      <strong>Tu carrito</strong>, para que los productos sigan ahí si cierras la pestaña y vuelves.
+    </li>
+    <li><strong>Tu preferencia de tema</strong> (claro u oscuro), para respetar tu elección.</li>
+  </ul>
+  <p>
+    Las dos viven en el <em>almacenamiento local</em> de tu propio navegador, no viajan a nuestros servidores
+    y no permiten identificarte. Puedes borrarlas cuando quieras desde la configuración de tu navegador.
+    Por eso este sitio no te muestra un banner de cookies: no habría nada que consentir.
+  </p>
+  <p>
+    Si en el futuro incorporamos herramientas de analítica o publicidad, actualizaremos esta
+    política y te pediremos tu consentimiento antes de activarlas.
+  </p>
+
+  <h2 id="menores">Menores de edad</h2>
+  <p>
+    Este sitio está dirigido a mayores de 18 años y no recopilamos datos de menores a sabiendas. Si
+    detectamos que recibimos datos de un menor sin autorización de quien lo tiene a su cargo, los
+    eliminamos.
+  </p>
+
+  <h2 id="cambios">Cambios a esta política</h2>
+  <p>
+    Si cambiamos la forma en que tratamos tus datos, actualizamos esta página y su fecha. Cuando el
+    cambio sea relevante —una finalidad nueva, un destinatario nuevo— te avisaremos por correo si
+    tenemos cómo contactarte.
+  </p>
+
+  <h2 id="reclamos">Consultas y reclamos</h2>
+  <p>
+    Escríbenos a <Pendiente value={LEGAL.correoDatos} /> y lo resolvemos. Si no quedas conforme con nuestra
+    respuesta, puedes reclamar ante la <strong>Agencia de Protección de Datos Personales</strong>,
+    el organismo fiscalizador creado por la Ley N° 21.719, que comienza a operar con la entrada en
+    vigencia de esa ley el 1 de diciembre de 2026.
+  </p>
+  <p>
+    Si tu reclamo es sobre una compra y no sobre tus datos, revisa nuestros{" "}
+    <a href="/terminos-y-condiciones#ley-aplicable">términos y condiciones</a>.
+  </p>
+</LegalLayout>

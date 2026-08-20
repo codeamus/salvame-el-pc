@@ -36,8 +36,22 @@ const currentYear = new Date().getFullYear();
         >Ayuda</span
       >
       <a href="/contacto" class="text-on-invert/85 no-underline hover:text-coral">Contacto</a>
-      <span class="text-on-invert/85">Envíos y devoluciones</span>
-      <span class="text-on-invert/85">Garantías</span>
+      {
+        /* Deja de ser un <span> muerto: la sección de despacho de los
+          términos es exactamente lo que este enlace prometía. */
+      }
+      <a
+        href="/terminos-y-condiciones#despacho"
+        class="text-on-invert/85 no-underline hover:text-coral"
+      >
+        Envíos y devoluciones
+      </a>
+      <a href="/terminos-y-condiciones" class="text-on-invert/85 no-underline hover:text-coral">
+        Términos y condiciones
+      </a>
+      <a href="/politica-de-privacidad" class="text-on-invert/85 no-underline hover:text-coral">
+        Política de privacidad
+      </a>
     </nav>
 
     <nav aria-label="Redes sociales" class="flex flex-col gap-2.5 text-sm">

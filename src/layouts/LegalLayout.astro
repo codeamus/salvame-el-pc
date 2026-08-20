@@ -1,0 +1,103 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { LEGAL } from "@/config/site";
+
+/**
+ * Envoltorio de las páginas legales (términos y condiciones, política de
+ * privacidad).
+ *
+ * Existe porque las dos comparten forma: titular, fecha de última
+ * actualización, índice de secciones y una columna de texto larga. Que
+ * compartan layout no es solo ahorro de código — es lo que garantiza que
+ * ambas se vean como el mismo documento, que es exactamente lo que un
+ * visitante espera de la letra chica de un sitio.
+ *
+ * El índice se arma en la página y se pasa por prop en vez de leerse del
+ * HTML: los `id` de las secciones son enlaces permanentes (el footer apunta
+ * a #despacho, por ejemplo) y merecen declararse a mano, no salir de un
+ * slug generado que cambie al reescribir un título.
+ */
+
+export interface LegalSection {
+  readonly id: string;
+  readonly title: string;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  /** Bajada bajo el titular, en una frase. */
+  intro: string;
+  sections: readonly LegalSection[];
+}
+
+const { title, description, intro, sections } = Astro.props;
+
+const actualizado = new Date(`${LEGAL.actualizado}T12:00:00`).toLocaleDateString("es-CL", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="px-5 pt-12 pb-20 sm:px-10">
+    <h1
+      class="mb-3 max-w-[18ch] text-[clamp(34px,5vw,60px)] font-extrabold tracking-[-.04em] uppercase"
+    >
+      {title}<span class="text-coral">.</span>
+    </h1>
+    <p class="mb-2 max-w-[60ch] text-[15px] text-ink/70">{intro}</p>
+    <p class="font-mono text-xs text-muted">
+      última actualización · <time datetime={LEGAL.actualizado}>{actualizado}</time>
+    </p>
+
+    <div class="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-[15rem_1fr] lg:gap-14">
+      {
+        /* El índice queda pegado al scroll en pantallas grandes: son
+          documentos largos y saltar entre secciones es la forma real en que
+          se leen. En mobile va arriba, plegado en un <details>, para no
+          empujar el texto media pantalla hacia abajo. */
+      }
+      <nav aria-label="Secciones de este documento" class="lg:sticky lg:top-22">
+        <details class="border border-line lg:hidden" name="indice-legal">
+          <summary
+            class="cursor-pointer list-none px-4 py-3 font-mono text-[11px] tracking-[.14em] uppercase"
+          >
+            Índice ({sections.length} secciones)
+          </summary>
+          <ol class="flex flex-col gap-2 border-t border-line-soft px-4 py-3.5 text-[13px]">
+            {
+              sections.map((section) => (
+                <li>
+                  <a href={`#${section.id}`} class="no-underline hover:text-coral">
+                    {section.title}
+                  </a>
+                </li>
+              ))
+            }
+          </ol>
+        </details>
+
+        <ol class="hidden flex-col gap-2.5 border-l border-line pl-4 text-[13px] lg:flex">
+          {
+            sections.map((section, index) => (
+              <li class="flex gap-2.5">
+                <span class="font-mono text-[11px] text-coral" aria-hidden="true">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <a href={`#${section.id}`} class="no-underline hover:text-coral">
+                  {section.title}
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+
+      <article class="legal-prose">
+        <slot />
+      </article>
+    </div>
+  </div>
+</BaseLayout>

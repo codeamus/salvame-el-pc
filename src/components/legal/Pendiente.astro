@@ -1,0 +1,34 @@
+---
+import { esPendiente } from "@/config/site";
+
+/**
+ * Muestra un dato legal, marcándolo cuando todavía es un placeholder.
+ *
+ * La razón social, el RUT y el domicilio son obligatorios en un documento
+ * legal, y son justo los datos que el cliente aún no entregó. Un placeholder
+ * suelto en medio de un párrafo se lee como contenido real y se publica sin
+ * que nadie lo note; pintado en coral y en mono salta a la vista en la
+ * primera revisión.
+ *
+ * Cuando el valor real llega a config/site.ts, este componente deja de
+ * hacer nada y el texto se ve como el resto del párrafo. No hay que volver a
+ * tocar las páginas.
+ */
+
+interface Props {
+  value: string;
+}
+
+const { value } = Astro.props;
+const pendiente = esPendiente(value);
+---
+
+{
+  pendiente ? (
+    <span class="legal-pendiente" data-legal-pendiente>
+      {value}
+    </span>
+  ) : (
+    value
+  )
+}

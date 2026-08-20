@@ -389,6 +389,124 @@
     }
   }
 
+  /* ── Texto largo de las páginas legales ───────────────────────────────
+   * El sitio no tenía prosa corrida hasta ahora: todo era titular, chip o
+   * card. Estas reglas existen para que los términos y la política se lean
+   * de verdad —medida cómoda, jerarquía clara, interlínea alta— sin salirse
+   * del sistema: numeración mono, títulos en versalita, viñetas cuadradas
+   * coral (las mismas de las specs de producto) y cero border-radius.
+   */
+  .legal-prose {
+    max-width: 72ch;
+    font-size: 15px;
+    line-height: 1.75;
+    /* Numera las secciones sola: si mañana se agrega o se saca una, no hay
+     * que renumerar a mano y arriesgar un "07" repetido en un documento
+     * legal, que es justo donde un número mal puesto se nota. */
+    counter-reset: legal-section;
+  }
+
+  .legal-prose > h2 {
+    counter-increment: legal-section;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-line);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    scroll-margin-top: calc(var(--header-height) + 2rem);
+  }
+
+  .legal-prose > h2::before {
+    content: counter(legal-section, decimal-leading-zero);
+    display: block;
+    margin-bottom: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    color: var(--color-coral);
+  }
+
+  .legal-prose h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .legal-prose p {
+    margin-block: 0.9em;
+  }
+
+  .legal-prose ul,
+  .legal-prose ol {
+    margin-block: 0.9em;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .legal-prose li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-block: 0.45em;
+  }
+
+  /* Cuadrado coral, el mismo de las specs de la ficha de producto. */
+  .legal-prose ul > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 7px;
+    height: 7px;
+    background: var(--color-coral);
+  }
+
+  .legal-prose ol {
+    counter-reset: legal-item;
+  }
+
+  .legal-prose ol > li {
+    counter-increment: legal-item;
+  }
+
+  .legal-prose ol > li::before {
+    content: counter(legal-item) ".";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-coral);
+  }
+
+  .legal-prose a {
+    color: inherit;
+    text-decoration-color: var(--color-coral);
+    text-underline-offset: 3px;
+  }
+
+  .legal-prose a:hover {
+    color: var(--color-coral);
+  }
+
+  .legal-prose strong {
+    font-weight: 700;
+  }
+
+  /* Dato que todavía no entrega el cliente. Se pinta distinto para que no
+   * pase piola en una revisión: un placeholder en un documento legal no
+   * puede parecerse a contenido real. */
+  .legal-pendiente {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--color-coral);
+    white-space: nowrap;
+  }
+
   /* Hover de cards: levanta y deja sombra dura. */
   .hover-lift-coral {
     transition:
