@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { waitForIslands } from "./helpers";
+import { FAKE_INTENT_URL, stubPaymentGateway, waitForIslands } from "./helpers";
 
 const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711";
 
@@ -34,7 +34,7 @@ test.describe("Checkout", () => {
   test("no deja pagar con el formulario vacío", async ({ page }) => {
     await openCheckout(page);
 
-    await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
 
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByTestId("checkout-form-status")).toContainText("revisa 7 campos");
@@ -113,11 +113,15 @@ test.describe("Checkout", () => {
     await page.getByLabel("Correo electrónico", { exact: true }).fill("ana@gmail.com");
     await page.getByLabel(/^Teléfono/).fill("957243741");
 
-    await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
+    const requests = await stubPaymentGateway(page);
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
 
-    const dialog = page.getByRole("dialog", { name: /mercado pago/i });
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("$19.990");
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
+
+    // Sin despacho no hay dirección que mandar, y el envío no se cobra.
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.cliente.entrega).toBe("acordar");
+    expect(requests[0]?.cliente.direccion).toBeNull();
   });
 
   test("se puede elegir la forma de entrega solo con el teclado", async ({ page }) => {
@@ -130,21 +134,58 @@ test.describe("Checkout", () => {
     await expect(page.getByTestId("acordar-entrega-nota")).toBeVisible();
   });
 
-  test("con todos los datos válidos sale a Mercado Pago", async ({ page }) => {
+  test("con todos los datos válidos redirige a la pasarela", async ({ page }) => {
+    await openCheckout(page);
+    const requests = await stubPaymentGateway(page);
+    await fillCheckout(page);
+
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
+
+    // Redirección top-level, no un popup: un bloqueador mataría el popup.
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
+
+    // Lo que se manda al servidor son ids y cantidades. El precio se
+    // recalcula allá: si viajara desde el navegador, se podría editar.
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.items).toEqual([{ id: 1, quantity: 1 }]);
+    expect(JSON.stringify(requests[0]?.items)).not.toContain("19990");
+    expect(requests[0]?.cliente.telefono).toBe("+56957243741");
+  });
+
+  test("un doble clic en pagar abre un solo intento de pago", async ({ page }) => {
     await openCheckout(page);
     await fillCheckout(page);
 
-    await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
+    // La respuesta se demora a propósito: es la ventana en la que un
+    // comprador impaciente vuelve a hacer clic y termina pagando dos veces.
+    const requests: unknown[] = [];
+    await page.route("**/api/checkout", async (route) => {
+      requests.push(route.request().postData());
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ redirectUrl: FAKE_INTENT_URL, reference: "ORD-DOBLE" }),
+      });
+    });
+    await page.route("https://payment.haulmer.dev/**", async (route) => {
+      await route.fulfill({ status: 200, contentType: "text/html", body: "<html></html>" });
+    });
 
-    await expect(page.getByRole("dialog", { name: /mercado pago/i })).toBeVisible();
-    await expect(page.getByText(/serás redirigido para pagar/i)).toBeVisible();
+    const boton = page.getByTestId("checkout-submit");
+    await boton.click();
+    await expect(boton).toBeDisabled();
+    await boton.click({ force: true });
+
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
+    expect(requests).toHaveLength(1);
   });
 
   test("el checkout con el formulario en error no tiene violaciones de accesibilidad", async ({
     page,
   }) => {
     await openCheckout(page);
-    await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
     await expect(page.getByTestId("error-nombre")).toBeVisible();
 
     const conDespacho = await new AxeBuilder({ page })

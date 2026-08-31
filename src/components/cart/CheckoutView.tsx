@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useStore } from "@nanostores/react";
-import { $cart, $cartShipping, $cartSubtotal, clearCart } from "@/lib/cart-store";
+import { $cart, $cartShipping, $cartSubtotal } from "@/lib/cart-store";
 import { CHILE_REGIONS, communesOf } from "@/lib/chile-geo";
 import {
   ADDRESS_FIELDS,
@@ -21,13 +21,16 @@ import { formatCLP } from "@/lib/format";
 import { formatPhone, formatRut } from "@/lib/validation";
 
 /**
- * Checkout de despacho (paso 01) con salida a Mercado Pago (paso 02).
+ * Checkout de despacho (paso 01) con salida a TUU (paso 02).
  *
- * HOY el pago está simulado con el modal del prototipo: el sitio es estático
- * y no hay backend. Para conectar Checkout Pro de verdad hay que pasar Astro
- * a output server y crear un endpoint /api/checkout que arme la preference
- * con los items y redirija a init_point — este componente solo cambia el
- * handleSubmit para hacer ese POST con `toCheckoutPayload(form)`.
+ * El submit hace POST a /api/checkout con los ids del carrito y los datos ya
+ * normalizados, y redirige a la URL que devuelve la pasarela. Los PRECIOS no
+ * se mandan: el servidor los relee del catálogo y recalcula el total. Este
+ * componente muestra un total, pero el que se cobra es el del servidor.
+ *
+ * El carrito NO se vacía acá. Se vacía en /pago/exito cuando el callback
+ * firmado de TUU confirmó el pago: si se vaciara al redirigir, quien cancele
+ * o a quien le rechacen la tarjeta vuelve a un carrito vacío.
  *
  * La validación vive en @/lib/checkout-form (reglas y mensajes) y en
  * @/lib/validation (RUT módulo 11, teléfono chileno). Acá solo queda el
@@ -71,7 +74,11 @@ export default function CheckoutView() {
   const subtotal = useStore($cartSubtotal);
   const cartShipping = useStore($cartShipping);
 
-  const [paying, setPaying] = useState(false);
+  // `enviando` cubre desde el clic hasta que el navegador se va a la
+  // pasarela. Bloquea el botón: sin eso, un doble clic abre DOS intentos de
+  // pago con referencias distintas y el comprador puede pagar dos veces.
+  const [enviando, setEnviando] = useState(false);
+  const [errorPago, setErrorPago] = useState<string | null>(null);
   const [form, setForm] = useState<CheckoutForm>(EMPTY_CHECKOUT_FORM);
   const [errors, setErrors] = useState<CheckoutErrors>({});
 
@@ -132,8 +139,49 @@ export default function CheckoutView() {
     });
   }
 
+  async function iniciarPago(): Promise<void> {
+    setEnviando(true);
+    setErrorPago(null);
+
+    try {
+      const respuesta = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // Solo id y cantidad: el precio lo pone el servidor.
+          items: lines.map((line) => ({ id: line.productId, quantity: line.quantity })),
+          cliente: toCheckoutPayload(form),
+        }),
+      });
+
+      const datos = (await respuesta.json()) as {
+        redirectUrl?: string;
+        reference?: string;
+        error?: string;
+      };
+
+      if (!respuesta.ok || datos.redirectUrl === undefined) {
+        setErrorPago(datos.error ?? "No pudimos iniciar el pago. Inténtalo nuevamente.");
+        setEnviando(false);
+        return;
+      }
+
+      // Guardada por si vuelve sin el ?ref en la URL: la página de resultado
+      // la usa como respaldo para saber qué orden consultar.
+      sessionStorage.setItem("salvameelpc:ultima-orden", datos.reference ?? "");
+
+      // Redirección top-level, nunca un popup: los bloqueadores lo matan y el
+      // comprador se queda mirando una pantalla que no pasa nada.
+      window.location.href = datos.redirectUrl;
+    } catch {
+      setErrorPago("No pudimos conectar con la pasarela. Revisa tu conexión e inténtalo de nuevo.");
+      setEnviando(false);
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (enviando) return;
 
     const found = validateCheckout(form);
     setErrors(found);
@@ -144,15 +192,7 @@ export default function CheckoutView() {
       return;
     }
 
-    // Con backend: POST de toCheckoutPayload(form) a /api/checkout y redirect
-    // al init_point que devuelva Mercado Pago.
-    void toCheckoutPayload(form);
-    setPaying(true);
-  }
-
-  function handleClose(): void {
-    clearCart();
-    window.location.href = "/";
+    void iniciarPago();
   }
 
   /** Props comunes de cualquier control: estado de error, id y refs. */
@@ -175,7 +215,7 @@ export default function CheckoutView() {
 
   const errorCount = Object.keys(errors).length;
 
-  if (lines.length === 0 && !paying) {
+  if (lines.length === 0 && !enviando) {
     return (
       <div className="px-5 pt-12 pb-18 sm:px-10">
         <h1 className="mb-8 text-[clamp(36px,5vw,64px)] font-extrabold tracking-[-.04em] uppercase">
@@ -197,7 +237,7 @@ export default function CheckoutView() {
       <h1 className="mb-2 text-[clamp(36px,5vw,64px)] font-extrabold tracking-[-.04em] uppercase">
         Checkout
       </h1>
-      <p className="mb-8 font-mono text-xs text-muted">01 entrega → 02 pago en mercado pago</p>
+      <p className="mb-8 font-mono text-xs text-muted">01 entrega → 02 pago seguro con tuu</p>
 
       {/* noValidate: los mensajes del navegador (en inglés y sin estilo) se
           reemplazan por los nuestros, que además son específicos por regla. */}
@@ -466,8 +506,14 @@ export default function CheckoutView() {
             </span>
           </div>
 
-          <button type="submit" className="btn-primary px-6 py-4">
-            Pagar con Mercado Pago →
+          <button
+            type="submit"
+            disabled={enviando}
+            aria-busy={enviando}
+            data-testid="checkout-submit"
+            className="btn-primary px-6 py-4 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {enviando ? "Conectando con TUU…" : "Pagar con TUU →"}
           </button>
 
           {/* Resumen del estado del formulario: quien usa lector de pantalla
@@ -477,37 +523,37 @@ export default function CheckoutView() {
             data-testid="checkout-form-status"
             className={cn(
               "text-center font-mono text-[11px]",
-              errorCount > 0 ? "text-coral" : "text-muted",
+              errorCount > 0 || errorPago !== null ? "text-coral" : "text-muted",
             )}
           >
-            {errorCount > 0
-              ? `revisa ${errorCount} ${errorCount === 1 ? "campo" : "campos"} antes de pagar`
-              : "serás redirigido a mercado pago para completar el pago"}
+            {errorPago ??
+              (errorCount > 0
+                ? `revisa ${errorCount} ${errorCount === 1 ? "campo" : "campos"} antes de pagar`
+                : "serás redirigido a la pasarela de tuu para completar el pago")}
           </p>
         </aside>
       </form>
 
-      {/* Modal que simula la salida a Mercado Pago (igual al prototipo). */}
-      {paying && (
+      {/* Cortina mientras se abre el intento de pago y el navegador se va a
+          la pasarela. No lleva botón de cerrar a propósito: el intento ya
+          está en curso y volver atrás desde acá solo lleva a pagar dos veces. */}
+      {enviando && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Redirección a Mercado Pago"
+          aria-label="Redirigiendo a la pasarela de pago"
           className="fixed inset-0 z-200 flex items-center justify-center bg-scrim/75 p-6"
         >
           <div className="flex max-w-110 flex-col items-center gap-4 border border-line bg-cream px-12 py-11 text-center">
             <p className="font-mono text-[11px] tracking-[.14em] text-coral uppercase">
-              conectando con mercado pago…
+              conectando con tuu…
             </p>
             <p className="text-2xl font-extrabold tracking-[-.02em]">
-              Serás redirigido para pagar {formatCLP(total)}
+              Te estamos llevando a pagar {formatCLP(total)}
             </p>
             <p className="text-[13px] text-ink/65">
-              En el sitio real, aquí se abre el checkout de Mercado Pago con tu pedido ya cargado.
+              No cierres ni recargues esta ventana. En un momento se abre la pasarela.
             </p>
-            <button type="button" onClick={handleClose} className="btn-secondary px-7 py-3 text-sm">
-              Volver a la tienda
-            </button>
           </div>
         </div>
       )}

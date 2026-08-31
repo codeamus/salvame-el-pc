@@ -73,6 +73,16 @@ export function getProductBySlug(slug: string): Promise<Product | null> {
   return Promise.resolve(CATALOG.find((product) => product.slug === slug) ?? null);
 }
 
+/**
+ * Busca por id. Devuelve null si no existe (no lanza).
+ *
+ * Es la que usa /api/checkout para recalcular el precio en el servidor: el
+ * carrito viaja por la red con ids y cantidades, nunca con montos.
+ */
+export function getProductById(id: number): Promise<Product | null> {
+  return Promise.resolve(CATALOG.find((product) => product.id === id) ?? null);
+}
+
 /** Productos de la misma categoría, excluyendo al propio (para "Relacionados"). */
 export function getRelatedProducts(product: Product, limit = 3): Promise<readonly Product[]> {
   return Promise.resolve(

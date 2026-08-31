@@ -12,9 +12,20 @@ interface Props {
   description?: string;
   /** Ruta de imagen para compartir en redes (Open Graph). */
   ogImage?: string;
+  /**
+   * Saca la página de los buscadores. Para pantallas que solo tienen sentido
+   * dentro de un flujo (resultado de un pago, por ejemplo): indexarlas manda
+   * gente a una URL que sin su contexto no significa nada.
+   */
+  noindex?: boolean;
 }
 
-const { title, description = SITE.description, ogImage = "/og-default.png" } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  ogImage = "/og-default.png",
+  noindex = false,
+} = Astro.props;
 
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? SITE.url);
 const ogImageUrl = new URL(ogImage, Astro.site ?? SITE.url);
@@ -29,6 +40,7 @@ const fullTitle = `${title} · ${SITE.name}`;
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content={THEME_COLOR.light} />
     <meta name="generator" content={Astro.generator} />

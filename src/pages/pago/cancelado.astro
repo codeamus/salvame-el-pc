@@ -1,0 +1,51 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+/**
+ * El comprador canceló en la pasarela.
+ *
+ * A propósito NO se vacía el carrito: cancelar suele ser "me falta revisar
+ * algo", no "ya no quiero comprar". Que las cosas sigan ahí al volver es la
+ * diferencia entre retomar la compra y abandonarla.
+ */
+---
+
+<BaseLayout title="Pago cancelado" noindex>
+  <section
+    class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-5 px-5 py-24 text-center"
+  >
+    <p class="font-mono text-[13px] text-muted">[ pago cancelado ]</p>
+
+    <h1
+      class="text-[clamp(32px,5.5vw,64px)] leading-[.98] font-extrabold tracking-[-.04em] uppercase"
+    >
+      Cancelaste<br />el pago<span class="text-coral">.</span>
+    </h1>
+
+    <p class="max-w-md text-[15px] text-ink/70">
+      No se realizó ningún cargo y tu carrito sigue tal como lo dejaste.
+    </p>
+
+    <p class="font-mono text-xs text-muted" data-orden hidden>
+      orden <span class="text-ink" data-orden-ref></span>
+    </p>
+
+    <div class="mt-4 flex flex-wrap justify-center gap-4">
+      <a href="/checkout" class="btn-primary">Retomar el pago →</a>
+      <a href="/carrito" class="btn-secondary">Ver mi carrito</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const orden = document.querySelector<HTMLElement>("[data-orden]");
+  const ordenRef = document.querySelector<HTMLElement>("[data-orden-ref]");
+  // TUU manda x_reference en la redirección; `ref` queda como alternativa.
+  const params = new URLSearchParams(window.location.search);
+  const referencia = params.get("x_reference") ?? params.get("ref");
+
+  if (referencia !== null && referencia !== "" && orden && ordenRef) {
+    ordenRef.textContent = referencia;
+    orden.hidden = false;
+  }
+</script>

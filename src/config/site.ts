@@ -73,4 +73,4 @@ export function esPendiente(valor: string): boolean {
 }
 
 export const PROMO_TEXT =
-  "Envío gratis sobre $50.000 · Pago seguro con Mercado Pago · Despacho a todo Chile";
+  "Envío gratis sobre $50.000 · Pago seguro con TUU · Despacho a todo Chile";

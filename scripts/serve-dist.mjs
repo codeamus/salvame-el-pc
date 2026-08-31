@@ -1,5 +1,11 @@
 /**
- * Servidor estático mínimo para `dist/`, usado por los tests E2E.
+ * Servidor estático mínimo para el build, usado por los tests E2E.
+ *
+ * Sirve `.vercel/output/static` y no `dist/`: desde que el proyecto tiene el
+ * adapter de Vercel, el build deja ahí las páginas estáticas y manda las
+ * rutas con `prerender = false` a `.vercel/output/functions`. Este server no
+ * ejecuta funciones —los tests que necesitan /api/* interceptan la request
+ * con page.route()— pero sí sirve exactamente el HTML que se despliega.
  *
  * ¿Por qué no `astro preview`? Porque en Astro 7 se levanta como daemon: el
  * proceso en primer plano arranca el server y termina de inmediato. Playwright
@@ -13,7 +19,7 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 
-const DIST = resolve(process.cwd(), "dist");
+const DIST = resolve(process.cwd(), ".vercel", "output", "static");
 const PORT = Number(process.argv[2] ?? 4321);
 
 const CONTENT_TYPES = new Map([
@@ -49,10 +55,10 @@ async function readIfFile(filePath) {
   }
 }
 
-/** Resuelve una URL a un archivo dentro de dist/, evitando path traversal. */
+/** Resuelve una URL a un archivo dentro del build, evitando path traversal. */
 async function resolveFile(pathname) {
   const decoded = decodeURIComponent(pathname);
-  // normalize + startsWith: sin esto, "/../../etc/passwd" saldría de dist/.
+  // normalize + startsWith: sin esto, "/../../etc/passwd" saldría del build.
   const candidate = resolve(join(DIST, normalize(decoded)));
   if (candidate !== DIST && !candidate.startsWith(DIST + "/")) return null;
 
@@ -84,5 +90,5 @@ const server = createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Sirviendo dist/ en http://localhost:${String(PORT)}`);
+  console.log(`Sirviendo .vercel/output/static en http://localhost:${String(PORT)}`);
 });

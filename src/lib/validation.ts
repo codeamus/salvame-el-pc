@@ -165,6 +165,26 @@ export function isValidFullName(value: string): boolean {
   return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ']{2,}(?:[- ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ']{2,})+$/.test(trimmed);
 }
 
+/**
+ * Parte un nombre completo en nombre y apellido.
+ *
+ * Existe porque las pasarelas piden los dos campos por separado y el
+ * formulario captura uno solo — pedir "nombre" y "apellido" en inputs
+ * distintos es fricción innecesaria para el comprador.
+ *
+ * La primera palabra es el nombre y TODO el resto es el apellido: en Chile
+ * lo normal es tener dos apellidos, así que "Ana Soto Vera" tiene que salir
+ * como "Ana" + "Soto Vera" y no perder el segundo. Con una sola palabra el
+ * apellido queda vacío; `isValidFullName` ya impide que eso llegue acá desde
+ * el formulario, pero la función no puede asumirlo.
+ */
+export function splitFullName(value: string): { firstName: string; lastName: string } {
+  const parts = normalizeSpaces(value).split(" ");
+  const [firstName = "", ...rest] = parts;
+
+  return { firstName, lastName: rest.join(" ") };
+}
+
 /** Colapsa espacios múltiples y recorta: "  Ana   Soto " → "Ana Soto". */
 export function normalizeSpaces(value: string): string {
   return value.trim().replace(/\s+/g, " ");

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { waitForIslands } from "./helpers";
+import { FAKE_INTENT_URL, stubOrderStatus, stubPaymentGateway, waitForIslands } from "./helpers";
 
 const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711"; // $19.990
 
@@ -191,7 +191,8 @@ test.describe("Panel lateral del carrito", () => {
     await expect(trigger).toBeFocused();
   });
 
-  test("el checkout simula la salida a Mercado Pago y limpia el carrito", async ({ page }) => {
+  /** Deja un producto en el carrito y el checkout lleno y listo para pagar. */
+  async function llenarCheckout(page: Page): Promise<void> {
     await openProduct(page);
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
@@ -205,15 +206,49 @@ test.describe("Panel lateral del carrito", () => {
     await page.getByLabel("Región", { exact: true }).selectOption("Metropolitana de Santiago");
     await page.getByLabel("Comuna", { exact: true }).selectOption("Providencia");
     await page.getByLabel("Calle y número", { exact: true }).fill("Av. Providencia 1234");
+  }
 
-    await page.getByRole("button", { name: /pagar con mercado pago/i }).click();
+  test("al salir a la pasarela el carrito NO se vacía", async ({ page }) => {
+    await llenarCheckout(page);
+    await stubPaymentGateway(page);
 
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toContainText("Serás redirigido para pagar $23.980");
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
 
-    await dialog.getByRole("button", { name: "Volver a la tienda" }).click();
+    // Quien cancela o a quien le rechazan la tarjeta tiene que volver y
+    // encontrar sus cosas donde las dejó. Vaciar al redirigir pierde la venta.
+    await page.goto("/carrito");
+    await waitForIslands(page);
+    await expect(page.locator("[data-cart-count]")).toHaveText("1");
+  });
 
-    await expect(page).toHaveURL(/\/$/);
+  test("el carrito se vacía solo cuando el pago queda confirmado", async ({ page }) => {
+    await llenarCheckout(page);
+    await stubPaymentGateway(page);
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
+
+    // De vuelta desde la pasarela. El estado real lo escribe el callback
+    // firmado de TUU; esta página solo lo consulta.
+    await stubOrderStatus(page, "completed");
+    await page.goto("/pago/exito?ref=ORD-20260831-E2E00001");
+    await waitForIslands(page);
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/gracias/i);
     await expect(page.locator("[data-cart-count]")).toHaveText("0");
+  });
+
+  test("un pago rechazado no vacía el carrito", async ({ page }) => {
+    await llenarCheckout(page);
+    await stubPaymentGateway(page);
+    await page.getByRole("button", { name: /pagar con tuu/i }).click();
+    await expect(page).toHaveURL(FAKE_INTENT_URL);
+
+    await stubOrderStatus(page, "failed");
+    await page.goto("/pago/exito?ref=ORD-20260831-E2E00001");
+    await waitForIslands(page);
+
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/no se completó/i);
+    await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
 });

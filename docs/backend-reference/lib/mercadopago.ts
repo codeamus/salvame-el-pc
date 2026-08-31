@@ -1,3 +1,12 @@
+/**
+ * ⚠️ DESCARTADO — el proyecto integra TUU (Haulmer), no Mercado Pago.
+ *
+ * Se conserva solo como referencia del patrón. La integración vigente está en
+ * src/lib/tuu/ y documentada en docs/pagos-tuu.md.
+ *
+ * Ver docs/backend-reference/README.md.
+ */
+
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 
 const client = new MercadoPagoConfig({

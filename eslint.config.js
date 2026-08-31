@@ -9,6 +9,8 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      // Output del adapter de Vercel: HTML y JS ya compilado, no fuente.
+      ".vercel/**",
       ".astro/**",
       "node_modules/**",
       "coverage/**",
@@ -111,6 +113,16 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-call": "off",
+      "no-console": "off",
+    },
+  },
+
+  // Endpoints de pago: el log NO es debug, es el rastro de auditoría con el
+  // que se concilia contra TUU si aparece una diferencia en una transacción.
+  // Obligarlo a warn/error mezclaría operación normal con alertas reales.
+  {
+    files: ["src/pages/api/**/*.ts"],
+    rules: {
       "no-console": "off",
     },
   },

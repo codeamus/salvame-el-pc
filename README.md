@@ -1,6 +1,6 @@
 # Sálvame el PC
 
-Ecommerce de hardware y periféricos con servicio técnico (Santiago, Chile). **Esta fase es solo frontend**: sin backend, sin base de datos, sin pagos (la salida a Mercado Pago está simulada). El catálogo sale de `src/data/productos.json` y el sitio compila 100% estático.
+Ecommerce de hardware y periféricos con servicio técnico (Santiago, Chile). El catálogo sale de `src/data/productos.json` y el sitio compila estático; **sin base de datos todavía**. El checkout está conectado de verdad a la pasarela **TUU (Haulmer)**, hoy contra su ambiente de QA — ver [docs/pagos-tuu.md](docs/pagos-tuu.md).
 
 El diseño se implementa pixel-perfect desde el handoff de Claude Design — specs completas en [docs/design/handoff.md](docs/design/handoff.md): 7 pantallas (Home, Catálogo con filtros, Ficha de producto, Servicio técnico, Contacto, Carrito y Checkout), estética minimal/brutalista (Manrope + Space Mono, `border-radius: 0`, sombras duras) y View Transitions nativas de card → ficha.
 
@@ -9,6 +9,7 @@ El diseño se implementa pixel-perfect desde el handoff de Claude Design — spe
 | Capa        | Herramienta                   | Por qué                                                                    |
 | ----------- | ----------------------------- | -------------------------------------------------------------------------- |
 | Framework   | Astro 7 (`output: "static"`)  | HTML estático por defecto, JS solo donde hace falta                        |
+| Pagos       | TUU Pago Online (Haulmer)     | Solo 3 rutas serverless; el resto del sitio sigue en el CDN                |
 | Interacción | React 19 (islands)            | Solo el carrito se hidrata; el resto es HTML puro                          |
 | Estilos     | Tailwind v4 + tokens CSS      | Los tokens son la única fuente de verdad de la identidad visual            |
 | Estado      | nanostores + persistent       | Comparte el carrito entre islands aisladas y lo persiste en `localStorage` |
@@ -44,12 +45,15 @@ src/
 │   ├── tokens.css        ← ⭐ TODOS los colores, fuentes, radios y espaciados
 │   └── global.css        ← estilos base + accesibilidad
 ├── types/product.ts      ← tipos de dominio + reglas (stock, descuento, precio)
-├── data/products.ts      ← capa de datos (mock hoy, Supabase mañana)
+├── data/products.ts      ← capa de datos y FUENTE DE PRECIOS del servidor
 ├── config/site.ts        ← nombre, navegación, metadatos
 ├── lib/
 │   ├── cn.ts             ← merge de clases de Tailwind
 │   ├── format.ts         ← formato de precios CLP y unidades
-│   └── cart-store.ts     ← estado del carrito
+│   ├── cart-store.ts     ← estado del carrito (navegador)
+│   ├── order-rules.ts    ← envío y topes, compartidos servidor/navegador
+│   ├── orders/           ← cotización en el servidor + store de órdenes
+│   └── tuu/              ← firma HMAC, cliente y config de la pasarela
 ├── components/
 │   ├── ui/               ← primitivos genéricos (Button, Card, Badge, Price…)
 │   ├── brand/            ← Logo
@@ -57,9 +61,13 @@ src/
 │   ├── product/          ← ProductCard, ProductGrid, SpecList, StockBadge
 │   └── cart/             ← islands de React (los únicos con JS en el cliente)
 ├── layouts/BaseLayout.astro
-└── pages/                ← rutas del sitio
+└── pages/                ← rutas del sitio (estáticas salvo las de api/)
+    ├── api/              ← las ÚNICAS rutas serverless: el flujo de pago
+    └── pago/             ← resultado del pago (éxito / cancelado)
+
 e2e/                      ← tests de Playwright
-docs/backend-reference/   ← código de backend de la fase anterior (fuera del build)
+docs/pagos-tuu.md         ← integración de pagos: flujo, firma y paso a producción
+docs/backend-reference/   ← código de referencia parkeado (fuera del build)
 brand/                    ← logos generados
 ```
 

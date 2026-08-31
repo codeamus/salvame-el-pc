@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CheckoutView from "@/components/cart/CheckoutView";
 import { addToCart, clearCart } from "@/lib/cart-store";
 import { priceCLP, type Product } from "@/types/product";
@@ -72,7 +72,7 @@ describe("CheckoutView", () => {
     const user = userEvent.setup();
     render(<CheckoutView />);
 
-    await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+    await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("error-nombre")).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("CheckoutView", () => {
     const user = userEvent.setup();
     render(<CheckoutView />);
 
-    await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+    await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
 
     expect(screen.getByLabelText("Nombre y apellido")).toHaveFocus();
   });
@@ -256,15 +256,125 @@ describe("CheckoutView", () => {
     expect(screen.queryByTestId("error-referencia")).not.toBeInTheDocument();
   });
 
-  it("con todo válido abre la salida a Mercado Pago", async () => {
-    const user = userEvent.setup();
-    render(<CheckoutView />);
+  describe("salida a la pasarela", () => {
+    /**
+     * jsdom no navega, así que window.location se reemplaza por un objeto
+     * plano: es la única forma de comprobar A DÓNDE se manda al comprador,
+     * que es justamente lo que no puede fallar en un flujo de pago.
+     */
+    let location: { href: string };
 
-    await fillForm(user);
-    await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+    beforeEach(() => {
+      location = { href: "" };
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: location,
+        writable: true,
+      });
+    });
 
-    expect(screen.getByRole("dialog", { name: /mercado pago/i })).toBeInTheDocument();
-    expect(screen.getByText(/serás redirigido para pagar/i)).toBeInTheDocument();
+    afterEach(() => {
+      vi.restoreAllMocks();
+      sessionStorage.clear();
+    });
+
+    function mockCheckout(respuesta: unknown, ok = true): ReturnType<typeof vi.fn> {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok,
+        json: () => Promise.resolve(respuesta),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      return fetchMock;
+    }
+
+    it("manda al servidor solo ids y cantidades, nunca precios", async () => {
+      const user = userEvent.setup();
+      const fetchMock = mockCheckout({
+        redirectUrl: "https://payment.haulmer.dev/secure/payment-intent/abc123",
+        reference: "ORD-20260831-A1B2C3D4",
+      });
+
+      render(<CheckoutView />);
+      await fillForm(user);
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledOnce();
+      });
+
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("/api/checkout");
+
+      const body = JSON.parse(init.body as string) as {
+        items: { id: number; quantity: number }[];
+        cliente: { correo: string; telefono: string };
+      };
+
+      // El precio no viaja: si viajara, alguien podría editarlo antes de salir.
+      expect(body.items).toEqual([{ id: 1, quantity: 1 }]);
+      expect(JSON.stringify(body.items)).not.toContain("19990");
+
+      // Los datos van normalizados, no crudos del input.
+      expect(body.cliente.correo).toBe("ana@gmail.com");
+      expect(body.cliente.telefono).toBe("+56957243741");
+    });
+
+    it("redirige a la URL que devuelve la pasarela y guarda la referencia", async () => {
+      const user = userEvent.setup();
+      mockCheckout({
+        redirectUrl: "https://payment.haulmer.dev/secure/payment-intent/abc123",
+        reference: "ORD-20260831-A1B2C3D4",
+      });
+
+      render(<CheckoutView />);
+      await fillForm(user);
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
+
+      await waitFor(() => {
+        expect(location.href).toBe("https://payment.haulmer.dev/secure/payment-intent/abc123");
+      });
+
+      // Respaldo por si el comprador vuelve sin el ?ref en la URL.
+      expect(sessionStorage.getItem("salvameelpc:ultima-orden")).toBe("ORD-20260831-A1B2C3D4");
+    });
+
+    it("muestra el error del servidor y no redirige", async () => {
+      const user = userEvent.setup();
+      mockCheckout({ error: "Uno de los productos ya no está disponible." }, false);
+
+      render(<CheckoutView />);
+      await fillForm(user);
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("checkout-form-status")).toHaveTextContent(
+          /ya no está disponible/i,
+        );
+      });
+
+      expect(location.href).toBe("");
+      // El botón vuelve a estar disponible: el comprador tiene que poder reintentar.
+      expect(screen.getByRole("button", { name: /pagar con tuu/i })).toBeEnabled();
+    });
+
+    it("bloquea el botón mientras se abre el intento, para no pagar dos veces", async () => {
+      const user = userEvent.setup();
+
+      // Un fetch que nunca resuelve deja el componente congelado en pleno envío.
+      vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise<never>(() => undefined)));
+
+      render(<CheckoutView />);
+      await fillForm(user);
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("checkout-submit")).toBeDisabled();
+      });
+
+      expect(
+        screen.getByRole("dialog", { name: /redirigiendo a la pasarela/i }),
+      ).toBeInTheDocument();
+    });
   });
 
   describe("forma de entrega", () => {
@@ -305,9 +415,26 @@ describe("CheckoutView", () => {
       await user.type(screen.getByLabelText("RUT"), "123456785");
       await user.type(screen.getByLabelText("Correo electrónico"), "ana@gmail.com");
       await user.type(screen.getByLabelText(/^Teléfono/), "957243741");
-      await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
 
-      expect(screen.getByRole("dialog", { name: /mercado pago/i })).toBeInTheDocument();
+      // Sin dirección que llenar, el formulario ya está listo para pagar: el
+      // submit sale al servidor en vez de quedarse marcando errores.
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ redirectUrl: "https://ejemplo.test/pagar", reference: "X" }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledOnce();
+      });
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(init.body as string) as { cliente: { direccion: unknown } };
+      expect(body.cliente.direccion).toBeNull();
+
+      vi.unstubAllGlobals();
     });
 
     it("con entrega a acordar igual exige los datos de contacto", async () => {
@@ -315,7 +442,7 @@ describe("CheckoutView", () => {
       render(<CheckoutView />);
 
       await user.click(screen.getByRole("radio", { name: /acordar entrega/i }));
-      await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(screen.getByTestId("checkout-form-status")).toHaveTextContent("revisa 4 campos");
@@ -325,7 +452,7 @@ describe("CheckoutView", () => {
       const user = userEvent.setup();
       render(<CheckoutView />);
 
-      await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+      await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
       expect(screen.getByTestId("error-region")).toBeInTheDocument();
 
       await user.click(screen.getByRole("radio", { name: /acordar entrega/i }));
@@ -352,7 +479,7 @@ describe("CheckoutView", () => {
 
     await fillForm(user);
     await user.selectOptions(screen.getByLabelText("Región"), "Coquimbo");
-    await user.click(screen.getByRole("button", { name: /pagar con mercado pago/i }));
+    await user.click(screen.getByRole("button", { name: /pagar con tuu/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("error-comuna")).toBeInTheDocument();

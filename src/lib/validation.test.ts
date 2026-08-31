@@ -13,6 +13,7 @@ import {
   isValidRut,
   isValidStreetAddress,
   normalizeSpaces,
+  splitFullName,
   toE164Phone,
 } from "@/lib/validation";
 
@@ -254,5 +255,36 @@ describe("isValidStreetAddress", () => {
   it("rechaza direcciones demasiado cortas o largas", () => {
     expect(isValidStreetAddress("A 1")).toBe(false);
     expect(isValidStreetAddress(`${"Calle ".repeat(30)}123`)).toBe(false);
+  });
+});
+
+describe("splitFullName", () => {
+  it("separa nombre y apellido", () => {
+    expect(splitFullName("Ana Soto")).toEqual({ firstName: "Ana", lastName: "Soto" });
+  });
+
+  it("con dos apellidos no pierde el segundo", () => {
+    // En Chile lo normal son dos apellidos: cortar en la segunda palabra
+    // dejaría el nombre incompleto en la pasarela y en la boleta.
+    expect(splitFullName("Ana Soto Vera")).toEqual({ firstName: "Ana", lastName: "Soto Vera" });
+  });
+
+  it("con nombre compuesto manda la primera palabra como nombre", () => {
+    expect(splitFullName("Juan Pablo Soto")).toEqual({
+      firstName: "Juan",
+      lastName: "Pablo Soto",
+    });
+  });
+
+  it("colapsa espacios de más", () => {
+    expect(splitFullName("  Ana   Soto  ")).toEqual({ firstName: "Ana", lastName: "Soto" });
+  });
+
+  it("con una sola palabra deja el apellido vacío en vez de reventar", () => {
+    expect(splitFullName("Ana")).toEqual({ firstName: "Ana", lastName: "" });
+  });
+
+  it("con string vacío devuelve ambos vacíos", () => {
+    expect(splitFullName("")).toEqual({ firstName: "", lastName: "" });
   });
 });

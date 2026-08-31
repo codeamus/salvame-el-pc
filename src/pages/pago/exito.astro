@@ -1,0 +1,207 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+/**
+ * Resultado del pago.
+ *
+ * Esta página NO decide nada. Llegar acá solo significa que la pasarela
+ * devolvió al comprador al sitio — cualquiera puede escribir la URL a mano.
+ * El estado real lo escribe /api/tuu/callback, que viene firmado por TUU, y
+ * acá se consulta con un polling corto contra /api/orders/[reference].
+ *
+ * Se queda estática (sin prerender: false) y lee la referencia desde
+ * location.search en el cliente: no hay nada que renderizar en el servidor
+ * que el script no necesite pedir igual, así que no vale una función.
+ */
+---
+
+<BaseLayout title="Resultado del pago" noindex>
+  <section
+    class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-5 px-5 py-24 text-center"
+    data-pago-resultado
+  >
+    <p class="font-mono text-[13px] text-muted" data-estado-label>[ verificando pago… ]</p>
+
+    <h1
+      class="text-[clamp(32px,5.5vw,64px)] leading-[.98] font-extrabold tracking-[-.04em] uppercase"
+      data-estado-titulo
+    >
+      Confirmando<br />tu pago<span class="text-coral">…</span>
+    </h1>
+
+    <p class="max-w-md text-[15px] text-ink/70" data-estado-detalle>
+      Estamos esperando la confirmación de la pasarela. No cierres esta ventana.
+    </p>
+
+    <p class="font-mono text-xs text-muted" data-orden hidden>
+      orden <span class="text-ink" data-orden-ref></span>
+    </p>
+
+    {/* Las acciones cambian según el resultado: ver ACCIONES en el script. */}
+    <div class="mt-4 flex flex-wrap justify-center gap-4" data-acciones>
+      <a href="/tienda" class="btn-primary">Seguir comprando →</a>
+      <a href="/contacto" class="btn-secondary">Contactar soporte</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { clearCart } from "@/lib/cart-store";
+
+  /**
+   * Consulta el estado real de la orden.
+   *
+   * El callback de TUU puede tardar unos segundos en llegar, así que se
+   * reintenta un rato en vez de mostrar "no encontramos tu orden" al toque:
+   * ver eso justo después de pagar es exactamente el momento en que un
+   * comprador entra en pánico y paga dos veces.
+   */
+  const INTENTOS = 10;
+  const ESPERA_MS = 2000;
+
+  type Estado = "pending" | "completed" | "failed" | "unknown";
+
+  const TEXTOS: Record<Estado, { label: string; titulo: string; detalle: string }> = {
+    pending: {
+      label: "[ verificando pago… ]",
+      titulo: "Confirmando<br />tu pago<span class='text-coral'>…</span>",
+      detalle: "Estamos esperando la confirmación de la pasarela. No cierres esta ventana.",
+    },
+    completed: {
+      label: "[ pago confirmado ]",
+      titulo: "¡Gracias<br />por tu compra<span class='text-coral'>!</span>",
+      detalle:
+        "Tu pago quedó confirmado. Te enviamos el detalle a tu correo y te escribimos para coordinar la entrega.",
+    },
+    failed: {
+      label: "[ pago rechazado ]",
+      titulo: "El pago<br />no se completó<span class='text-coral'>.</span>",
+      detalle:
+        "No se realizó ningún cargo. Puedes intentar de nuevo con otro medio de pago; tu carrito sigue disponible.",
+    },
+    unknown: {
+      label: "[ orden no encontrada ]",
+      titulo: "No encontramos<br />esta orden<span class='text-coral'>.</span>",
+      detalle:
+        "Si acabas de pagar, escríbenos con el número de orden y lo revisamos. No vuelvas a pagar antes de hablar con nosotros.",
+    },
+  };
+
+  /**
+   * Qué puede hacer el comprador según cómo terminó el pago.
+   *
+   * No es decoración: después de un rechazo, mandarlo a "seguir comprando"
+   * es perder la venta que ya casi estaba hecha. La acción principal tiene
+   * que ser retomar el pago, con el carrito intacto esperándolo.
+   */
+  const ACCIONES: Record<Estado, { href: string; label: string; primaria: boolean }[]> = {
+    pending: [
+      { href: "/tienda", label: "Seguir comprando →", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
+    ],
+    completed: [
+      { href: "/tienda", label: "Seguir comprando →", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
+    ],
+    failed: [
+      { href: "/checkout", label: "Reintentar el pago →", primaria: true },
+      { href: "/carrito", label: "Ver mi carrito", primaria: false },
+    ],
+    unknown: [
+      { href: "/contacto", label: "Contactar soporte →", primaria: true },
+      { href: "/", label: "Ir al inicio", primaria: false },
+    ],
+  };
+
+  const seccion = document.querySelector<HTMLElement>("[data-pago-resultado]");
+
+  if (seccion) {
+    const label = seccion.querySelector<HTMLElement>("[data-estado-label]");
+    const titulo = seccion.querySelector<HTMLElement>("[data-estado-titulo]");
+    const detalle = seccion.querySelector<HTMLElement>("[data-estado-detalle]");
+    const orden = seccion.querySelector<HTMLElement>("[data-orden]");
+    const ordenRef = seccion.querySelector<HTMLElement>("[data-orden-ref]");
+
+    // `x_reference` es el parámetro que manda TUU en la redirección y es la
+    // fuente preferida. `ref` queda como alternativa por si se llega desde un
+    // enlace propio, y el sessionStorage como último respaldo para quien
+    // vuelva sin query params (botón atrás, o la pasarela recortó la URL).
+    //
+    // Estos valores son informativos: no definen el estado de la orden, solo
+    // dicen POR CUÁL preguntar. La verdad la escribe el callback firmado.
+    const params = new URLSearchParams(window.location.search);
+    const referencia =
+      params.get("x_reference") ??
+      params.get("ref") ??
+      sessionStorage.getItem("salvameelpc:ultima-orden") ??
+      "";
+
+    if (referencia !== "" && orden && ordenRef) {
+      ordenRef.textContent = referencia;
+      orden.hidden = false;
+    }
+
+    const acciones = seccion.querySelector<HTMLElement>("[data-acciones]");
+
+    function pintar(estado: Estado): void {
+      const texto = TEXTOS[estado];
+      if (label) label.textContent = texto.label;
+      if (titulo) titulo.innerHTML = texto.titulo;
+      if (detalle) detalle.textContent = texto.detalle;
+
+      if (acciones) {
+        acciones.replaceChildren(
+          ...ACCIONES[estado].map((accion) => {
+            const enlace = document.createElement("a");
+            enlace.href = accion.href;
+            enlace.className = accion.primaria ? "btn-primary" : "btn-secondary";
+            enlace.textContent = accion.label;
+            return enlace;
+          }),
+        );
+      }
+    }
+
+    async function consultar(intentosRestantes: number): Promise<void> {
+      if (referencia === "") {
+        pintar("unknown");
+        return;
+      }
+
+      let estado: Estado = "unknown";
+
+      try {
+        const respuesta = await fetch(`/api/orders/${encodeURIComponent(referencia)}`);
+        const datos = (await respuesta.json()) as { status?: string };
+        if (
+          datos.status === "pending" ||
+          datos.status === "completed" ||
+          datos.status === "failed"
+        ) {
+          estado = datos.status;
+        }
+      } catch {
+        // Un fallo de red no es un resultado: se reintenta como si estuviera
+        // pendiente en vez de decirle al comprador que su orden no existe.
+        estado = "pending";
+      }
+
+      if (estado === "pending" && intentosRestantes > 0) {
+        pintar("pending");
+        window.setTimeout(() => void consultar(intentosRestantes - 1), ESPERA_MS);
+        return;
+      }
+
+      pintar(estado);
+
+      // El carrito se vacía SOLO con el pago confirmado. Vaciarlo antes deja
+      // sin nada a quien canceló o a quien se le rechazó la tarjeta.
+      if (estado === "completed") {
+        clearCart();
+        sessionStorage.removeItem("salvameelpc:ultima-orden");
+      }
+    }
+
+    void consultar(INTENTOS);
+  }
+</script>

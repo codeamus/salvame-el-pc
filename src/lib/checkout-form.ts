@@ -199,6 +199,49 @@ export function toCheckoutPayload(form: CheckoutForm): CheckoutPayload {
 }
 
 /**
+ * Valida en el SERVIDOR lo que llegó por la red, reusando exactamente las
+ * mismas reglas que el formulario.
+ *
+ * No reimplementa nada: reconstruye un CheckoutForm a partir del payload y
+ * lo pasa por `validateCheckout`. La validación del navegador es una
+ * cortesía para el usuario y se puede saltar con un fetch a mano, así que
+ * el endpoint tiene que volver a preguntar — pero preguntando lo mismo, o
+ * las dos versiones se desincronizan a la primera regla que cambie.
+ */
+export function parseCheckoutPayload(
+  value: unknown,
+): { ok: true; payload: CheckoutPayload } | { ok: false; errors: CheckoutErrors } {
+  if (typeof value !== "object" || value === null) {
+    return { ok: false, errors: { entrega: "Faltan los datos del comprador." } };
+  }
+
+  const raw = value as Record<string, unknown>;
+  const text = (field: unknown): string => (typeof field === "string" ? field : "");
+
+  const direccion =
+    typeof raw.direccion === "object" && raw.direccion !== null
+      ? (raw.direccion as Record<string, unknown>)
+      : {};
+
+  const form: CheckoutForm = {
+    entrega: text(raw.entrega) as DeliveryMethod,
+    nombre: text(raw.nombre),
+    rut: text(raw.rut),
+    correo: text(raw.correo),
+    telefono: text(raw.telefono),
+    region: text(direccion.region),
+    comuna: text(direccion.comuna),
+    calle: text(direccion.calle),
+    referencia: text(direccion.referencia),
+  };
+
+  const errors = validateCheckout(form);
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+
+  return { ok: true, payload: toCheckoutPayload(form) };
+}
+
+/**
  * Costo de envío según la forma de entrega. Acordar la entrega no cuesta:
  * el punto se define en conjunto, no hay repartidor de por medio.
  */
