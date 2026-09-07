@@ -6,3 +6,6 @@ playwright-report/
 test-results/
 pnpm-lock.yaml
 docs/backend-reference/
+
+# material de marca generado por `pnpm brand:assets`
+brand/print/

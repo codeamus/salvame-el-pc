@@ -113,6 +113,10 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-call": "off",
+      // Los scripts arman HTML y CSS interpolando números y strings sueltos;
+      // sin tipos publicados, la regla no puede distinguirlo de un error real.
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/restrict-template-expressions": "off",
       "no-console": "off",
     },
   },
