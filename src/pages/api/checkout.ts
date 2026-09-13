@@ -23,6 +23,20 @@ const json = (data: unknown, status = 200): Response =>
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 
+/**
+ * Mensaje legible de un error, para el log del servidor.
+ *
+ * `console.error("algo", { error })` con un Error adentro es una trampa: casi
+ * todo pipeline de logs lo pasa por JSON.stringify, y un Error serializa como
+ * `{}` porque `message` y `stack` no son enumerables. El resultado es un log
+ * que dice exactamente nada justo cuando más falta hace — que es lo que pasó
+ * depurando el 502 en Vercel.
+ */
+function describeError(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const body: unknown = await request.json().catch(() => null);
   if (typeof body !== "object" || body === null) {
@@ -74,7 +88,7 @@ export const POST: APIRoute = async ({ request }) => {
     // de cuál de los tres pasos del checkout reventó. El detalle real va al
     // log del servidor —puede traer nombres de variables y URLs— y al
     // comprador se le dice algo accionable.
-    console.error("[checkout] no se pudo guardar la orden", { reference, error });
+    console.error(`[checkout] no se pudo guardar la orden ${reference}: ${describeError(error)}`);
     return json(
       { error: "No pudimos registrar tu pedido. Inténtalo nuevamente en unos minutos." },
       503,
@@ -98,7 +112,9 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (error) {
     // El detalle real va al log del servidor: puede traer pistas de la firma
     // o de las credenciales, y eso no se le muestra al comprador.
-    console.error("[checkout] no se pudo crear el intento de pago", { reference, error });
+    console.error(
+      `[checkout] no se pudo crear el intento de pago ${reference}: ${describeError(error)}`,
+    );
     return json({ error: "No pudimos iniciar el pago. Inténtalo nuevamente." }, 502);
   }
 };
