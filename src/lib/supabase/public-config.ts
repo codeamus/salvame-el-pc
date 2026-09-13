@@ -14,30 +14,16 @@ import type { SupabaseBrowserConfig } from "./browser";
  * protege los datos con ella es el RLS de supabase/schema.sql.
  */
 
-/**
- * Acceso ESTÁTICO a import.meta.env, una variable por línea.
- *
- * Vite reemplaza la expresión literal en tiempo de build; un acceso dinámico
- * no se reemplaza nunca y devuelve undefined para toda variable sin prefijo
- * PUBLIC_. Mismo patrón que src/lib/tuu/env.ts y src/lib/supabase/server.ts.
- */
-const STATIC_ENV: Readonly<Record<string, string | undefined>> = {
-  SUPABASE_URL: import.meta.env.SUPABASE_URL,
-  SUPABASE_ANON_KEY: import.meta.env.SUPABASE_ANON_KEY,
-};
-
 function required(name: string): string {
-  const fromProcess = typeof process === "undefined" ? undefined : process.env[name];
-  if (fromProcess !== undefined && fromProcess !== "") return fromProcess;
-
-  const fromMeta = STATIC_ENV[name];
-  if (fromMeta !== undefined && fromMeta !== "") return fromMeta;
-
-  throw new Error(
-    `[supabase] Falta la variable de entorno ${name}. ` +
-      `Sin ella el panel de administración no puede autenticar a nadie. ` +
-      `Revisa .env en local o el environment del deploy en Vercel.`,
-  );
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    throw new Error(
+      `[supabase] Falta la variable de entorno ${name}. ` +
+        `Sin ella el panel de administración no puede autenticar a nadie. ` +
+        `Revisa .env en local o el environment del deploy en Vercel.`,
+    );
+  }
+  return value;
 }
 
 export function getSupabaseBrowserConfig(): SupabaseBrowserConfig {

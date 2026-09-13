@@ -3,6 +3,38 @@ import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import vercel from "@astrojs/vercel";
 import tailwindcss from "@tailwindcss/vite";
+import { loadEnv } from "vite";
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * .env → process.env
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Astro expone las variables por `import.meta.env`, pero en el servidor eso
+ * tiene un costo que no se ve: Astro las carga SIN filtro de prefijo
+ * (`loadEnv(mode, dir, "")`) y Vite define `import.meta.env` como un
+ * `Object.assign` que lleva TODAS las privadas adentro. Basta con que un
+ * módulo del servidor lo mencione para que TUU_SECRET_KEY y la service role
+ * key de Supabase queden escritas, en claro, dentro del bundle compilado —
+ * verificado buscándolas en `.vercel/output`.
+ *
+ * No es una filtración pública (ese bundle no se le sirve a ningún
+ * navegador), pero deja los secretos en artefactos de build y en la caché de
+ * Vercel, y obliga a reconstruir para rotar una clave en vez de solo cambiar
+ * la variable.
+ *
+ * Poblando process.env acá, los módulos del servidor leen únicamente de él y
+ * no necesitan mencionar `import.meta.env` nunca. Así hay UNA sola fuente de
+ * verdad —la misma en `astro dev` y dentro de una función de Vercel— y los
+ * secretos no entran al bundle.
+ *
+ * Lo ya definido manda: en Vercel las variables reales vienen del entorno y
+ * no hay .env que las pise.
+ */
+const archivoEnv = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
+for (const [clave, valor] of Object.entries(archivoEnv)) {
+  process.env[clave] ??= valor;
+}
 
 // https://astro.build/config
 export default defineConfig({

@@ -25,39 +25,19 @@ export interface TuuConfig {
 }
 
 /**
- * Variables leídas de `import.meta.env` con acceso ESTÁTICO, una por una.
- *
- * No es verbosidad: Vite reemplaza `import.meta.env.LO_QUE_SEA` en tiempo de
- * build, buscando esa expresión literal en el código. Un acceso dinámico
- * —`import.meta.env[nombre]`— no se reemplaza nunca, así que devuelve
- * `undefined` para toda variable sin prefijo PUBLIC_ y el endpoint falla con
- * un "falta la variable de entorno" imposible de diagnosticar, aunque el
- * .env esté perfecto.
- *
- * Agregar una variable nueva significa agregar su línea acá.
- */
-const STATIC_ENV: Readonly<Record<string, string | undefined>> = {
-  TUU_ENV: import.meta.env.TUU_ENV,
-  TUU_ACCOUNT_ID: import.meta.env.TUU_ACCOUNT_ID,
-  TUU_SECRET_KEY: import.meta.env.TUU_SECRET_KEY,
-  TUU_SHOP_NAME: import.meta.env.TUU_SHOP_NAME,
-  PUBLIC_SITE_URL: import.meta.env.PUBLIC_SITE_URL,
-};
-
-/**
  * Lee una variable de entorno.
  *
- * `process.env` va primero: es lo que existe en runtime dentro de una función
- * serverless de Vercel, y es de donde salen las variables que Vercel inyecta
- * sola (VERCEL_BRANCH_URL y compañía). `import.meta.env` es el fallback para
- * `astro dev`, donde las variables se cargan desde el .env local.
+ * SOLO de process.env, y eso es deliberado. Astro carga el .env sin filtro
+ * de prefijo, así que Vite define `import.meta.env` como un objeto que lleva
+ * TODAS las variables privadas adentro: mencionarlo en un módulo del
+ * servidor basta para que los secretos queden escritos en claro dentro del
+ * bundle compilado. Ver el comentario largo en astro.config.mjs, que es
+ * donde el .env se vuelca a process.env para que esto funcione igual en
+ * `astro dev` y dentro de una función de Vercel.
  */
 function readEnv(name: string): string | undefined {
-  const fromProcess = typeof process === "undefined" ? undefined : process.env[name];
-  if (fromProcess !== undefined && fromProcess !== "") return fromProcess;
-
-  const fromMeta = STATIC_ENV[name];
-  return fromMeta !== undefined && fromMeta !== "" ? fromMeta : undefined;
+  const value = process.env[name];
+  return value !== undefined && value !== "" ? value : undefined;
 }
 
 function required(name: string): string {

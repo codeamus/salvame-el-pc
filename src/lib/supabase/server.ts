@@ -24,28 +24,19 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  */
 
 /**
- * Acceso ESTÁTICO a import.meta.env, una variable por línea.
+ * Lee una variable de entorno.
  *
- * Mismo motivo que en src/lib/tuu/env.ts: Vite reemplaza la expresión
- * literal en tiempo de build. Un acceso dinámico no se reemplaza nunca y
- * devuelve undefined para toda variable sin prefijo PUBLIC_, con un error
- * imposible de diagnosticar aunque el .env esté perfecto.
- */
-const STATIC_ENV: Readonly<Record<string, string | undefined>> = {
-  SUPABASE_URL: import.meta.env.SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
-};
-
-/**
- * `process.env` primero: es lo que existe en runtime dentro de una función
- * serverless de Vercel. `import.meta.env` es el fallback para `astro dev`.
+ * SOLO de process.env, y eso es deliberado. Astro carga el .env sin filtro
+ * de prefijo, así que Vite define `import.meta.env` como un objeto que lleva
+ * TODAS las variables privadas adentro: mencionarlo en un módulo del
+ * servidor basta para que los secretos queden escritos en claro dentro del
+ * bundle compilado. Ver el comentario largo en astro.config.mjs, que es
+ * donde el .env se vuelca a process.env para que esto funcione igual en
+ * `astro dev` y dentro de una función de Vercel.
  */
 function readEnv(name: string): string | undefined {
-  const fromProcess = typeof process === "undefined" ? undefined : process.env[name];
-  if (fromProcess !== undefined && fromProcess !== "") return fromProcess;
-
-  const fromMeta = STATIC_ENV[name];
-  return fromMeta !== undefined && fromMeta !== "" ? fromMeta : undefined;
+  const value = process.env[name];
+  return value !== undefined && value !== "" ? value : undefined;
 }
 
 function required(name: string): string {
