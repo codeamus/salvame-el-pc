@@ -56,10 +56,37 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
    * ver eso justo después de pagar es exactamente el momento en que un
    * comprador entra en pánico y paga dos veces.
    */
-  const INTENTOS = 10;
-  const ESPERA_MS = 2000;
+  /*
+   * Cadencia del polling, medida contra un pago real en QA.
+   *
+   * Antes eran 10 intentos cada 2 s: 20 segundos en total. Se quedaba corto
+   * por un margen enorme. En la primera compra de verdad, TUU aprobó el pago
+   * a los 41 s de creada la orden y el callback recién cerró la orden a los
+   * 2 min 42 s — más de ocho veces la ventana que teníamos. El resultado era
+   * que el comprador SIEMPRE veía "confirmando tu pago…" congelado, aunque
+   * todo hubiera funcionado perfecto.
+   *
+   * Los intervalos crecen en vez de ser fijos: la mayoría de los pagos se
+   * resuelven rápido y merecen una respuesta inmediata, pero insistir cada
+   * 2 s durante tres minutos son 90 peticiones por comprador para nada.
+   * Esta escalera suma ~3 minutos en 16 intentos.
+   */
+  const ESPERAS_MS = [
+    2000, 2000, 2000, 3000, 3000, 5000, 5000, 8000, 8000, 10000, 15000, 15000, 20000, 20000, 30000,
+    30000,
+  ];
 
-  type Estado = "pending" | "completed" | "failed" | "unknown";
+  /*
+   * "demorado" no es un estado de la orden: la orden sigue pending. Es lo que
+   * la PÁGINA muestra cuando se quedó sin intentos.
+   *
+   * Existe porque el texto de "pending" dice "no cierres esta ventana", y
+   * seguir mostrándolo después de haber dejado de preguntar es mentirle al
+   * comprador: lo deja esperando frente a una pantalla que ya no va a
+   * cambiar sola. Peor aún, es el escenario exacto en que alguien decide
+   * pagar de nuevo por las dudas.
+   */
+  type Estado = "pending" | "completed" | "failed" | "unknown" | "demorado";
 
   const TEXTOS: Record<Estado, { label: string; titulo: string; detalle: string }> = {
     pending: {
@@ -78,6 +105,12 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       titulo: "El pago<br />no se completó<span class='text-coral'>.</span>",
       detalle:
         "No se realizó ningún cargo. Puedes intentar de nuevo con otro medio de pago; tu carrito sigue disponible.",
+    },
+    demorado: {
+      label: "[ pago en verificación ]",
+      titulo: "Tu pago está<br />en verificación<span class='text-coral'>.</span>",
+      detalle:
+        "Ya recibimos tu pedido y la pasarela todavía no nos confirma. Te escribimos por correo apenas se resuelva — no vuelvas a pagar.",
     },
     unknown: {
       label: "[ orden no encontrada ]",
@@ -106,6 +139,12 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
     failed: [
       { href: "/checkout", label: "Reintentar el pago →", primaria: true },
       { href: "/carrito", label: "Ver mi carrito", primaria: false },
+    ],
+    // Botón para volver a consultar: es lo único que este comprador quiere,
+    // y evita que "reintentar" signifique para él volver a pagar.
+    demorado: [
+      { href: "", label: "Volver a consultar", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
     ],
     unknown: [
       { href: "/contacto", label: "Contactar soporte →", primaria: true },
@@ -152,6 +191,22 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       if (acciones) {
         acciones.replaceChildren(
           ...ACCIONES[estado].map((accion) => {
+            // href vacío = acción de la propia página, no navegación. Va como
+            // <button> y no como <a href="#">: un enlace que no lleva a
+            // ninguna parte se anuncia como enlace a un lector de pantalla y
+            // no responde a la barra espaciadora.
+            if (accion.href === "") {
+              const boton = document.createElement("button");
+              boton.type = "button";
+              boton.className = accion.primaria ? "btn-primary" : "btn-secondary";
+              boton.textContent = accion.label;
+              boton.addEventListener("click", () => {
+                pintar("pending");
+                void consultar(0);
+              });
+              return boton;
+            }
+
             const enlace = document.createElement("a");
             enlace.href = accion.href;
             enlace.className = accion.primaria ? "btn-primary" : "btn-secondary";
@@ -162,7 +217,8 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       }
     }
 
-    async function consultar(intentosRestantes: number): Promise<void> {
+    /** `intento` es el índice dentro de ESPERAS_MS, no una cuenta regresiva. */
+    async function consultar(intento: number): Promise<void> {
       if (referencia === "") {
         pintar("unknown");
         return;
@@ -186,9 +242,18 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
         estado = "pending";
       }
 
-      if (estado === "pending" && intentosRestantes > 0) {
-        pintar("pending");
-        window.setTimeout(() => void consultar(intentosRestantes - 1), ESPERA_MS);
+      if (estado === "pending") {
+        const espera = ESPERAS_MS[intento];
+
+        if (espera !== undefined) {
+          pintar("pending");
+          window.setTimeout(() => void consultar(intento + 1), espera);
+          return;
+        }
+
+        // Se acabaron los intentos. La orden sigue pending, pero dejamos de
+        // decir "no cierres esta ventana" cuando ya no estamos mirando.
+        pintar("demorado");
         return;
       }
 
@@ -202,6 +267,6 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
       }
     }
 
-    void consultar(INTENTOS);
+    void consultar(0);
   }
 </script>

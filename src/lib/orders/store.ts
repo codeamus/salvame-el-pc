@@ -142,11 +142,21 @@ export async function markOrderResult(
     p_reference: reference,
     p_status: status,
     p_notification: notification,
-    // TUU no manda un id de transacción en el callback: sus campos son
-    // x_reference, x_amount, x_result, x_timestamp y x_message. La
-    // conciliación con su panel se hace con la notificación cruda, que
-    // settle_order guarda completa en last_notification.
-    p_payment_id: null,
+    /*
+     * El id de la transacción en TUU.
+     *
+     * La documentación del proyecto listaba solo x_reference, x_amount,
+     * x_result, x_timestamp y x_message —lo que se había observado en la
+     * redirección GET—, pero el primer callback POST real trajo bastante
+     * más: x_gateway_reference, x_payment_method, x_fee y x_test. El
+     * gateway_reference es el identificador con el que TUU reconoce la
+     * transacción en su panel, así que es LO que se necesita para conciliar
+     * un pago puntual sin ponerse a leer jsonb a mano.
+     *
+     * El `?? null` no es defensivo por costumbre: el campo no está
+     * documentado por TUU, así que no se puede asumir que venga siempre.
+     */
+    p_payment_id: notification.x_gateway_reference ?? null,
   })) as { data: boolean | null; error: { message: string } | null };
 
   if (error !== null) {

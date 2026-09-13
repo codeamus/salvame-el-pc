@@ -331,14 +331,68 @@ páginas de resultado leen `x_reference`, que TUU manda igual. Si alguna vez se
 necesita pasar un dato propio en la URL de retorno, no se puede por query
 string: hay que usar un segmento de ruta.
 
+### ✅ El callback POST, confirmado en QA (13-09-2026)
+
+Quedaba como el gran pendiente: todo lo anterior se había observado en la
+redirección GET. Confirmado con una compra real contra un preview de Vercel.
+
+**1. Llega y valida.** El POST server-to-server entra, la firma verifica con
+[`signature.ts`](../src/lib/tuu/signature.ts) y la orden pasa a `completed`.
+
+**2. Trae MÁS campos que la redirección.** Este es el payload real:
+
+```json
+{
+  "x_account_id": "62224230",
+  "x_amount": "59970.0",
+  "x_currency": "CLP",
+  "x_result": "completed",
+  "x_message": "Transacción aprobada",
+  "x_timestamp": "2026-09-13T13:19:02Z",
+  "x_reference": "ORD-20260913-8ABA7485",
+  "x_signature": "845d6f37…",
+  "x_fee": "1962",
+  "x_test": "1",
+  "x_payment_method": "webpay",
+  "x_transaction_type": "",
+  "x_gateway_reference": "eec646109cfec31331ef595e"
+}
+```
+
+Lo relevante de los cuatro campos nuevos:
+
+- **`x_gateway_reference`** es el id de la transacción en TUU. Se guarda en
+  `orders.tuu_payment_id`: es con lo que se concilia un pago puntual contra
+  su panel.
+- **`x_test: "1"`** marca la transacción como de integración. Sirve para
+  distinguir los pedidos de prueba de los reales cuando compartan base.
+- **`x_fee`** es la comisión que cobra TUU. Útil para cuadrar depósitos.
+- **`x_timestamp` viene en hora de Chile**, no en UTC: el `13:19:02Z` de este
+  callback corresponde a las 16:19:02 UTC. La `Z` miente — no usarlo como
+  instante absoluto sin convertir.
+
+**3. ⚠️ El callback TARDA. Bastante más de lo que uno supondría.**
+
+```
+16:18:21   orden creada
+16:19:02   TUU aprueba el pago        (+41 s)
+16:21:03   el callback cierra la orden (+2 min 42 s)
+```
+
+Casi tres minutos. La página de resultado hacía polling durante 20 segundos,
+así que el comprador veía «Confirmando tu pago…» congelado **siempre**,
+aunque todo hubiera funcionado. Hoy [`pago/exito.astro`](../src/pages/pago/exito.astro)
+escalona los intentos hasta ~3 minutos y, si se acaban, muestra un estado
+honesto («tu pago está en verificación, no vuelvas a pagar») en vez de seguir
+diciendo «no cierres esta ventana» cuando ya dejó de mirar.
+
+> Al pasar a producción, medir esto de nuevo: no hay garantía de que la
+> latencia del ambiente real sea la misma que la de integración.
+
 ### Sigue pendiente de verificar
 
-- **El callback POST server-to-server.** Todo lo anterior se observó en la
-  redirección GET. Falta confirmar, con un `PUBLIC_SITE_URL` alcanzable desde
-  internet (túnel o preview de Vercel), que el POST a `/api/tuu/callback`
-  llega, trae los mismos campos y valida la firma. El endpoint loguea el body
-  crudo justamente para dejarlo documentado.
 - **RUT y clave del banco simulado de Transbank.**
+- **La latencia del callback en producción**, por lo dicho arriba.
 
 ## 7. Paso a producción
 
