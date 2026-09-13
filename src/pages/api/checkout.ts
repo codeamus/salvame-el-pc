@@ -54,15 +54,32 @@ export const POST: APIRoute = async ({ request }) => {
   //    un callback muy rápido llegaría a una orden que todavía no existe y no
   //    habría contra qué validar el monto.
   const now = new Date().toISOString();
-  await saveOrder({
-    reference,
-    amountCLP: quote.totalCLP,
-    status: "pending",
-    quote,
-    customer,
-    createdAt: now,
-    updatedAt: now,
-  });
+  try {
+    await saveOrder({
+      reference,
+      amountCLP: quote.totalCLP,
+      status: "pending",
+      quote,
+      customer,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (error) {
+    // Guardar la orden dejó de ser una escritura en memoria que no podía
+    // fallar: ahora es una llamada de red a Supabase, y puede fallar por
+    // credenciales mal configuradas en el deploy o por la base caída.
+    //
+    // Sin este catch, ese fallo sale como un 500 pelado de Astro: el
+    // comprador ve "Internal Server Error" y quien depura no tiene ni idea
+    // de cuál de los tres pasos del checkout reventó. El detalle real va al
+    // log del servidor —puede traer nombres de variables y URLs— y al
+    // comprador se le dice algo accionable.
+    console.error("[checkout] no se pudo guardar la orden", { reference, error });
+    return json(
+      { error: "No pudimos registrar tu pedido. Inténtalo nuevamente en unos minutos." },
+      503,
+    );
+  }
 
   try {
     const intent = await createPaymentIntent({
