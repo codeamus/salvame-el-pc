@@ -49,11 +49,13 @@ export const POST: APIRoute = async ({ request }) => {
   const reference = params.x_reference ?? "";
   const order = await getOrder(reference);
 
-  // Sin la orden en el store no hay contra qué validar el monto. Se responde
+  // Sin la orden en la base no hay contra qué validar el monto. Se responde
   // 200 igual —reintentar no la va a hacer aparecer— pero queda en el log.
   //
-  // ⚠️ Con el store en memoria esto pasa seguido en Vercel: el callback cae
-  // en otra instancia. Ver docs/pagos-tuu.md § "Deuda técnica".
+  // Ahora esto sí significa lo que dice. Con el store en memoria era el caso
+  // común en Vercel (el callback caía en otra instancia) y no distinguía un
+  // problema real de la arquitectura; con la orden en Supabase, llegar acá
+  // es una referencia que de verdad no existe y hay que ir a mirarla.
   if (order === undefined) {
     console.error("[tuu:callback] orden no encontrada", { reference });
     return new Response("ok", { status: 200 });

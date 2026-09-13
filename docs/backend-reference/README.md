@@ -11,8 +11,8 @@ el diseño de la capa de backend mientras el sitio no tiene base de datos.
 | `lib/mercadopago.ts` | ❌ **Descartado.** La pasarela del proyecto es TUU. |
 | `pages/api/checkout.ts` | ❌ **Superado** por [`src/pages/api/checkout.ts`](../../src/pages/api/checkout.ts), ya implementado contra TUU. |
 | `pages/api/webhooks/mercadopago.ts` | ❌ **Superado** por [`src/pages/api/tuu/callback.ts`](../../src/pages/api/tuu/callback.ts). |
-| `supabase/schema.sql` | ✅ **Vigente como referencia.** Es la base para reemplazar el store de órdenes en memoria. Las columnas `mercadopago_*` pasan a ser `tuu_reference` / `tuu_payment_id`. |
-| `lib/supabase/`, `middleware.ts`, `admin/`, `pages/admin/` | ✅ **Vigentes como referencia** para cuando exista panel de administración. |
+| `supabase/schema.sql` | ❌ **Superado** por [`supabase/schema.sql`](../../supabase/schema.sql), que es el schema real del proyecto: catálogo, CMS, pedidos contra TUU y RLS. Este queda solo como registro del diseño original. |
+| `lib/supabase/`, `middleware.ts`, `admin/`, `pages/admin/` | ✅ **Vigentes como referencia** para el panel de administración, que se construye sobre [`supabase/schema.sql`](../../supabase/schema.sql). |
 
 ## Por qué se cambió de Mercado Pago a TUU
 

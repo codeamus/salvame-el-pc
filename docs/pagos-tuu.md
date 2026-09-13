@@ -63,7 +63,7 @@ carrito).
 | [`src/lib/tuu/signature.ts`](../src/lib/tuu/signature.ts)                           | Firma y verificación HMAC-SHA256, con Web Crypto.                                                    |
 | [`src/lib/tuu/client.ts`](../src/lib/tuu/client.ts)                                 | `createPaymentIntent()`: arma, firma y envía el intento.                                             |
 | [`src/lib/orders/quote.ts`](../src/lib/orders/quote.ts)                             | **Recalcula el total en el servidor.** Lo que impide pagar $1 por una GPU.                           |
-| [`src/lib/orders/store.ts`](../src/lib/orders/store.ts)                             | Persistencia de órdenes. ⚠️ Hoy en memoria — ver §7.                                                 |
+| [`src/lib/orders/store.ts`](../src/lib/orders/store.ts)                             | Persistencia de órdenes en Supabase. Cuatro funciones; nadie más habla con la base.                  |
 | [`src/lib/order-rules.ts`](../src/lib/order-rules.ts)                               | Costo de envío y tope por línea, compartidos entre navegador y servidor.                             |
 | [`src/pages/api/checkout.ts`](../src/pages/api/checkout.ts)                         | Carrito → URL de pago.                                                                               |
 | [`src/pages/api/tuu/callback.ts`](../src/pages/api/tuu/callback.ts)                 | Notificación firmada. **Fuente de verdad.**                                                          |
@@ -216,6 +216,43 @@ clave `123`.
 > corrida —la pantalla suele mostrarlos— y actualiza esta tabla. No inventes
 > datos ahí.
 
+### Probar el flujo completo en local
+
+TUU tiene que poder **llegar al callback desde internet**, así que localhost no
+sirve: hay que exponer el dev server con un túnel.
+
+```bash
+brew install cloudflared                          # una sola vez
+cloudflared tunnel --url http://localhost:4321    # imprime una URL https://…
+```
+
+Con esa URL:
+
+1. Pégala en `PUBLIC_SITE_URL` del `.env`, **sin slash final**.
+2. Reinicia `pnpm dev`. El `.env` se lee al arrancar: si no reinicias, el
+   checkout sigue firmando con la URL vieja.
+3. Navega el sitio **por la URL del túnel**, no por localhost. La redirección
+   de vuelta desde TUU llega a esa URL, y el carrito vive en el localStorage
+   de ese origen: si compras desde localhost, vuelves a un sitio con el
+   carrito vacío.
+
+El orden importa: primero el túnel, después el `.env`, después `pnpm dev`.
+
+**Los hosts de túnel están permitidos en [`astro.config.mjs`](../astro.config.mjs).**
+Vite responde `403 Blocked request` a cualquier Host que no sea localhost —es
+su defensa contra DNS rebinding— y sin esa lista el túnel devuelve 403 antes de
+llegar a Astro. Están listados los dominios de cloudflared, ngrok y localtunnel;
+si usas otro servicio, agrégalo ahí. Nunca pongas `allowedHosts: true`.
+
+Qué mirar mientras pruebas:
+
+- La consola del dev server: `[tuu:callback] recibido` con el body crudo es la
+  señal de que TUU alcanzó tu máquina.
+- La tabla `orders` en Supabase: la fila aparece en `pending` al ir a pagar y
+  pasa a `completed` cuando llega el callback.
+- `/pago/exito` hace polling contra `/api/orders/[reference]`, así que el
+  estado se actualiza solo sin recargar.
+
 ### Probar el endpoint sin levantar el sitio
 
 ```bash
@@ -325,37 +362,46 @@ titular.
 Lo ideal es que el propio cliente pegue `TUU_SECRET_KEY` en el environment
 Production de Vercel, sin que la clave pase por correo o mensajería.
 
-### 7.2 Reemplazar el store de órdenes ⚠️ BLOQUEANTE
+### 7.2 Store de órdenes ✅ RESUELTO
 
-[`src/lib/orders/store.ts`](../src/lib/orders/store.ts) guarda las órdenes en
-un `Map` en memoria. **En Vercel eso no persiste**: cada invocación puede
-correr en una instancia distinta y el proceso se recicla. En la práctica, el
-callback puede llegar a una instancia que nunca vio la orden, y la página de
-éxito puede preguntarle a una tercera.
+[`src/lib/orders/store.ts`](../src/lib/orders/store.ts) guardaba las órdenes en
+un `Map` en memoria, y en Vercel eso no persiste: cada invocación puede correr
+en una instancia distinta. El callback llegaba a un proceso que nunca había
+visto la orden, y la página de éxito le preguntaba por ella a un tercero. El
+síntoma visible era un pago que sí se cobraba y que el sitio mostraba como «no
+encontramos esta orden».
 
-En local, con un túnel, el proceso es uno solo y el flujo funciona completo.
-En preview de Vercel el estado será intermitente. **Esto no puede salir a
-producción así.**
+Hoy las órdenes viven en Supabase ([`supabase/schema.sql`](../supabase/schema.sql)).
+Las cuatro funciones conservan su contrato, así que `/api/checkout`,
+`/api/tuu/callback` y `/api/orders/[reference]` no cambiaron ni una línea.
 
-Solo hay que reimplementar cuatro funciones con el mismo contrato
-(`saveOrder`, `getOrder`, `markOrderResult`, `newOrderReference`); el resto del
-código no cambia.
+Lo que la base garantiza y el `Map` no podía:
 
-- **Vercel KV / Upstash Redis** — lo más rápido, encaja con serverless.
-- **Supabase / Neon (Postgres)** — si además se necesita historial, panel de
-  pedidos y consultas. Ya hay un esquema de referencia en
-  [`docs/backend-reference/supabase/schema.sql`](backend-reference/supabase/schema.sql)
-  (está escrito para Mercado Pago: las columnas `mercadopago_*` pasan a ser
-  `tuu_reference` / `tuu_payment_id`).
+- **Índice único sobre `reference`**, que es la clave con la que casa el
+  callback: sin él, un choque marcaría la orden equivocada como pagada.
+- **Idempotencia real** en `settle_order()`: bloquea la fila con `for update`
+  y no vuelve a tocar una orden ya cerrada. TUU reintenta hasta 10 veces; sin
+  el bloqueo, dos reintentos simultáneos leerían «pending» los dos.
+- **Descuento de stock atómico** en la misma transacción, con su registro en
+  `stock_movements`.
+- **El callback crudo completo** en `last_notification`, que es con lo que se
+  concilia contra el panel de TUU.
+- **Separación entre pago y logística**: `status` lo escribe el callback,
+  `fulfillment_status` lo escribe el panel. Si fueran la misma columna, marcar
+  «enviado» a mano sacaría la orden de `completed` y el siguiente reintento la
+  reprocesaría como recién pagada.
 
-Con base de datos, agregar además:
+Verificación: `pnpm check:supabase` (seed y RLS contra el proyecto real) y
+[`store.integration.test.ts`](../src/lib/orders/store.integration.test.ts), que
+corre el ciclo completo contra la base y se salta solo si no hay credenciales.
 
-- Índice **único** sobre `reference`, para que un reintento del callback no
-  duplique nada.
+Queda pendiente, ya sin ser bloqueante:
+
 - Estado `pending` con **expiración**: una orden que nunca recibe callback debe
-  quedar marcada para revisión manual, no colgada para siempre.
-- **Registro de cada intento de callback** (payload, IP, timestamp, respuesta).
-  Es lo que se necesita para conciliar con TUU si aparece una diferencia.
+  quedar marcada para revisión, no colgada para siempre.
+- **Reserva de stock al crear la orden**, no al pagarla. Hoy, si el stock no
+  alcanza al momento del pago, se cobra igual y la orden queda con
+  `needs_review` en true — la decisión está explicada en el schema.
 
 ### 7.3 Lo que queda pendiente en el callback
 

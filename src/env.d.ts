@@ -25,6 +25,25 @@ interface ImportMetaEnv {
    * variables que Vercel inyecta sola — ver src/lib/tuu/env.ts.
    */
   readonly PUBLIC_SITE_URL?: string;
+
+  /** Base del proyecto de Supabase: https://xxxx.supabase.co, sin slash final. */
+  readonly SUPABASE_URL?: string;
+  /**
+   * Clave pública ("publishable"; antes "anon"). No es un secreto: lo único
+   * que protege los datos con esta clave es el RLS de supabase/schema.sql.
+   *
+   * Aun así va SIN prefijo PUBLIC_, así que no llega sola al navegador: el
+   * panel la recibe como prop desde su página, renderizada en el servidor.
+   * Vercel rechaza guardar un JWT detrás de un prefijo público, y de paso
+   * evita hornear la clave en el bundle del sitio entero.
+   */
+  readonly SUPABASE_ANON_KEY?: string;
+  /**
+   * ⚠️ SECRETA. Pasa por encima de TODO el RLS: quien la tenga lee el RUT,
+   * correo, teléfono y dirección de cada comprador, y puede marcar pedidos
+   * como pagados. Sin prefijo PUBLIC_ a propósito.
+   */
+  readonly SUPABASE_SERVICE_ROLE_KEY?: string;
 }
 
 interface ImportMeta {

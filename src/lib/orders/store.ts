@@ -1,26 +1,27 @@
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { Quote } from "./quote";
 import type { CheckoutPayload } from "@/lib/checkout-form";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
- * STORE DE ÓRDENES — ⚠️ EN MEMORIA, SOLO PARA DESARROLLO
+ * STORE DE ÓRDENES — respaldado por Supabase
  * ─────────────────────────────────────────────────────────────────────────
  *
- * Esto NO es una fuente de verdad y no puede salir a producción así.
+ * Antes esto era un Map en memoria, y era un bug conocido: en Vercel cada
+ * invocación puede correr en otra instancia, así que el callback de TUU
+ * llegaba a un proceso que nunca había visto la orden y la página de éxito
+ * le preguntaba por ella a un tercero. El resultado visible era un pago que
+ * sí se cobraba pero que el sitio mostraba como "no encontramos esta orden".
  *
- * En Vercel cada invocación puede correr en una instancia distinta y el
- * proceso se recicla entre requests. En la práctica: el callback de TUU
- * puede llegar a una instancia que nunca vio esta orden, y la página de
- * éxito puede preguntar por ella a una tercera. En local, con un túnel, el
- * proceso es uno solo y el flujo completo funciona de punta a punta.
+ * Las tres rutas del flujo de pago hablan con estas cuatro funciones y con
+ * nadie más, así que migrar de un lado al otro no cambió ni una línea de
+ * /api/checkout, /api/tuu/callback ni /api/orders/[reference]. Ese era
+ * justamente el punto de que existieran.
  *
- * Todo el resto del código habla con estas cuatro funciones y con nadie más.
- * Cuando exista base de datos se reescriben acá —mismo contrato— y no hay
- * que tocar el endpoint de checkout, ni el callback, ni la página de éxito.
- *
- * Ver docs/pagos-tuu.md § "Antes de producción" para el detalle de qué hace
- * falta (índice único sobre reference, expiración de pendientes, registro de
- * cada intento de callback para conciliar con TUU).
+ * El esquema y las dos funciones transaccionales están en
+ * supabase/schema.sql; la lógica delicada —idempotencia, descuento de stock,
+ * bloqueo de fila— vive allá y no acá, porque es la base la que puede
+ * garantizarla frente a dos reintentos simultáneos.
  */
 
 export type OrderStatus = "pending" | "completed" | "failed";
@@ -39,42 +40,120 @@ export interface OrderRecord {
   readonly lastNotification?: Record<string, string>;
 }
 
-const memory = new Map<string, OrderRecord>();
-
-export function saveOrder(order: OrderRecord): Promise<void> {
-  memory.set(order.reference, order);
-  return Promise.resolve();
+/** Fila de `orders` tal como la devuelve PostgREST. */
+interface OrderRow {
+  reference: string;
+  amount_clp: number;
+  status: OrderStatus;
+  quote: Quote;
+  customer: CheckoutPayload;
+  created_at: string;
+  updated_at: string;
+  last_notification: Record<string, string> | null;
 }
 
-export function getOrder(reference: string): Promise<OrderRecord | undefined> {
-  return Promise.resolve(memory.get(reference));
+const COLUMNS =
+  "reference, amount_clp, status, quote, customer, created_at, updated_at, last_notification";
+
+function toOrderRecord(row: OrderRow): OrderRecord {
+  return {
+    reference: row.reference,
+    amountCLP: row.amount_clp,
+    status: row.status,
+    quote: row.quote,
+    customer: row.customer,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    // Spread condicional por exactOptionalPropertyTypes: la propiedad no
+    // debe existir cuando todavía no llegó ningún callback.
+    ...(row.last_notification === null ? {} : { lastNotification: row.last_notification }),
+  };
+}
+
+/**
+ * Crea la orden en estado "pending", junto con sus líneas.
+ *
+ * `status`, `createdAt` y `updatedAt` del argumento se ignoran: los pone la
+ * base. Se reciben igual para no cambiarle la forma a quien llama, y porque
+ * la hora que vale es la del servidor de la base y no la de la instancia
+ * serverless que atendió el checkout.
+ *
+ * Las líneas no se mandan aparte: place_order las expande desde el `quote`
+ * dentro de la misma transacción, así que es imposible que order_items diga
+ * una cosa y el monto firmado otra. Si algo falla, no queda media orden.
+ */
+export async function saveOrder(order: OrderRecord): Promise<void> {
+  const { error } = await getSupabaseAdmin().rpc("place_order", {
+    p_reference: order.reference,
+    p_amount_clp: order.amountCLP,
+    p_quote: order.quote,
+    p_customer: order.customer,
+  });
+
+  if (error !== null) {
+    throw new Error(`[orders] no se pudo crear la orden ${order.reference}: ${error.message}`);
+  }
+}
+
+/** Busca por referencia. `undefined` si no existe — no lanza por eso. */
+export async function getOrder(reference: string): Promise<OrderRecord | undefined> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("orders")
+    .select(COLUMNS)
+    .eq("reference", reference)
+    .maybeSingle<OrderRow>();
+
+  // Un error acá NO es "no existe": es la base caída o mal configurada. Se
+  // propaga para que la ruta responda 5xx y TUU reintente el callback.
+  // Devolver undefined haría que una caída se viera igual que una orden
+  // inexistente, y el sitio daría por perdido un pago que sí ocurrió.
+  if (error !== null) {
+    throw new Error(`[orders] no se pudo leer la orden ${reference}: ${error.message}`);
+  }
+
+  return data === null ? undefined : toOrderRecord(data);
 }
 
 /**
  * Marca el resultado del pago. Idempotente a propósito.
  *
  * TUU reintenta el callback hasta 10 veces con backoff exponencial, así que
- * la misma notificación va a llegar más de una vez. Una orden que ya está en
- * estado final no se vuelve a tocar: sin esto, un reintento tardío podría
- * pisar un "completed" o disparar dos veces el envío del pedido.
+ * la misma notificación va a llegar más de una vez. `changed` es false
+ * cuando la orden ya estaba cerrada o cuando la referencia no existe: quien
+ * llama lo usa para no disparar dos veces el correo al comprador ni la
+ * preparación del pedido.
+ *
+ * Todo el trabajo real —bloquear la fila, revisar que siga pendiente,
+ * descontar stock y anotar los movimientos— ocurre dentro de settle_order,
+ * en una sola transacción. Hacerlo acá, a punta de select y update
+ * separados, dejaría la ventana en la que dos reintentos simultáneos leen
+ * "pending" los dos y descuentan el stock dos veces.
  */
-export function markOrderResult(
+export async function markOrderResult(
   reference: string,
   status: Exclude<OrderStatus, "pending">,
   notification: Record<string, string>,
 ): Promise<{ changed: boolean }> {
-  const order = memory.get(reference);
-  if (order === undefined) return Promise.resolve({ changed: false });
-  if (order.status !== "pending") return Promise.resolve({ changed: false });
+  // El cast declara lo que settle_order devuelve (boolean `changed`). Sin
+  // tipos generados de la base, supabase-js tipa `data` como any, y `any`
+  // silencioso atravesando el flujo de pagos es justo lo que no queremos:
+  // acá queda escrito, en un solo lugar y a la vista.
+  const { data, error } = (await getSupabaseAdmin().rpc("settle_order", {
+    p_reference: reference,
+    p_status: status,
+    p_notification: notification,
+    // TUU no manda un id de transacción en el callback: sus campos son
+    // x_reference, x_amount, x_result, x_timestamp y x_message. La
+    // conciliación con su panel se hace con la notificación cruda, que
+    // settle_order guarda completa en last_notification.
+    p_payment_id: null,
+  })) as { data: boolean | null; error: { message: string } | null };
 
-  memory.set(reference, {
-    ...order,
-    status,
-    lastNotification: notification,
-    updatedAt: new Date().toISOString(),
-  });
+  if (error !== null) {
+    throw new Error(`[orders] no se pudo cerrar la orden ${reference}: ${error.message}`);
+  }
 
-  return Promise.resolve({ changed: true });
+  return { changed: data === true };
 }
 
 /**
@@ -82,8 +161,9 @@ export function markOrderResult(
  *
  * Lleva la fecha por delante para que sea legible al conciliar contra el
  * panel de TUU, y un tramo aleatorio para que dos compras simultáneas no
- * colisionen. Es la clave con la que se casa el callback, así que repetirla
- * significaría marcar la orden equivocada como pagada.
+ * colisionen. Es la clave con la que se casa el callback —y tiene índice
+ * único en la base—, así que repetirla significaría marcar la orden
+ * equivocada como pagada.
  */
 export function newOrderReference(now: Date = new Date()): string {
   const day = now.toISOString().slice(0, 10).replace(/-/g, "");
