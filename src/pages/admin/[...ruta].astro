@@ -1,0 +1,55 @@
+---
+import AdminApp from "@/components/admin/AdminApp";
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { getSupabaseBrowserConfig } from "@/lib/supabase/public-config";
+
+/**
+ * Panel de administración — todas sus rutas.
+ *
+ * `prerender = false` no es opcional: si esta página fuera estática, la
+ * clave pública quedaría horneada en el HTML que se publica en el CDN para
+ * todo el mundo. Sirviéndola bajo demanda, la clave viaja únicamente en la
+ * respuesta de /admin.
+ *
+ * Es una sola página atrapa-todo y no una por sección porque el panel es una
+ * aplicación con estado: navegar entre secciones no debería recargar la
+ * página, volver a leer la sesión del localStorage ni perder lo que el
+ * usuario tenía a medio escribir.
+ */
+export const prerender = false;
+
+const config = getSupabaseBrowserConfig();
+
+/* `ruta` trae lo que venga después de /admin/, sin barra inicial. */
+const rutaInicial = `/admin/${Astro.params.ruta ?? ""}`.replace(/\/+$/, "") || "/admin";
+---
+
+<AdminLayout title="Panel">
+  {
+    /*
+      client:only y no client:load.
+
+      Lo primero que hace la app es preguntarle al localStorage si hay
+      sesión, y el servidor no tiene localStorage. Renderizarla en el
+      servidor produciría siempre el HTML de "no hay sesión", que luego React
+      contradice al hidratar: el resultado es un parpadeo del login en la
+      cara de alguien que SÍ está conectado, más los avisos de hidratación
+      que lo acompañan. Al no renderizarse en el servidor, el primer pintado
+      ya es el correcto.
+    */
+  }
+  <AdminApp client:only="react" config={config} rutaInicial={rutaInicial} />
+
+  <noscript>
+    <div class="mx-auto max-w-md px-6 py-24 text-center">
+      <p class="eyebrow">Panel</p>
+      <h1 class="mt-4 text-3xl font-extrabold tracking-[-.03em] uppercase">
+        Necesitas JavaScript<span class="text-coral">.</span>
+      </h1>
+      <p class="mt-4 text-[15px] text-ink/70">
+        El panel de administración es una aplicación: sin JavaScript no puede funcionar. La tienda,
+        en cambio, anda perfecto sin él.
+      </p>
+    </div>
+  </noscript>
+</AdminLayout>

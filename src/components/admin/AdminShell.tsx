@@ -1,0 +1,78 @@
+import type { ReactNode } from "react";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import { SECCIONES } from "./AdminApp";
+
+/**
+ * Estructura del panel: barra lateral, sesión y contenido.
+ *
+ * Es puramente presentacional — no consulta nada ni decide nada. Recibe en
+ * qué ruta estamos y cómo navegar, y dibuja el marco alrededor.
+ */
+
+interface Props {
+  supabase: SupabaseClient;
+  sesion: Session;
+  ruta: string;
+  navegar: (destino: string) => void;
+  children: ReactNode;
+}
+
+export default function AdminShell({ supabase, sesion, ruta, navegar, children }: Props) {
+  return (
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <aside className="flex flex-col border-line lg:w-60 lg:shrink-0 lg:border-r">
+        <div className="border-b border-line px-6 py-5">
+          <p className="eyebrow">Sálvame el PC</p>
+          <p className="mt-1 text-xl font-extrabold tracking-[-.03em]">
+            Panel<span className="text-coral">.</span>
+          </p>
+        </div>
+
+        <nav aria-label="Secciones del panel" className="flex flex-col border-b border-line">
+          {SECCIONES.map((seccion) => {
+            const activa = ruta === seccion.ruta;
+            return (
+              <a
+                key={seccion.ruta}
+                href={seccion.ruta}
+                // El href real se conserva para que el enlace se pueda abrir
+                // en otra pestaña o copiar; el preventDefault solo evita la
+                // recarga cuando se hace clic normal.
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+                  event.preventDefault();
+                  navegar(seccion.ruta);
+                }}
+                aria-current={activa ? "page" : undefined}
+                className={[
+                  "border-b border-line-soft px-6 py-3.5 text-sm font-bold no-underline transition-colors",
+                  activa ? "bg-ink text-cream" : "text-ink hover:bg-coral hover:text-on-coral",
+                ].join(" ")}
+              >
+                {seccion.etiqueta}
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto px-6 py-5">
+          <p className="font-mono text-[11px] break-all text-muted">{sesion.user.email}</p>
+          <button
+            type="button"
+            onClick={() => void supabase.auth.signOut()}
+            className="mt-3 cursor-pointer border-none bg-transparent p-0 font-mono text-[11px] text-coral underline"
+          >
+            cerrar sesión
+          </button>
+          <p className="mt-4 font-mono text-[11px] text-faint">
+            <a href="/" className="text-faint underline">
+              ver la tienda ↗
+            </a>
+          </p>
+        </div>
+      </aside>
+
+      <main className="min-w-0 flex-1">{children}</main>
+    </div>
+  );
+}

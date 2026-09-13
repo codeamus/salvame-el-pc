@@ -1,0 +1,56 @@
+---
+import ThemeScript from "@/components/layout/ThemeScript.astro";
+import { SITE } from "@/config/site";
+import { THEME_COLOR } from "@/lib/theme";
+import "@/styles/global.css";
+
+/**
+ * Envoltorio del panel de administración.
+ *
+ * No usa BaseLayout a propósito. BaseLayout trae el header de la tienda, el
+ * footer, el cajón del carrito, el toast y el ClientRouter: nada de eso
+ * tiene sentido acá, y el carrito con las transiciones de vista llegarían a
+ * estorbar. El panel es otra aplicación que comparte los tokens de diseño,
+ * no una página más del sitio.
+ *
+ * Lo que sí comparte:
+ *
+ *   · Los estilos y tokens, para que el panel se vea de la misma familia.
+ *   · El script de tema, así el modo oscuro funciona igual y sin parpadeo.
+ */
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es-CL">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Panel {SITE.name}</title>
+
+    {
+      /*
+        El panel NUNCA se indexa.
+
+        No es pudor: una pantalla de login indexada es una invitación a que
+        le tiren credenciales, y las URLs internas le dibujan a cualquiera el
+        mapa de la aplicación. El noindex lo saca de los buscadores y el
+        nofollow evita que sigan los enlaces de adentro.
+      */
+    }
+    <meta name="robots" content="noindex, nofollow" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content={THEME_COLOR.light} />
+    <ThemeScript />
+  </head>
+
+  <body class="min-h-screen">
+    <slot />
+  </body>
+</html>
