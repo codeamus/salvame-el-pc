@@ -58,6 +58,48 @@ const RUTAS_FIJAS = ["/", "/tienda", "/404"];
  * ahora. Sin la cabecera no estamos en Vercel (un `astro dev` local), y ahí
  * basta con que la página no reviente.
  */
+/**
+ * Todos los dominios en los que este deploy responde.
+ *
+ * Esto es una lista y no una sola URL porque un mismo deploy se sirve por
+ * varios alias a la vez —el dominio de producción, el estable de la rama, el
+ * único del deploy— y CADA UNO tiene su propia caché.
+ *
+ * Se descubrió de la peor forma: el panel decía "sitio actualizado ✓"
+ * mientras salvame-el-pc.vercel.app seguía mostrando el precio viejo. Estaba
+ * publicando de verdad, pero en el alias de la rama, que era el que
+ * resolveSiteUrl() elegía. Quien editaba miraba el otro.
+ *
+ * Refrescar los tres cuesta unas peticiones de más y elimina la clase entera
+ * de "publiqué y no se ve": el editor no tiene por qué saber por qué alias
+ * entra cada visitante.
+ *
+ * El header Host de la petición NO entra acá a propósito, aunque sería la
+ * forma obvia de saber desde dónde se editó: lo controla quien llama, y
+ * bastaría una petición falsificada para que el servidor le mande el token
+ * de revalidación a un dominio ajeno.
+ */
+function dominiosDelProyecto(): string[] {
+  const normalizar = (valor: string | undefined): string | null => {
+    if (valor === undefined || valor === "") return null;
+    const sinEsquema = valor.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    return sinEsquema === "" ? null : `https://${sinEsquema}`;
+  };
+
+  const candidatos = [
+    process.env.PUBLIC_SITE_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_BRANCH_URL,
+    process.env.VERCEL_URL,
+  ].map(normalizar);
+
+  const unicos = [...new Set(candidatos.filter((x): x is string => x !== null))];
+
+  // Sin variables de Vercel —desarrollo local— se cae a la resolución de
+  // siempre, que además lanza con un mensaje claro si tampoco hay nada.
+  return unicos.length > 0 ? unicos : [resolveSiteUrl()];
+}
+
 function seRegenero(respuesta: Response): boolean {
   const estado = respuesta.headers.get("x-vercel-cache");
 
@@ -115,22 +157,24 @@ export const POST: APIRoute = async ({ request }) => {
 
   const rutas = [...RUTAS_FIJAS, ...(productos ?? []).map((p) => `/producto/${p.slug}`)];
 
-  // ── 4. Pedirle a Vercel que las rehaga ─────────────────────────────────
-  const base = resolveSiteUrl();
+  // ── 4. Pedirle a Vercel que las rehaga, en TODOS sus dominios ──────────
+  const bases = dominiosDelProyecto();
 
   const resultados = await Promise.all(
-    rutas.map(async (ruta) => {
-      try {
-        const respuesta = await fetch(`${base}${ruta}`, {
-          headers: { "x-prerender-revalidate": bypass },
-        });
-        return { ruta, ok: seRegenero(respuesta) };
-      } catch {
-        // Una ruta que falla no puede abortar las demás: es mejor publicar
-        // catorce de quince que ninguna.
-        return { ruta, ok: false };
-      }
-    }),
+    bases.flatMap((base) =>
+      rutas.map(async (ruta) => {
+        try {
+          const respuesta = await fetch(`${base}${ruta}`, {
+            headers: { "x-prerender-revalidate": bypass },
+          });
+          return { ruta: `${base}${ruta}`, ok: seRegenero(respuesta) };
+        } catch {
+          // Una ruta que falla no puede abortar las demás: es mejor publicar
+          // catorce de quince que ninguna.
+          return { ruta: `${base}${ruta}`, ok: false };
+        }
+      }),
+    ),
   );
 
   const fallidas = resultados.filter((r) => !r.ok).map((r) => r.ruta);
