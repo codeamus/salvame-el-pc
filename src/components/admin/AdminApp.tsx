@@ -7,6 +7,8 @@ import EditorProducto from "./productos/EditorProducto";
 import EditorAjustes from "./ajustes/EditorAjustes";
 import ListaCategorias from "./categorias/ListaCategorias";
 import EditorContenido from "./contenido/EditorContenido";
+import EditorLegales from "./legales/EditorLegales";
+import ListaPedidos from "./pedidos/ListaPedidos";
 import ListaProductos from "./productos/ListaProductos";
 import { getSupabaseBrowser, type SupabaseBrowserConfig } from "@/lib/supabase/browser";
 
@@ -152,6 +154,8 @@ function Seccion({
   if (ruta === "/admin/categorias") return <ListaCategorias supabase={supabase} />;
   if (ruta === "/admin/contenido") return <EditorContenido supabase={supabase} />;
   if (ruta === "/admin/ajustes") return <EditorAjustes supabase={supabase} />;
+  if (ruta === "/admin/legales") return <EditorLegales supabase={supabase} />;
+  if (ruta === "/admin/pedidos") return <ListaPedidos supabase={supabase} />;
 
   if (ruta === "/admin/productos/nuevo") {
     return (
