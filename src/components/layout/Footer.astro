@@ -8,9 +8,8 @@ const ajustes = await getSettings();
 const nombreSitio = texto(ajustes, "site.name", "Sálvame el PC");
 const bajada = texto(ajustes, "footer.tagline");
 const notaPagos = texto(ajustes, "footer.payment_note");
-const instagramUrl = texto(ajustes, "contact.instagram_url", "#");
-const instagramHandle = texto(ajustes, "contact.instagram_handle");
 const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const redes = enlaces(ajustes, "contact.redes");
 const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
 const navTienda = enlaces(ajustes, "nav.footer_tienda");
 const navAyuda = enlaces(ajustes, "nav.footer_ayuda");
@@ -61,14 +60,20 @@ const navAyuda = enlaces(ajustes, "nav.footer_ayuda");
       <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
         >Síguenos</span
       >
-      <a
-        href={instagramUrl}
-        target="_blank"
-        rel="noopener"
-        class="text-on-invert/85 no-underline hover:text-coral"
-      >
-        Instagram {instagramHandle}
-      </a>
+      {
+        /* Se dibujan desde la lista de ajustes: agregar una red es editar un
+           JSON en el panel, no tocar este archivo. */
+        redes.map((red) => (
+          <a
+            href={red.href}
+            target="_blank"
+            rel="noopener"
+            class="text-on-invert/85 no-underline hover:text-coral"
+          >
+            {red.label}
+          </a>
+        ))
+      }
       <a
         href={whatsappUrl}
         target="_blank"

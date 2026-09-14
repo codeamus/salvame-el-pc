@@ -1,6 +1,14 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { campo, getSettings, getSections, lista, listaDeSeccion, texto } from "@/data/content";
+import {
+  campo,
+  enlaces as enlacesDeAjuste,
+  getSections,
+  getSettings,
+  lista,
+  listaDeSeccion,
+  texto,
+} from "@/data/content";
 
 const ajustes = await getSettings();
 const secciones = await getSections("contacto");
@@ -8,9 +16,8 @@ const secciones = await getSections("contacto");
 const subjects = listaDeSeccion(secciones, "formulario.subjects");
 const direccion = lista(ajustes, "contact.address");
 const horario = lista(ajustes, "contact.hours");
-const instagramUrl = texto(ajustes, "contact.instagram_url", "#");
-const instagramHandle = texto(ajustes, "contact.instagram_handle");
 const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const redes = enlacesDeAjuste(ajustes, "contact.redes");
 const mapaUrl = texto(ajustes, "contact.maps_embed_url");
 
 /*
@@ -164,14 +171,18 @@ export const prerender = false;
           {campo(secciones, "datos.label_redes")}
         </p>
         <div class="flex flex-wrap gap-3">
-          <a
-            href={instagramUrl}
-            target="_blank"
-            rel="noopener"
-            class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
-          >
-            Instagram {instagramHandle}
-          </a>
+          {
+            redes.map((red) => (
+              <a
+                href={red.href}
+                target="_blank"
+                rel="noopener"
+                class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
+              >
+                {red.label}
+              </a>
+            ))
+          }
           <a
             href={whatsappUrl}
             target="_blank"
