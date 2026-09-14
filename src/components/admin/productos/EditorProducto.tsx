@@ -11,7 +11,6 @@ import {
   type FormularioProducto,
   type ProductoAdmin,
 } from "@/lib/admin/productos";
-import { CATEGORIES } from "@/types/product";
 
 /**
  * Alta y edición de un producto.
@@ -41,6 +40,35 @@ export default function EditorProducto({ supabase, id, alTerminar }: Props) {
   const [guardando, setGuardando] = useState(false);
   /** El slug deja de seguir al nombre en cuanto alguien lo escribe a mano. */
   const [slugManual, setSlugManual] = useState(!esNuevo);
+  /** Las categorías ya no son una constante: se administran desde el panel. */
+  const [categorias, setCategorias] = useState<string[]>([]);
+
+  useEffect(() => {
+    let vigente = true;
+
+    void supabase
+      .from("categories")
+      .select("name")
+      .order("sort_order", { ascending: true })
+      .returns<{ name: string }[]>()
+      .then(({ data }) => {
+        if (!vigente || data === null) return;
+        const nombres = data.map((fila) => fila.name);
+        setCategorias(nombres);
+        // Un producto nuevo arranca sin categoría; se preselecciona la
+        // primera para que el <select> no muestre un valor que el formulario
+        // no tiene. Nunca pisa la de un producto que se está editando.
+        setForm((previo) =>
+          previo.category === "" && nombres[0] !== undefined
+            ? { ...previo, category: nombres[0] }
+            : previo,
+        );
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (esNuevo) return;
@@ -84,7 +112,7 @@ export default function EditorProducto({ supabase, id, alTerminar }: Props) {
     event.preventDefault();
     setErrorGeneral(null);
 
-    const validado = validarProducto(form);
+    const validado = validarProducto(form, categorias);
     if (!validado.ok) {
       setErrores(validado.errores);
       return;
@@ -159,7 +187,14 @@ export default function EditorProducto({ supabase, id, alTerminar }: Props) {
               value={form.category}
               onChange={(event) => actualizar("category", event.target.value)}
             >
-              {CATEGORIES.map((categoria) => (
+              {/* La categoría guardada va primero aunque ya no exista en la
+                  lista: si alguien la ocultó o la renombró desde otra
+                  pestaña, el <select> mostraría el primer valor y guardar
+                  cambiaría la categoría sin que nadie lo pidiera. */}
+              {!categorias.includes(form.category) && form.category !== "" && (
+                <option>{form.category}</option>
+              )}
+              {categorias.map((categoria) => (
                 <option key={categoria}>{categoria}</option>
               ))}
             </select>

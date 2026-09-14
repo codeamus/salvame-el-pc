@@ -4,6 +4,7 @@ import AdminShell from "./AdminShell";
 import Dashboard from "./Dashboard";
 import LoginForm from "./LoginForm";
 import EditorProducto from "./productos/EditorProducto";
+import ListaCategorias from "./categorias/ListaCategorias";
 import ListaProductos from "./productos/ListaProductos";
 import { getSupabaseBrowser, type SupabaseBrowserConfig } from "@/lib/supabase/browser";
 
@@ -32,6 +33,7 @@ interface Props {
 export const SECCIONES = [
   { ruta: "/admin", etiqueta: "Resumen" },
   { ruta: "/admin/productos", etiqueta: "Productos" },
+  { ruta: "/admin/categorias", etiqueta: "Categorías" },
   { ruta: "/admin/contenido", etiqueta: "Contenido" },
   { ruta: "/admin/legales", etiqueta: "Legales" },
   { ruta: "/admin/pedidos", etiqueta: "Pedidos" },
@@ -144,6 +146,8 @@ function Seccion({
       />
     );
   }
+
+  if (ruta === "/admin/categorias") return <ListaCategorias supabase={supabase} />;
 
   if (ruta === "/admin/productos/nuevo") {
     return (

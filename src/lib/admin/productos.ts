@@ -1,5 +1,3 @@
-import { CATEGORIES, isCategory } from "@/types/product";
-
 /**
  * ─────────────────────────────────────────────────────────────────────────
  * REGLAS DEL FORMULARIO DE PRODUCTOS
@@ -63,7 +61,7 @@ export const FORMULARIO_VACIO: FormularioProducto = {
   slug: "",
   name: "",
   brand: "",
-  category: CATEGORIES[0],
+  category: "",
   price_clp: "",
   compare_at_price_clp: "",
   specs: "",
@@ -138,7 +136,15 @@ export type ResultadoValidacion =
   | { readonly ok: true; readonly valores: ValoresProducto }
   | { readonly ok: false; readonly errores: ErroresProducto };
 
-export function validarProducto(form: FormularioProducto): ResultadoValidacion {
+/**
+ * @param categoriasValidas Las que existen hoy en la base. Se pasa en vez de
+ * importarse porque las categorías dejaron de ser una constante: ahora se
+ * administran, y esta función no tiene forma de conocerlas por su cuenta.
+ */
+export function validarProducto(
+  form: FormularioProducto,
+  categoriasValidas: readonly string[],
+): ResultadoValidacion {
   const errores: ErroresProducto = {};
 
   const name = form.name.trim();
@@ -152,12 +158,15 @@ export function validarProducto(form: FormularioProducto): ResultadoValidacion {
   const slug = form.slug.trim() === "" ? slugify(name) : slugify(form.slug);
   if (slug === "") errores.slug = "No se pudo generar una URL a partir del nombre.";
 
-  // Se guarda el resultado del type guard en vez de solo comprobarlo: así
-  // TypeScript sabe más abajo que es una Category y no hace falta afirmarlo
-  // con un `as`, que es precisamente la clase de mentira que los CHECK de la
-  // base terminan cobrando.
-  const category = isCategory(form.category) ? form.category : null;
-  if (category === null) errores.category = "Categoría desconocida.";
+  // Se comprueba contra la lista viva y no contra una union de TypeScript.
+  // La comprobación de verdad la hace la clave foránea de la base; esta
+  // existe para avisar en el formulario en vez de al guardar.
+  const category = form.category.trim();
+  if (category === "") {
+    errores.category = "Elige una categoría.";
+  } else if (!categoriasValidas.includes(category)) {
+    errores.category = `La categoría "${category}" ya no existe. Elige otra.`;
+  }
 
   const price = parseCLP(form.price_clp);
   if (price === null) errores.price_clp = "Escribe un precio válido en pesos.";
@@ -191,7 +200,7 @@ export function validarProducto(form: FormularioProducto): ResultadoValidacion {
   // price y category entran a la condición además de `errores` para que el
   // compilador los estreche: si alguno fuera null ya habría un error anotado,
   // pero TypeScript no puede deducirlo del tamaño de un objeto.
-  if (Object.keys(errores).length > 0 || price === null || category === null) {
+  if (Object.keys(errores).length > 0 || price === null) {
     return { ok: false, errores };
   }
 
@@ -235,8 +244,8 @@ export function mensajeDeErrorSupabase(mensaje: string): string {
   if (/products_compare_at_gt_price/i.test(mensaje)) {
     return "El precio anterior tiene que ser mayor que el actual.";
   }
-  if (/products_category_check/i.test(mensaje)) {
-    return "Esa categoría no existe en el catálogo.";
+  if (/products_category_fkey|products_category_check/i.test(mensaje)) {
+    return "Esa categoría no existe. Puede que la hayan renombrado o borrado desde otra pestaña.";
   }
   if (/products_stock_check|stock/i.test(mensaje) && /check/i.test(mensaje)) {
     return "El stock no puede ser negativo.";

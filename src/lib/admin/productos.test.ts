@@ -10,6 +10,15 @@ import {
   type ProductoAdmin,
 } from "./productos";
 
+/**
+ * Las categorías que "existen en la base" durante el test.
+ *
+ * Se pasan como dato y no se importan de ninguna constante: desde que son
+ * administrables, la lista solo se conoce en runtime. Que el test tenga que
+ * proveerla es justamente la forma de acordarse de eso.
+ */
+const CATEGORIAS = ["Mouse", "Teclados", "RAM", "Audífonos", "Monitores", "GPU"];
+
 /** Formulario válido mínimo, para partir de algo que SÍ pasa. */
 function formulario(cambios: Partial<FormularioProducto> = {}): FormularioProducto {
   return {
@@ -20,6 +29,10 @@ function formulario(cambios: Partial<FormularioProducto> = {}): FormularioProduc
     price_clp: "19990",
     ...cambios,
   };
+}
+
+function validar(cambios: Partial<FormularioProducto> = {}) {
+  return validarProducto(formulario(cambios), CATEGORIAS);
 }
 
 describe("slugify", () => {
@@ -58,9 +71,11 @@ describe("parseCLP", () => {
 
 describe("validarProducto", () => {
   it("acepta un producto mínimo y normaliza lo que corresponde", () => {
-    const resultado = validarProducto(
-      formulario({ name: "  Mouse Nuevo  ", brand: " Logitech ", price_clp: "44.990" }),
-    );
+    const resultado = validar({
+      name: "  Mouse Nuevo  ",
+      brand: " Logitech ",
+      price_clp: "44.990",
+    });
 
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
@@ -72,12 +87,12 @@ describe("validarProducto", () => {
   });
 
   it("respeta el slug escrito a mano, pero lo normaliza", () => {
-    const resultado = validarProducto(formulario({ slug: "Mouse ESPECIAL 2026" }));
+    const resultado = validar({ slug: "Mouse ESPECIAL 2026" });
     expect(resultado.ok && resultado.valores.slug).toBe("mouse-especial-2026");
   });
 
   it("exige nombre y marca", () => {
-    const resultado = validarProducto(formulario({ name: "   ", brand: "" }));
+    const resultado = validar({ name: "   ", brand: "" });
     expect(resultado.ok).toBe(false);
     if (resultado.ok) return;
     expect(resultado.errores.name).toBeDefined();
@@ -88,50 +103,63 @@ describe("validarProducto", () => {
     // Mismo criterio que getDiscountPercent y que el CHECK de la base: si no
     // es mayor, no es un descuento — es un dato roto que se vería como un
     // producto sin oferta.
-    const igual = validarProducto(
-      formulario({ price_clp: "19990", compare_at_price_clp: "19990" }),
-    );
-    expect(igual.ok).toBe(false);
+    expect(validar({ price_clp: "19990", compare_at_price_clp: "19990" }).ok).toBe(false);
 
-    const menor = validarProducto(formulario({ price_clp: "19990", compare_at_price_clp: "9990" }));
+    const menor = validar({ price_clp: "19990", compare_at_price_clp: "9990" });
     expect(menor.ok).toBe(false);
     if (menor.ok) return;
     expect(menor.errores.compare_at_price_clp).toMatch(/MAYOR/);
 
-    const mayor = validarProducto(
-      formulario({ price_clp: "19990", compare_at_price_clp: "24990" }),
-    );
+    const mayor = validar({ price_clp: "19990", compare_at_price_clp: "24990" });
     expect(mayor.ok && mayor.valores.compare_at_price_clp).toBe(24990);
   });
 
   it("trata el precio anterior vacío como 'sin oferta', no como cero", () => {
-    const resultado = validarProducto(formulario({ compare_at_price_clp: "   " }));
+    const resultado = validar({ compare_at_price_clp: "   " });
     expect(resultado.ok && resultado.valores.compare_at_price_clp).toBeNull();
   });
 
-  it("rechaza una categoría fuera de la union de TypeScript", () => {
-    const resultado = validarProducto(formulario({ category: "Sillas Gamer" }));
+  it("acepta una categoría creada desde el panel, no solo las del handoff", () => {
+    // Ésta es la razón de ser del cambio: antes la union de TypeScript la
+    // habría rechazado y no habría forma de agregar una categoría nueva.
+    const resultado = validarProducto(formulario({ category: "Sillas gamer" }), [
+      ...CATEGORIAS,
+      "Sillas gamer",
+    ]);
+    expect(resultado.ok).toBe(true);
+    expect(resultado.ok && resultado.valores.category).toBe("Sillas gamer");
+  });
+
+  it("rechaza una categoría que ya no existe", () => {
+    // Pasa de verdad: alguien la renombra o la borra desde otra pestaña
+    // mientras este formulario está abierto.
+    const resultado = validar({ category: "Categoría Borrada" });
     expect(resultado.ok).toBe(false);
     if (resultado.ok) return;
-    expect(resultado.errores.category).toBeDefined();
+    expect(resultado.errores.category).toMatch(/ya no existe/);
+  });
+
+  it("exige elegir una categoría", () => {
+    const resultado = validar({ category: "" });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+    expect(resultado.errores.category).toMatch(/Elige/);
   });
 
   it("convierte las specs a lista ignorando líneas vacías", () => {
-    const resultado = validarProducto(
-      formulario({ specs: "Sensor 10.000 DPI\n\n  RGB 16.8M  \n\n" }),
-    );
+    const resultado = validar({ specs: "Sensor 10.000 DPI\n\n  RGB 16.8M  \n\n" });
     expect(resultado.ok && resultado.valores.specs).toEqual(["Sensor 10.000 DPI", "RGB 16.8M"]);
   });
 
   it("guarda el caption vacío como null", () => {
     // null deja que el front use su texto por defecto "[ foto: nombre ]";
     // un "" pintaría un caption en blanco.
-    const resultado = validarProducto(formulario({ photo_caption: "  " }));
+    const resultado = validar({ photo_caption: "  " });
     expect(resultado.ok && resultado.valores.photo_caption).toBeNull();
   });
 
   it("rechaza stock negativo", () => {
-    const resultado = validarProducto(formulario({ stock: "-3" }));
+    const resultado = validar({ stock: "-3" });
     expect(resultado.ok).toBe(false);
     if (resultado.ok) return;
     expect(resultado.errores.stock).toBeDefined();
@@ -159,7 +187,7 @@ describe("aFormulario", () => {
       sort_order: 10,
     };
 
-    const resultado = validarProducto(aFormulario(producto));
+    const resultado = validarProducto(aFormulario(producto), CATEGORIAS);
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
 
@@ -179,6 +207,12 @@ describe("mensajeDeErrorSupabase", () => {
     expect(
       mensajeDeErrorSupabase('new row violates check constraint "products_compare_at_gt_price"'),
     ).toMatch(/mayor que el actual/);
+  });
+
+  it("traduce la foránea de categoría, que es la que aparecerá ahora", () => {
+    expect(
+      mensajeDeErrorSupabase('insert violates foreign key constraint "products_category_fkey"'),
+    ).toMatch(/no existe/);
   });
 
   it("traduce un fallo de permisos a algo accionable", () => {
