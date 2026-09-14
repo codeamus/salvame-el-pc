@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { describeQuote, quoteOrder } from "@/lib/orders/quote";
-import { FREE_SHIPPING_FROM_CLP, SHIPPING_COST_CLP } from "@/lib/order-rules";
+import { freeShippingFromCLP, shippingCostCLP } from "@/lib/order-rules";
 import { priceCLP, type Product } from "@/types/product";
 
 /**
@@ -39,6 +39,13 @@ const CATALOGO = [
   producto(4, "Teclado Logitech G413 TKL SE", 54990),
   producto(5, "RAM Kingston Fury Beast 16GB DDR5 5200", 54990),
 ];
+
+// El cargador de reglas sale a Supabase; estos tests prueban aritmética.
+// Con el mock, quoteOrder usa las reglas por defecto del handoff, que son
+// las que las expectativas de abajo dan por buenas.
+vi.mock("@/data/order-rules", () => ({
+  aplicarReglasDePedido: () => Promise.resolve(),
+}));
 
 vi.mock("@/data/products", () => ({
   getProductById: (id: number) => Promise.resolve(CATALOGO.find((p) => p.id === id) ?? null),
@@ -100,8 +107,8 @@ describe("quoteOrder", () => {
       expect(resultado.ok).toBe(true);
       if (!resultado.ok) return;
 
-      expect(resultado.quote.shippingCLP).toBe(SHIPPING_COST_CLP);
-      expect(resultado.quote.totalCLP).toBe(19990 + SHIPPING_COST_CLP);
+      expect(resultado.quote.shippingCLP).toBe(shippingCostCLP());
+      expect(resultado.quote.totalCLP).toBe(19990 + shippingCostCLP());
     });
 
     it("no cobra envío sobre el umbral", async () => {
@@ -110,7 +117,7 @@ describe("quoteOrder", () => {
       expect(resultado.ok).toBe(true);
       if (!resultado.ok) return;
 
-      expect(resultado.quote.subtotalCLP).toBeGreaterThanOrEqual(FREE_SHIPPING_FROM_CLP);
+      expect(resultado.quote.subtotalCLP).toBeGreaterThanOrEqual(freeShippingFromCLP());
       expect(resultado.quote.shippingCLP).toBe(0);
     });
 

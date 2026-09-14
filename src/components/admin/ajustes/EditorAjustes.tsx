@@ -14,7 +14,7 @@ import {
  * Ajustes globales del sitio.
  *
  * Reemplaza a las constantes SITE, CONTACT, LEGAL y PROMO_TEXT de
- * src/config/site.ts, y a las reglas de envío de src/lib/order-rules.ts.
+ * antes vivían en el código, y a las reglas de envío de order-rules.ts.
  *
  * Reutiliza el mismo CampoDinamico que el editor de contenido: cada fila de
  * site_settings ya trae su `label`, su `kind` y su `help`, que es

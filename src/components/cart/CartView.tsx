@@ -6,7 +6,7 @@ import {
   $cartShipping,
   $cartSubtotal,
   $cartTotal,
-  FREE_SHIPPING_FROM_CLP,
+  freeShippingFromCLP,
 } from "@/lib/cart-store";
 import { formatCLP } from "@/lib/format";
 
@@ -17,7 +17,7 @@ export default function CartView() {
   const shipping = useStore($cartShipping);
   const total = useStore($cartTotal);
 
-  const missingForFreeShipping = FREE_SHIPPING_FROM_CLP - subtotal;
+  const missingForFreeShipping = freeShippingFromCLP() - subtotal;
 
   return (
     <div className="px-5 pt-12 pb-18 sm:px-10">

@@ -9,7 +9,7 @@ import {
   $cartSubtotal,
   $cartTotal,
   closeCartDrawer,
-  FREE_SHIPPING_FROM_CLP,
+  freeShippingFromCLP,
 } from "@/lib/cart-store";
 import { formatCLP } from "@/lib/format";
 
@@ -89,7 +89,7 @@ export default function CartDrawer() {
 
   if (!open) return null;
 
-  const missingForFreeShipping = FREE_SHIPPING_FROM_CLP - subtotal;
+  const missingForFreeShipping = freeShippingFromCLP() - subtotal;
   const isEmpty = lines.length === 0;
 
   return (

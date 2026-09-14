@@ -1,6 +1,6 @@
 ---
 import Logo from "@/components/brand/Logo.astro";
-import { MAIN_NAV, PROMO_TEXT, SITE } from "@/config/site";
+import { enlaces, getSettings, texto } from "@/data/content";
 
 const currentPath = Astro.url.pathname;
 
@@ -9,13 +9,18 @@ function isActive(href: string): boolean {
   const normalize = (path: string) => (path !== "/" ? path.replace(/\/$/, "") : path);
   return normalize(currentPath) === normalize(href);
 }
+
+const ajustes = await getSettings();
+const nombreSitio = texto(ajustes, "site.name", "Sálvame el PC");
+const cintillo = texto(ajustes, "promo.text");
+const navegacion = enlaces(ajustes, "nav.main");
 ---
 
 {/* Barra promo sobre el header (mono, negra) — definida en el handoff. */}
 <div
   class="bg-invert px-4 py-2 text-center font-mono text-[11px] tracking-[.08em] text-on-invert uppercase"
 >
-  {PROMO_TEXT}
+  {cintillo}
 </div>
 
 <header
@@ -26,7 +31,7 @@ function isActive(href: string): boolean {
       como decorativo para no anunciarlo dos veces. En pantallas chicas se
       deja solo la marca: el wordmark no entra sin apretar la navegación. */
   }
-  <a href="/" class="no-underline" aria-label={`${SITE.name} — ir al inicio`}>
+  <a href="/" class="no-underline" aria-label={`${nombreSitio} — ir al inicio`}>
     <Logo size={34} title={null} class="hidden sm:inline-flex" />
     <Logo size={34} variant="mark" title={null} class="sm:hidden" />
   </a>
@@ -34,7 +39,7 @@ function isActive(href: string): boolean {
   <nav aria-label="Navegación principal">
     <ul class="flex items-center gap-4 text-sm font-semibold sm:gap-7">
       {
-        MAIN_NAV.map((link) => (
+        navegacion.map((link) => (
           <li>
             <a
               href={link.href}

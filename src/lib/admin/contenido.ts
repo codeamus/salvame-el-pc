@@ -222,7 +222,7 @@ export const GRUPOS_AJUSTES: Readonly<Record<string, string>> = {
 /**
  * ¿Sigue siendo un placeholder del handoff?
  *
- * Mismo criterio que `esPendiente` en src/config/site.ts: los corchetes son
+ * Mismo criterio que `esPendiente` en src/data/content.ts: los corchetes son
  * un seguro deliberado para que un dato legal sin completar se vea a la
  * legua antes de salir a producción.
  */

@@ -1,6 +1,6 @@
 import { persistentAtom } from "@nanostores/persistent";
 import { atom, computed } from "nanostores";
-import { MAX_QUANTITY_PER_LINE, shippingFor } from "@/lib/order-rules";
+import { maxQuantityPerLine, setOrderRules, shippingFor } from "@/lib/order-rules";
 import type { PriceCLP, Product } from "@/types/product";
 
 /**
@@ -37,9 +37,9 @@ export interface CartLine {
  * Se re-exportan para que los componentes sigan pidiéndoselas al carrito.
  */
 export {
-  FREE_SHIPPING_FROM_CLP,
-  MAX_QUANTITY_PER_LINE,
-  SHIPPING_COST_CLP,
+  freeShippingFromCLP,
+  maxQuantityPerLine,
+  shippingCostCLP,
   shippingFor,
 } from "@/lib/order-rules";
 
@@ -82,6 +82,35 @@ export function isCartLine(value: unknown): value is CartLine {
   );
 }
 
+/*
+ * Reglas de envío inyectadas por el servidor.
+ *
+ * El layout deja un <script type="application/json" data-reglas-envio> con
+ * lo que el admin configuró. Se lee acá, al cargar el módulo, porque
+ * cart-store es lo primero que importa cualquier componente del carrito: sea
+ * el cajón, la vista o el checkout, quien llegue primero deja las reglas
+ * puestas antes de que se calcule ningún total.
+ *
+ * Si el script no está —una página sin layout, un test— se mantienen los
+ * valores del handoff. La alternativa, cobrar cero por envío, es peor que
+ * cobrar de más.
+ */
+function leerReglasInyectadas(): void {
+  if (typeof document === "undefined") return;
+
+  const nodo = document.querySelector("[data-reglas-envio]");
+  if (nodo?.textContent == null) return;
+
+  try {
+    setOrderRules(JSON.parse(nodo.textContent) as Record<string, unknown>);
+  } catch {
+    // JSON corrupto: se siguen usando las reglas por defecto. No hay nada
+    // que mostrarle al comprador sobre esto.
+  }
+}
+
+leerReglasInyectadas();
+
 export const $cart = persistentAtom<readonly CartLine[]>("salvameelpc:cart", [], {
   encode: serialize,
   decode: deserialize,
@@ -106,7 +135,7 @@ export const $cartTotal = computed(
 );
 
 function clampQuantity(quantity: number): number {
-  return Math.max(1, Math.min(MAX_QUANTITY_PER_LINE, Math.floor(quantity)));
+  return Math.max(1, Math.min(maxQuantityPerLine(), Math.floor(quantity)));
 }
 
 /**

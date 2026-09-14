@@ -2,8 +2,9 @@
 import { ClientRouter } from "astro:transitions";
 import Footer from "@/components/layout/Footer.astro";
 import Header from "@/components/layout/Header.astro";
+import ReglasEnvio from "@/components/layout/ReglasEnvio.astro";
 import ThemeScript from "@/components/layout/ThemeScript.astro";
-import { SITE } from "@/config/site";
+import { getSettings, texto } from "@/data/content";
 import { THEME_COLOR } from "@/lib/theme";
 import "@/styles/global.css";
 
@@ -21,20 +22,27 @@ interface Props {
   noindex?: boolean;
 }
 
+const ajustes = await getSettings();
+
+const nombreSitio = texto(ajustes, "site.name", "Sálvame el PC");
+const descripcionPorDefecto = texto(ajustes, "site.description");
+const urlSitio = texto(ajustes, "site.url", "https://salvameelpc.cl");
+const idioma = texto(ajustes, "site.locale", "es-CL");
+
 const {
   title,
-  description = SITE.description,
+  description = descripcionPorDefecto,
   ogImage = "/og-default.png",
   noindex = false,
 } = Astro.props;
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? SITE.url);
-const ogImageUrl = new URL(ogImage, Astro.site ?? SITE.url);
-const fullTitle = `${title} · ${SITE.name}`;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? urlSitio);
+const ogImageUrl = new URL(ogImage, Astro.site ?? urlSitio);
+const fullTitle = `${title} · ${nombreSitio}`;
 ---
 
 <!doctype html>
-<html lang="es-CL">
+<html lang={idioma}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -47,14 +55,15 @@ const fullTitle = `${title} · ${SITE.name}`;
     <meta name="generator" content={Astro.generator} />
 
     <ThemeScript />
+    <ReglasEnvio />
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:site_name" content={nombreSitio} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
-    <meta property="og:locale" content="es_CL" />
+    <meta property="og:locale" content={idioma.replace("-", "_")} />
     <meta name="twitter:card" content="summary_large_image" />
 
     {/* View Transitions nativas: la foto del producto viaja de card → single. */}

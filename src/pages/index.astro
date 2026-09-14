@@ -5,7 +5,7 @@ import ProductCard from "@/components/product/ProductCard.astro";
 import ProductPhoto from "@/components/product/ProductPhoto.astro";
 import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
-import { SITE } from "@/config/site";
+import { campo, getSections, getSettings, listaDeSeccion, texto } from "@/data/content";
 import { getCategories } from "@/data/categories";
 import { productViewTransitionName } from "@/types/product";
 
@@ -22,6 +22,8 @@ export const prerender = false;
 
 const all = await getAllProducts();
 const categorias = await getCategories();
+const secciones = await getSections("home");
+const ajustes = await getSettings();
 const featured = await getFeaturedProducts();
 const offers = await getOfferProducts();
 
@@ -84,23 +86,31 @@ const categoryTiles = categorias.map((category) => {
 const MARQUEE_PAIRS = 10;
 const SECONDS_PER_PAIR = 22 / 3;
 const marqueeSeconds = (MARQUEE_PAIRS * SECONDS_PER_PAIR).toFixed(1);
-const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", "Logitech"]).flat();
+const marcasCinta = listaDeSeccion(secciones, "marquee.brands");
+const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => marcasCinta).flat();
 ---
 
-<BaseLayout title="Inicio" description={SITE.description}>
+<BaseLayout title="Inicio" description={texto(ajustes, "site.description")}>
   {/* ── Hero tipográfico ─────────────────────────────────────────────── */}
   <section class="border-b border-line px-5 pt-18 pb-12 sm:px-10">
-    <p class="eyebrow">Tienda de hardware — Santiago, Chile</p>
+    <p class="eyebrow">{campo(secciones, "hero.eyebrow")}</p>
     <h1
       class="mt-4.5 text-[clamp(52px,8.5vw,128px)] leading-[.94] font-extrabold tracking-[-.045em] text-balance uppercase"
     >
-      Hardware y periféricos<br />
-      <span class="text-coral">sin vueltas.</span>
+      {campo(secciones, "hero.heading")}<br />
+      <span class="text-coral">{campo(secciones, "hero.heading_accent")}</span>
     </h1>
     <div class="mt-9 flex flex-wrap items-center gap-4">
-      <a href="/tienda" class="btn-primary">Ver catálogo →</a>
-      <a href="/servicio-tecnico" class="btn-secondary">Servicio técnico</a>
-      <span class="font-mono text-xs text-muted">envío a todo chile · pago con mercado pago</span>
+      <a href={campo(secciones, "hero.cta_primary_href", "/tienda")} class="btn-primary">
+        {campo(secciones, "hero.cta_primary_label")}
+      </a>
+      <a
+        href={campo(secciones, "hero.cta_secondary_href", "/servicio-tecnico")}
+        class="btn-secondary"
+      >
+        {campo(secciones, "hero.cta_secondary_label")}
+      </a>
+      <span class="font-mono text-xs text-muted">{campo(secciones, "hero.note")}</span>
     </div>
   </section>
 
@@ -177,11 +187,11 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
       class="col-span-2 flex flex-col justify-between bg-invert p-5 px-6 text-on-invert no-underline transition-colors hover:text-coral"
     >
       <span class="font-mono text-[11px] tracking-[.12em] text-coral uppercase">
-        Servicio técnico
+        {campo(secciones, "bento_servicio.eyebrow")}
       </span>
       <span class="flex items-baseline justify-between gap-4">
         <span class="text-2xl font-extrabold tracking-[-.02em]">
-          Armamos, reparamos y revivimos tu PC
+          {campo(secciones, "bento_servicio.heading")}
         </span>
         <span class="text-[22px]">→</span>
       </span>
@@ -211,12 +221,14 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   {/* ── Destacados ───────────────────────────────────────────────────── */}
   <section class="border-b border-line px-5 py-14 sm:px-10">
     <div class="mb-7 flex items-baseline justify-between">
-      <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">Destacados</h2>
+      <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">
+        {campo(secciones, "destacados.heading")}
+      </h2>
       <a
         href="/tienda"
         class="border-b-2 border-coral font-mono text-[13px] no-underline hover:text-coral"
       >
-        ver todo →
+        {campo(secciones, "destacados.link_label")}
       </a>
     </div>
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -228,9 +240,9 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   <section class="border-b border-line bg-coral px-5 py-14 text-on-coral sm:px-10">
     <div class="mb-7 flex flex-wrap items-baseline justify-between gap-2">
       <h2 class="reveal-wipe text-[40px] font-extrabold tracking-[-.03em] uppercase">
-        Ofertas de la semana
+        {campo(secciones, "ofertas.heading")}
       </h2>
-      <span class="font-mono text-[13px]">hasta agotar stock</span>
+      <span class="font-mono text-[13px]">{campo(secciones, "ofertas.note")}</span>
     </div>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
       {offers.map((product) => <OfferCard product={product} veil vt={claimVt(product.id)} />)}
@@ -243,18 +255,17 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
   >
     {/* Bloque de texto sin VT adentro: es seguro revelarlo (ver global.css). */}
     <div class="reveal-up flex flex-col justify-center gap-5 px-6 py-16 sm:px-12">
-      <p class="eyebrow">Servicio técnico</p>
+      <p class="eyebrow">{campo(secciones, "banner_servicio.eyebrow")}</p>
       <h2
         class="text-[clamp(32px,4vw,56px)] leading-none font-extrabold tracking-[-.03em] uppercase"
       >
-        ¿Tu PC pide ayuda a gritos?
+        {campo(secciones, "banner_servicio.heading")}
       </h2>
       <p class="max-w-[46ch] text-base leading-relaxed text-on-invert-soft">
-        Armado desde cero, reparación y mantención. Grabamos cada trabajo para que veas exactamente
-        qué hicimos.
+        {campo(secciones, "banner_servicio.body")}
       </p>
       <a href="/servicio-tecnico" class="btn-primary self-start border-none">
-        Conoce el servicio →
+        {campo(secciones, "banner_servicio.cta_label")}
       </a>
     </div>
     {/* Placeholder del video del taller — se reemplaza por el embed real. */}
@@ -267,7 +278,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => ["Redragon", 
         ▶
       </div>
       <span class="absolute bottom-4.5 left-6 font-mono text-[11px] text-on-invert-faint">
-        [ video: armado pc gamer / 2:14 ]
+        {campo(secciones, "banner_servicio.video_caption")}
       </span>
     </div>
   </section>

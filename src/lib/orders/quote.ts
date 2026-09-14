@@ -1,5 +1,6 @@
 import { getProductById } from "@/data/products";
-import { MAX_QUANTITY_PER_LINE, shippingFor } from "@/lib/order-rules";
+import { aplicarReglasDePedido } from "@/data/order-rules";
+import { maxQuantityPerLine, shippingFor } from "@/lib/order-rules";
 import type { DeliveryMethod } from "@/lib/checkout-form";
 
 /**
@@ -54,7 +55,7 @@ function parseItem(value: unknown): QuoteItemInput | null {
   const quantity = Number(raw.quantity);
 
   if (!Number.isInteger(id) || id <= 0) return null;
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY_PER_LINE) return null;
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > maxQuantityPerLine()) return null;
 
   return { id, quantity };
 }
@@ -67,6 +68,17 @@ function parseItem(value: unknown): QuoteItemInput | null {
  * existe" no es lo mismo que "la cantidad no es válida".
  */
 export async function quoteOrder(items: unknown, entrega: DeliveryMethod): Promise<QuoteResult> {
+  /*
+   * Las reglas de envío se releen ANTES de cotizar.
+   *
+   * Este endpoint atiende su propia petición: no renderizó ninguna página, y
+   * el módulo puede venir reciclado de una invocación anterior con valores
+   * viejos. Sin esta línea cobraría el envío por defecto mientras el carrito
+   * le muestra al comprador el configurado en el panel — un monto en
+   * pantalla y otro en la pasarela.
+   */
+  await aplicarReglasDePedido();
+
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, error: "El carrito está vacío." };
   }

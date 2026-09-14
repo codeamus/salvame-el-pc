@@ -1,8 +1,19 @@
 ---
 import Logo from "@/components/brand/Logo.astro";
-import { CONTACT, SITE } from "@/config/site";
+import { enlaces, getSettings, texto } from "@/data/content";
 
 const currentYear = new Date().getFullYear();
+
+const ajustes = await getSettings();
+const nombreSitio = texto(ajustes, "site.name", "Sálvame el PC");
+const bajada = texto(ajustes, "footer.tagline");
+const notaPagos = texto(ajustes, "footer.payment_note");
+const instagramUrl = texto(ajustes, "contact.instagram_url", "#");
+const instagramHandle = texto(ajustes, "contact.instagram_handle");
+const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
+const navTienda = enlaces(ajustes, "nav.footer_tienda");
+const navAyuda = enlaces(ajustes, "nav.footer_ayuda");
 ---
 
 <footer class="bg-invert text-on-invert">
@@ -16,7 +27,7 @@ const currentYear = new Date().getFullYear();
       }
       <Logo size={46} title={null} />
       <p class="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-on-invert-muted">
-        Hardware, periféricos y servicio técnico. Santiago, Chile — despacho a todo el país.
+        {bajada}
       </p>
     </div>
 
@@ -24,34 +35,26 @@ const currentYear = new Date().getFullYear();
       <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
         >Tienda</span
       >
-      <a href="/tienda" class="text-on-invert/85 no-underline hover:text-coral">Catálogo</a>
-      <a href="/carrito" class="text-on-invert/85 no-underline hover:text-coral">Carrito</a>
-      <a href="/servicio-tecnico" class="text-on-invert/85 no-underline hover:text-coral">
-        Servicio técnico
-      </a>
+      {
+        navTienda.map((link) => (
+          <a href={link.href} class="text-on-invert/85 no-underline hover:text-coral">
+            {link.label}
+          </a>
+        ))
+      }
     </nav>
 
     <nav aria-label="Ayuda" class="flex flex-col gap-2.5 text-sm">
       <span class="font-mono text-[11px] tracking-[.14em] text-on-invert-faint uppercase"
         >Ayuda</span
       >
-      <a href="/contacto" class="text-on-invert/85 no-underline hover:text-coral">Contacto</a>
       {
-        /* Deja de ser un <span> muerto: la sección de despacho de los
-          términos es exactamente lo que este enlace prometía. */
+        navAyuda.map((link) => (
+          <a href={link.href} class="text-on-invert/85 no-underline hover:text-coral">
+            {link.label}
+          </a>
+        ))
       }
-      <a
-        href="/terminos-y-condiciones#despacho"
-        class="text-on-invert/85 no-underline hover:text-coral"
-      >
-        Envíos y devoluciones
-      </a>
-      <a href="/terminos-y-condiciones" class="text-on-invert/85 no-underline hover:text-coral">
-        Términos y condiciones
-      </a>
-      <a href="/politica-de-privacidad" class="text-on-invert/85 no-underline hover:text-coral">
-        Política de privacidad
-      </a>
     </nav>
 
     <nav aria-label="Redes sociales" class="flex flex-col gap-2.5 text-sm">
@@ -59,20 +62,20 @@ const currentYear = new Date().getFullYear();
         >Síguenos</span
       >
       <a
-        href={CONTACT.instagramUrl}
+        href={instagramUrl}
         target="_blank"
         rel="noopener"
         class="text-on-invert/85 no-underline hover:text-coral"
       >
-        Instagram {CONTACT.instagramHandle}
+        Instagram {instagramHandle}
       </a>
       <a
-        href={CONTACT.whatsappUrl}
+        href={whatsappUrl}
         target="_blank"
         rel="noopener"
         class="text-on-invert/85 no-underline hover:text-coral"
       >
-        WhatsApp {CONTACT.whatsappDisplay}
+        WhatsApp {whatsappDisplay}
       </a>
     </nav>
   </div>
@@ -80,7 +83,7 @@ const currentYear = new Date().getFullYear();
   <div
     class="flex flex-wrap justify-between gap-4 border-t border-on-invert-line px-5 py-4.5 font-mono text-[11px] text-on-invert-faint sm:px-10"
   >
-    <span>© {currentYear} {SITE.name} — Santiago, Chile</span>
-    <span>pagos procesados por mercado pago</span>
+    <span>© {currentYear} {nombreSitio} — Santiago, Chile</span>
+    <span>{notaPagos}</span>
   </div>
 </footer>

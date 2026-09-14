@@ -1,6 +1,16 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import CartView from "@/components/cart/CartView";
+
+/*
+ * On-demand con ISR.
+ *
+ * Su contenido —nombre del sitio, contacto, textos— sale de Supabase, y el
+ * layout necesita esos datos para renderizar. Prerenderizarla la congelaría
+ * con lo que hubiera en la base el día del deploy. Vercel cachea el HTML ya
+ * generado, así que el visitante no nota diferencia.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout

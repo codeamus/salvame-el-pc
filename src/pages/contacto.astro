@@ -1,8 +1,27 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { CONTACT } from "@/config/site";
+import { campo, getSettings, getSections, lista, listaDeSeccion, texto } from "@/data/content";
 
-const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pedido", "Otro"];
+const ajustes = await getSettings();
+const secciones = await getSections("contacto");
+
+const subjects = listaDeSeccion(secciones, "formulario.subjects");
+const direccion = lista(ajustes, "contact.address");
+const horario = lista(ajustes, "contact.hours");
+const instagramUrl = texto(ajustes, "contact.instagram_url", "#");
+const instagramHandle = texto(ajustes, "contact.instagram_handle");
+const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const mapaUrl = texto(ajustes, "contact.maps_embed_url");
+
+/*
+ * On-demand con ISR.
+ *
+ * Su contenido —nombre del sitio, contacto, textos— sale de Supabase, y el
+ * layout necesita esos datos para renderizar. Prerenderizarla la congelaría
+ * con lo que hubiera en la base el día del deploy. Vercel cachea el HTML ya
+ * generado, así que el visitante no nota diferencia.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout
@@ -13,9 +32,9 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
     {/* ── Formulario ─────────────────────────────────────────────────── */}
     <section class="border-b border-line px-6 py-14 sm:px-12 lg:border-r lg:border-b-0">
       <h1 class="mb-2 text-[clamp(40px,5vw,72px)] font-extrabold tracking-[-.04em] uppercase">
-        Hablemos<span class="text-coral">.</span>
+        {campo(secciones, "hero.heading")}<span class="text-coral">.</span>
       </h1>
-      <p class="mb-8 text-[15px] text-ink/70">Respondemos dentro del día, de lunes a sábado.</p>
+      <p class="mb-8 text-[15px] text-ink/70">{campo(secciones, "hero.body")}</p>
 
       {
         /*
@@ -26,7 +45,13 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
       }
       <form data-contact-form class="flex flex-col gap-4">
         <label class="sr-only" for="contacto-nombre">Nombre</label>
-        <input id="contacto-nombre" name="nombre" required placeholder="Nombre" class="field" />
+        <input
+          id="contacto-nombre"
+          name="nombre"
+          required
+          placeholder={campo(secciones, "formulario.placeholder_nombre", "Nombre")}
+          class="field"
+        />
 
         <label class="sr-only" for="contacto-correo">Correo electrónico</label>
         <input
@@ -34,7 +59,7 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
           name="correo"
           type="email"
           required
-          placeholder="Correo electrónico"
+          placeholder={campo(secciones, "formulario.placeholder_correo", "Correo electrónico")}
           class="field"
         />
 
@@ -49,11 +74,11 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
           name="mensaje"
           required
           rows="5"
-          placeholder="Cuéntanos en qué te ayudamos"
+          placeholder={campo(secciones, "formulario.placeholder_mensaje")}
           class="field resize-y"></textarea>
 
         <button type="submit" class="btn-primary self-start px-7 py-3.75">
-          Enviar mensaje →
+          {campo(secciones, "formulario.submit_label")}
         </button>
       </form>
 
@@ -64,9 +89,9 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
         role="status"
       >
         <p class="mb-2.5 font-mono text-xs tracking-[.14em] text-coral uppercase">
-          Mensaje enviado ✓
+          {campo(secciones, "formulario.success_label")}
         </p>
-        <p class="text-lg font-bold">Gracias por escribirnos. Te responderemos dentro del día.</p>
+        <p class="text-lg font-bold">{campo(secciones, "formulario.success_body")}</p>
       </div>
     </section>
 
@@ -74,35 +99,51 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
     <section class="flex flex-col gap-8 px-6 py-14 sm:px-12">
       <div>
         <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
-          Taller y tienda
+          {campo(secciones, "datos.label_direccion")}
         </p>
         <p class="text-base font-bold">
-          {CONTACT.address[0]}<br />{CONTACT.address[1]}
+          {
+            direccion.map((linea, i) => (
+              <>
+                {i > 0 && <br />}
+                {linea}
+              </>
+            ))
+          }
         </p>
       </div>
 
       <div>
-        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Horario</p>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_horario")}
+        </p>
         <p class="text-base font-bold">
-          {CONTACT.hours[0]}<br />{CONTACT.hours[1]}
+          {
+            horario.map((linea, i) => (
+              <>
+                {i > 0 && <br />}
+                {linea}
+              </>
+            ))
+          }
         </p>
       </div>
 
       <div>
         <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
-          Redes sociales
+          {campo(secciones, "datos.label_redes")}
         </p>
         <div class="flex flex-wrap gap-3">
           <a
-            href={CONTACT.instagramUrl}
+            href={instagramUrl}
             target="_blank"
             rel="noopener"
             class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
           >
-            Instagram {CONTACT.instagramHandle}
+            Instagram {instagramHandle}
           </a>
           <a
-            href={CONTACT.whatsappUrl}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener"
             class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
@@ -112,12 +153,26 @@ const subjects = ["Consulta por producto", "Servicio técnico", "Estado de mi pe
         </div>
       </div>
 
-      {/* Placeholder del mapa — reemplazar por el embed real de Google Maps. */}
-      <div
-        class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line"
-      >
-        <span class="font-mono text-xs text-faint">[ mapa: providencia, santiago ]</span>
-      </div>
+      {
+        /* Con URL de embed configurada se muestra el mapa; sin ella, el
+           placeholder rayado del handoff. Que el sitio no se rompa por un
+           campo vacío es parte de que sea administrable. */
+        mapaUrl === "" ? (
+          <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line">
+            <span class="font-mono text-xs text-faint">
+              {campo(secciones, "datos.map_caption")}
+            </span>
+          </div>
+        ) : (
+          <iframe
+            src={mapaUrl}
+            title="Ubicación de la tienda"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            class="mt-auto aspect-[16/7] w-full border border-line"
+          />
+        )
+      }
     </section>
   </div>
 </BaseLayout>

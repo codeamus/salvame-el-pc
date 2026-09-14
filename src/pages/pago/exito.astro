@@ -13,6 +13,16 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
  * location.search en el cliente: no hay nada que renderizar en el servidor
  * que el script no necesite pedir igual, así que no vale una función.
  */
+
+/*
+ * On-demand con ISR.
+ *
+ * Su contenido —nombre del sitio, contacto, textos— sale de Supabase, y el
+ * layout necesita esos datos para renderizar. Prerenderizarla la congelaría
+ * con lo que hubiera en la base el día del deploy. Vercel cachea el HTML ya
+ * generado, así que el visitante no nota diferencia.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout title="Resultado del pago" noindex>

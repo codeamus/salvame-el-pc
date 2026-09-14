@@ -1,11 +1,15 @@
 ---
 import ThemeScript from "@/components/layout/ThemeScript.astro";
-import { SITE } from "@/config/site";
 import { THEME_COLOR } from "@/lib/theme";
 import "@/styles/global.css";
 
 /**
  * Envoltorio del panel de administración.
+ *
+ * A diferencia del sitio público, este layout NO lee nada de Supabase: el
+ * nombre va escrito a mano. Es deliberado — si la base falla, el panel tiene
+ * que abrir igual para poder diagnosticarlo. Un panel que no carga cuando la
+ * base está caída es justo el que no sirve el día que hace falta.
  *
  * No usa BaseLayout a propósito. BaseLayout trae el header de la tienda, el
  * footer, el cajón del carrito, el toast y el ClientRouter: nada de eso
@@ -31,7 +35,7 @@ const { title } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} · Panel {SITE.name}</title>
+    <title>{title} · Panel Sálvame el PC</title>
 
     {
       /*

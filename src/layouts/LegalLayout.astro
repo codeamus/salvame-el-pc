@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { LEGAL } from "@/config/site";
 
 /**
  * Envoltorio de las páginas legales (términos y condiciones, política de
@@ -29,11 +28,20 @@ interface Props {
   /** Bajada bajo el titular, en una frase. */
   intro: string;
   sections: readonly LegalSection[];
+  /** Fecha ISO en que cambió EL TEXTO, no el último deploy. */
+  updatedOn: string;
 }
 
-const { title, description, intro, sections } = Astro.props;
+const { title, description, intro, sections, updatedOn } = Astro.props;
 
-const actualizado = new Date(`${LEGAL.actualizado}T12:00:00`).toLocaleDateString("es-CL", {
+/*
+ * El mediodía no es capricho: construir la fecha con `new Date("2026-08-19")`
+ * la interpreta como UTC y en Chile (UTC-3/-4) retrocede al día anterior. Un
+ * documento legal que muestra un día distinto del registrado es exactamente
+ * lo que no se puede permitir cuando hay que probar qué versión estaba
+ * vigente el día de la compra.
+ */
+const actualizado = new Date(`${updatedOn}T12:00:00`).toLocaleDateString("es-CL", {
   day: "numeric",
   month: "long",
   year: "numeric",
@@ -49,7 +57,7 @@ const actualizado = new Date(`${LEGAL.actualizado}T12:00:00`).toLocaleDateString
     </h1>
     <p class="mb-2 max-w-[60ch] text-[15px] text-ink/70">{intro}</p>
     <p class="font-mono text-xs text-muted">
-      última actualización · <time datetime={LEGAL.actualizado}>{actualizado}</time>
+      última actualización · <time datetime={updatedOn}>{actualizado}</time>
     </p>
 
     <div class="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-[15rem_1fr] lg:gap-14">

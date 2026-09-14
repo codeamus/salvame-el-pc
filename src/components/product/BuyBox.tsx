@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addToCart, MAX_QUANTITY_PER_LINE, type CartProduct } from "@/lib/cart-store";
+import { addToCart, maxQuantityPerLine, type CartProduct } from "@/lib/cart-store";
 import { showToast } from "@/lib/toast-store";
 import { formatCLP } from "@/lib/format";
 
@@ -26,7 +26,7 @@ export default function BuyBox({ product }: BuyBoxProps) {
   }
 
   function increment(): void {
-    setQuantity((current) => Math.min(MAX_QUANTITY_PER_LINE, current + 1));
+    setQuantity((current) => Math.min(maxQuantityPerLine(), current + 1));
   }
 
   function handleAdd(): void {

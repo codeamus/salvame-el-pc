@@ -1,7 +1,7 @@
 import {
   $cartCount,
   addToCart,
-  MAX_QUANTITY_PER_LINE,
+  maxQuantityPerLine,
   openCartDrawer,
   type CartProduct,
 } from "@/lib/cart-store";
@@ -104,7 +104,7 @@ document.addEventListener(
       event.preventDefault();
       const { node, value } = readQuantity(step.closest("[data-qty-form]"));
       const next = step.hasAttribute("data-qty-inc")
-        ? Math.min(MAX_QUANTITY_PER_LINE, value + 1)
+        ? Math.min(maxQuantityPerLine(), value + 1)
         : Math.max(1, value - 1);
       writeQuantity(node, next);
       return;

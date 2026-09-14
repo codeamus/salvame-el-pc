@@ -1,37 +1,15 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { CONTACT } from "@/config/site";
+import { campo, getSettings, getSections, items, texto } from "@/data/content";
 
-const services = [
-  {
-    number: "01",
-    title: "Armado de PC",
-    description:
-      "Desde la elección de componentes hasta el cable management. Armamos tu equipo según tu presupuesto.",
-    price: "desde $25.000",
-  },
-  {
-    number: "02",
-    title: "Reparación",
-    description:
-      "Diagnóstico en 24 horas. Pantallas, fuentes, placas y todo lo que deje de funcionar.",
-    price: "diagnóstico $10.000",
-  },
-  {
-    number: "03",
-    title: "Mantención y limpieza",
-    description:
-      "Limpieza profunda, cambio de pasta térmica y optimización para que vuelva a rendir como nuevo.",
-    price: "desde $15.000",
-  },
-];
+const ajustes = await getSettings();
+const secciones = await getSections("servicio-tecnico");
 
-/* Acá van los videos reales del taller (embeds de YouTube o archivos). */
-const videos = [
-  "[ armado pc gamer / 2:14 ]",
-  "[ cambio pasta térmica / 1:47 ]",
-  "[ reparación notebook / 3:02 ]",
-];
+const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
+
+const services = items(secciones, "servicios.items");
+const videos = items(secciones, "videos.items");
 ---
 
 <BaseLayout
@@ -40,15 +18,16 @@ const videos = [
 >
   {/* ── Hero ─────────────────────────────────────────────────────────── */}
   <section class="border-b border-line px-5 pt-18 pb-12 sm:px-10">
-    <p class="eyebrow">No lo botes todavía</p>
+    <p class="eyebrow">{campo(secciones, "hero.eyebrow")}</p>
     <h1
       class="mt-4 text-[clamp(48px,7vw,104px)] leading-[.94] font-extrabold tracking-[-.045em] uppercase"
     >
-      Servicio<br />técnico<span class="text-coral">.</span>
+      {campo(secciones, "hero.heading")}<br />{campo(secciones, "hero.heading_line2")}<span
+        class="text-coral">.</span
+      >
     </h1>
     <p class="mt-6 max-w-[52ch] text-[17px] leading-relaxed text-ink/75">
-      Trabajamos con repuestos originales y grabamos cada proceso. Acá abajo puedes ver videos
-      reales de lo que hacemos en el taller.
+      {campo(secciones, "hero.body")}
     </p>
   </section>
 
@@ -74,17 +53,18 @@ const videos = [
   {/* ── Videos del taller ────────────────────────────────────────────── */}
   <section class="border-b border-line bg-invert px-5 py-14 text-on-invert sm:px-10">
     <h2 class="mb-7 text-[32px] font-extrabold tracking-[-.03em] uppercase">
-      Así trabajamos <span class="text-coral">(en video)</span>
+      {campo(secciones, "videos.heading")}
+      <span class="text-coral">{campo(secciones, "videos.heading_accent")}</span>
     </h2>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
       {
-        videos.map((caption) => (
+        videos.map((video) => (
           <div class="stripes-dark relative flex aspect-video cursor-pointer items-center justify-center border border-on-invert/30 transition-colors hover:border-coral">
             <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]">
               ▶
             </div>
             <span class="absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint">
-              {caption}
+              {video.caption}
             </span>
           </div>
         ))
@@ -97,10 +77,10 @@ const videos = [
     class="flex flex-wrap items-center justify-between gap-6 border-b border-line px-5 py-12 sm:px-10"
   >
     <h2 class="text-[clamp(24px,3vw,40px)] font-extrabold tracking-[-.03em] uppercase">
-      Agenda por WhatsApp
+      {campo(secciones, "cta.heading")}
     </h2>
-    <a href={CONTACT.whatsappUrl} target="_blank" rel="noopener" class="btn-primary">
-      {CONTACT.whatsappDisplay} →
+    <a href={whatsappUrl} target="_blank" rel="noopener" class="btn-primary">
+      {whatsappDisplay} →
     </a>
   </section>
 </BaseLayout>
