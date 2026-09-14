@@ -37,6 +37,34 @@ const json = (data: unknown, status: number): Response =>
 /** Rutas fijas del sitio. Las fichas de producto se agregan dinámicamente. */
 const RUTAS_FIJAS = ["/", "/tienda", "/404"];
 
+/**
+ * ¿Vercel rehízo de verdad esta página?
+ *
+ * La respuesta la da la cabecera `x-vercel-cache`, no el código de estado, y
+ * la diferencia importa por dos motivos que se descubrieron en QA:
+ *
+ *   · Mirar `response.ok` daba por fallida la página /404, que responde 404
+ *     porque ESA es su función. El panel decía "se publicaron 14 de 15"
+ *     cada vez, aunque todo hubiera salido bien, y eso entrena a desconfiar
+ *     de un aviso que algún día va a ser cierto.
+ *
+ *   · Peor: un 200 no prueba nada. Si el token no estuviera en el build,
+ *     Vercel ignoraría la cabecera y devolvería la página CACHEADA con un
+ *     200 tranquilizador. El panel habría cantado victoria mientras el
+ *     sitio seguía mostrando el precio viejo — que es exactamente el fallo
+ *     que uno necesita que se note.
+ *
+ * REVALIDATED = se rehizo. MISS / PRERENDER = no había caché y se generó
+ * ahora. Sin la cabecera no estamos en Vercel (un `astro dev` local), y ahí
+ * basta con que la página no reviente.
+ */
+function seRegenero(respuesta: Response): boolean {
+  const estado = respuesta.headers.get("x-vercel-cache");
+
+  if (estado === null) return respuesta.status < 500;
+  return estado === "REVALIDATED" || estado === "MISS" || estado === "PRERENDER";
+}
+
 export const POST: APIRoute = async ({ request }) => {
   // ── 1. ¿Hay una sesión de admin detrás de esto? ────────────────────────
   const cabecera = request.headers.get("authorization") ?? "";
@@ -96,7 +124,7 @@ export const POST: APIRoute = async ({ request }) => {
         const respuesta = await fetch(`${base}${ruta}`, {
           headers: { "x-prerender-revalidate": bypass },
         });
-        return { ruta, ok: respuesta.ok };
+        return { ruta, ok: seRegenero(respuesta) };
       } catch {
         // Una ruta que falla no puede abortar las demás: es mejor publicar
         // catorce de quince que ninguna.
