@@ -3,6 +3,8 @@ import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import AdminShell from "./AdminShell";
 import Dashboard from "./Dashboard";
 import LoginForm from "./LoginForm";
+import EditorProducto from "./productos/EditorProducto";
+import ListaProductos from "./productos/ListaProductos";
 import { getSupabaseBrowser, type SupabaseBrowserConfig } from "@/lib/supabase/browser";
 
 /**
@@ -105,18 +107,69 @@ export default function AdminApp({ config, rutaInicial }: Props) {
 
   return (
     <AdminShell supabase={supabase} sesion={sesion} ruta={ruta} navegar={navegar}>
-      {renderSeccion(ruta, supabase)}
+      <Seccion ruta={ruta} supabase={supabase} navegar={navegar} />
     </AdminShell>
   );
 }
 
-function renderSeccion(ruta: string, supabase: SupabaseClient) {
-  switch (ruta) {
-    case "/admin":
-      return <Dashboard supabase={supabase} />;
-    default:
-      return <EnConstruccion ruta={ruta} />;
+/**
+ * Router del panel.
+ *
+ * Un switch sobre la ruta en vez de una librería: son seis secciones y dos
+ * rutas con parámetro. Traer react-router para esto costaría más bytes que
+ * todo el panel junto.
+ *
+ * La `key` en el editor no es adorno: sin ella, pasar de /productos/3 a
+ * /productos/7 reutilizaría la misma instancia y el formulario se quedaría
+ * mostrando los datos del producto anterior mientras carga el nuevo. Con
+ * ella, React lo desmonta y lo vuelve a montar limpio.
+ */
+function Seccion({
+  ruta,
+  supabase,
+  navegar,
+}: {
+  ruta: string;
+  supabase: SupabaseClient;
+  navegar: (destino: string) => void;
+}) {
+  if (ruta === "/admin") return <Dashboard supabase={supabase} />;
+
+  if (ruta === "/admin/productos") {
+    return (
+      <ListaProductos
+        supabase={supabase}
+        alCrear={() => navegar("/admin/productos/nuevo")}
+        alEditar={(id) => navegar(`/admin/productos/${String(id)}`)}
+      />
+    );
   }
+
+  if (ruta === "/admin/productos/nuevo") {
+    return (
+      <EditorProducto
+        key="nuevo"
+        supabase={supabase}
+        id={null}
+        alTerminar={() => navegar("/admin/productos")}
+      />
+    );
+  }
+
+  const editando = /^\/admin\/productos\/(\d+)$/.exec(ruta);
+  if (editando?.[1] !== undefined) {
+    const id = Number(editando[1]);
+    return (
+      <EditorProducto
+        key={id}
+        supabase={supabase}
+        id={id}
+        alTerminar={() => navegar("/admin/productos")}
+      />
+    );
+  }
+
+  return <EnConstruccion ruta={ruta} />;
 }
 
 /**

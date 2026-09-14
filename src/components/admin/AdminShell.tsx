@@ -30,7 +30,18 @@ export default function AdminShell({ supabase, sesion, ruta, navegar, children }
 
         <nav aria-label="Secciones del panel" className="flex flex-col border-b border-line">
           {SECCIONES.map((seccion) => {
-            const activa = ruta === seccion.ruta;
+            /*
+             * "Productos" tiene que seguir marcado en /admin/productos/nuevo
+             * y en /admin/productos/7. Por eso no basta la igualdad exacta.
+             *
+             * "/admin" se compara aparte porque es prefijo de TODAS las demás
+             * rutas: con la regla general quedaría siempre activo y el menú
+             * mostraría dos secciones marcadas a la vez.
+             */
+            const activa =
+              seccion.ruta === "/admin"
+                ? ruta === "/admin"
+                : ruta === seccion.ruta || ruta.startsWith(`${seccion.ruta}/`);
             return (
               <a
                 key={seccion.ruta}
