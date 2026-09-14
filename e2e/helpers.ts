@@ -91,3 +91,54 @@ export async function stubOrderStatus(
     });
   });
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * PRECIOS: leerlos, no asumirlos
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * El catálogo y las reglas de envío se administran desde el panel. Un test
+ * que escriba "$19.990" pasa hoy y falla el día que alguien ajuste ese
+ * precio — sin que nada esté roto. Eso ya pasó: la suite se cayó entera
+ * porque el mouse bajó a $10.990.
+ *
+ * Con estos helpers los tests comprueban lo que de verdad tienen que
+ * comprobar: que el subtotal sea el precio por la cantidad, que el envío
+ * cruce bien su umbral, que el total sume. Eso es cierto con cualquier
+ * precio, y sigue fallando si la aritmética se rompe — que es el punto.
+ */
+
+/** Igual que formatCLP de src/lib/format.ts. */
+export function formatearCLP(valor: number): string {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(valor);
+}
+
+export interface ReglasEnvio {
+  readonly shippingCostCLP: number;
+  readonly freeShippingFromCLP: number;
+  readonly maxQuantityPerLine: number;
+}
+
+/** Las reglas que el servidor inyectó en la página para el carrito. */
+export async function leerReglasEnvio(page: Page): Promise<ReglasEnvio> {
+  const json = await page.locator("[data-reglas-envio]").textContent();
+  if (json === null) throw new Error("La página no trae las reglas de envío inyectadas.");
+  return JSON.parse(json) as ReglasEnvio;
+}
+
+/** Lee un monto formateado de la página y lo devuelve como número. */
+export async function leerMonto(page: Page, testId: string): Promise<number> {
+  const texto = await page.getByTestId(testId).textContent();
+  // Se quitan el símbolo y los separadores de miles; el CLP no usa decimales.
+  return Number((texto ?? "").replace(/[^\d]/g, ""));
+}
+
+/** Envío que corresponde a un subtotal, según las reglas vigentes. */
+export function envioPara(subtotal: number, reglas: ReglasEnvio): number {
+  if (subtotal === 0) return 0;
+  return subtotal >= reglas.freeShippingFromCLP ? 0 : reglas.shippingCostCLP;
+}

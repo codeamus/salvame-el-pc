@@ -1,7 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FAKE_INTENT_URL, stubOrderStatus, stubPaymentGateway, waitForIslands } from "./helpers";
+import {
+  FAKE_INTENT_URL,
+  envioPara,
+  formatearCLP,
+  leerMonto,
+  leerReglasEnvio,
+  stubOrderStatus,
+  stubPaymentGateway,
+  waitForIslands,
+} from "./helpers";
 
-const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711"; // $19.990
+const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711";
 
 /** Abre la ficha y espera a que el island de compra quede utilizable. */
 async function openProduct(page: Page): Promise<void> {
@@ -32,10 +41,22 @@ test.describe("Flujo del carrito", () => {
     await openCart(page);
 
     await expect(page.getByRole("link", { name: "Mouse Redragon Cobra M711" })).toBeVisible();
+
     // Se apunta a los testids porque el mismo monto aparece varias veces
     // (precio unitario, subtotal, total) y getByText fallaría por ambigüedad.
-    await expect(page.getByTestId("cart-subtotal")).toHaveText("$19.990");
-    await expect(page.getByTestId("cart-total")).toHaveText("$23.980"); // + $3.990 de envío
+    //
+    // Los montos se leen y se comprueba la ARITMÉTICA: el precio viene del
+    // panel y escribirlo acá haría fallar la suite el día que alguien lo
+    // ajuste, sin que nada esté roto.
+    const reglas = await leerReglasEnvio(page);
+    const subtotal = await leerMonto(page, "cart-subtotal");
+
+    expect(subtotal).toBeGreaterThan(0);
+    expect(subtotal).toBeLessThan(reglas.freeShippingFromCLP);
+
+    await expect(page.getByTestId("cart-total")).toHaveText(
+      formatearCLP(subtotal + envioPara(subtotal, reglas)),
+    );
     await expect(page.getByText(/te faltan .* para envío gratis/i)).toBeVisible();
   });
 
@@ -44,15 +65,19 @@ test.describe("Flujo del carrito", () => {
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
     await openCart(page);
 
-    // 3 × $19.990 = $59.970 — cruza el umbral.
+    const reglas = await leerReglasEnvio(page);
+    const unitario = await leerMonto(page, "cart-subtotal");
+
+    // Cuántas unidades hacen falta para cruzar el umbral, con el precio que
+    // el producto tenga hoy.
+    const necesarias = Math.ceil(reglas.freeShippingFromCLP / unitario);
     const increment = page.getByRole("button", { name: /agregar una unidad/i });
-    await increment.click();
-    await increment.click();
+    for (let i = 1; i < necesarias; i += 1) await increment.click();
 
     // exact: la barra promo y la nota coral también contienen "gratis".
     await expect(page.getByText("Gratis", { exact: true })).toBeVisible();
     await expect(page.getByText("✓ Tienes envío gratis")).toBeVisible();
-    await expect(page.getByTestId("cart-total")).toHaveText("$59.970");
+    await expect(page.getByTestId("cart-total")).toHaveText(formatearCLP(unitario * necesarias));
   });
 
   test("el carrito sobrevive a recargar la página", async ({ page }) => {
@@ -137,18 +162,25 @@ test.describe("Panel lateral del carrito", () => {
     // El botón es un <a href="/carrito">: si el panel no interceptara el clic
     // en fase de captura, el ClientRouter ya nos habría navegado.
     await expect(page).toHaveURL(/\/tienda/);
-    await expect(page.getByTestId("drawer-total")).toHaveText("$23.980");
+
+    const reglas = await leerReglasEnvio(page);
+    const subtotal = await leerMonto(page, "drawer-subtotal");
+    await expect(page.getByTestId("drawer-total")).toHaveText(
+      formatearCLP(subtotal + envioPara(subtotal, reglas)),
+    );
   });
 
   test("sumar y restar en el panel actualiza totales y contador en vivo", async ({ page }) => {
     const panel = await abrirPanel(page);
 
+    const unitario = await leerMonto(page, "drawer-subtotal");
+
     await panel.getByRole("button", { name: /agregar una unidad de mouse/i }).click();
-    await expect(page.getByTestId("drawer-subtotal")).toHaveText("$39.980");
+    await expect(page.getByTestId("drawer-subtotal")).toHaveText(formatearCLP(unitario * 2));
     await expect(page.locator("[data-cart-count]")).toHaveText("2");
 
     await panel.getByRole("button", { name: /quitar una unidad de mouse/i }).click();
-    await expect(page.getByTestId("drawer-subtotal")).toHaveText("$19.990");
+    await expect(page.getByTestId("drawer-subtotal")).toHaveText(formatearCLP(unitario));
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
 

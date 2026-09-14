@@ -1,6 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { FAKE_INTENT_URL, stubPaymentGateway, waitForIslands } from "./helpers";
+import {
+  FAKE_INTENT_URL,
+  envioPara,
+  formatearCLP,
+  leerMonto,
+  leerReglasEnvio,
+  stubPaymentGateway,
+  waitForIslands,
+} from "./helpers";
 
 const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711";
 
@@ -91,8 +99,18 @@ test.describe("Checkout", () => {
   test("acordar entrega esconde la dirección y no cobra envío", async ({ page }) => {
     await openCheckout(page);
 
-    await expect(page.getByTestId("checkout-shipping")).toHaveText("$3.990");
-    await expect(page.getByTestId("checkout-total")).toHaveText("$23.980");
+    // El checkout no expone el subtotal, así que se deriva: total − envío.
+    // Lo que se comprueba es la relación entre los tres montos, que es lo que
+    // puede romperse; el precio concreto lo administra el panel.
+    // El checkout no expone el subtotal, así que se deriva: total − envío.
+    // Lo que se comprueba es la relación entre los tres montos, que es lo que
+    // puede romperse; el precio concreto lo administra el panel.
+    const reglas = await leerReglasEnvio(page);
+    const envio = await leerMonto(page, "checkout-shipping");
+    const totalConEnvio = await leerMonto(page, "checkout-total");
+    const subtotal = totalConEnvio - envio;
+
+    expect(envio).toBe(envioPara(subtotal, reglas));
 
     await page.getByTestId("entrega-acordar").click();
 
@@ -100,8 +118,10 @@ test.describe("Checkout", () => {
     await expect(page.getByLabel("Región", { exact: true })).toHaveCount(0);
     await expect(page.getByLabel("Calle y número", { exact: true })).toHaveCount(0);
     await expect(page.getByTestId("acordar-entrega-nota")).toBeVisible();
+    // Coordinar la entrega no cobra despacho: el total baja exactamente al
+    // subtotal, sin importar cuánto costaran los productos.
     await expect(page.getByTestId("checkout-shipping")).toHaveText("A convenir");
-    await expect(page.getByTestId("checkout-total")).toHaveText("$19.990");
+    await expect(page.getByTestId("checkout-total")).toHaveText(formatearCLP(subtotal));
   });
 
   test("con entrega a acordar basta el contacto para pagar", async ({ page }) => {

@@ -43,8 +43,13 @@ export default defineConfig({
   // porque este último se levanta como daemon: el proceso en primer plano
   // termina apenas arranca, y Playwright lo interpreta como que el webServer
   // murió. Ver el comentario en ese archivo.
+  //
+  // `--env-file-if-exists` porque desde que el contenido vive en Supabase,
+  // renderizar una página necesita credenciales. Va en su variante "if
+  // exists" para que en CI —donde las variables llegan del entorno y no hay
+  // .env— el server arranque igual.
   webServer: {
-    command: `pnpm build && node scripts/serve-dist.mjs ${String(PORT)}`,
+    command: `pnpm build && node --env-file-if-exists=.env scripts/serve-dist.mjs ${String(PORT)}`,
     url: BASE_URL,
     // Nunca se reutiliza un server ajeno, ni en local. Reutilizarlo hacía que
     // la suite corriera contra lo que hubiera escuchando en el puerto: con un
