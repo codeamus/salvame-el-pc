@@ -2,11 +2,13 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import ProductCard from "@/components/product/ProductCard.astro";
 import { getAllProducts, getBrands } from "@/data/products";
-import { CATEGORIES } from "@/types/product";
+import { getCategories } from "@/data/categories";
+
+export const prerender = false;
 
 const products = await getAllProducts();
 const brands = await getBrands();
-const categoryChips = ["Todos", ...CATEGORIES];
+const categoryChips = ["Todos", ...(await getCategories())];
 ---
 
 {

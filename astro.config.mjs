@@ -40,19 +40,88 @@ for (const [clave, valor] of Object.entries(archivoEnv)) {
 export default defineConfig({
   site: "https://salvameelpc.cl",
 
-  // El sitio sigue siendo estático: catálogo, fichas y páginas legales se
-  // generan en build time y Vercel las sirve desde su CDN. Solo las rutas
-  // que declaran `export const prerender = false` se vuelven funciones
-  // serverless — hoy, únicamente las tres del flujo de pago:
+  // Estático por defecto: lo que no cambia se genera en el build y Vercel lo
+  // sirve desde su CDN. Solo se vuelve función serverless lo que declara
+  // `export const prerender = false`:
   //
+  //   /                      portada — catálogo y textos editables
+  //   /tienda                catálogo con filtros
+  //   /producto/[slug]       ficha de producto
+  //   /admin/[...ruta]       panel de administración
   //   /api/checkout          crea el intento de pago en TUU
   //   /api/tuu/callback      recibe la notificación firmada (fuente de verdad)
   //   /api/orders/[reference] estado de la orden, para la página de resultado
   //
-  // Pasar todo a output: "server" habría sacado el catálogo del CDN sin
-  // ninguna necesidad. Ver docs/pagos-tuu.md.
+  // Las tres primeras se sirven igual de rápido que antes gracias al ISR
+  // configurado más abajo: Vercel cachea el HTML ya renderizado. Pasar todo a
+  // output: "server" habría sacado del CDN también a las páginas legales y de
+  // contacto, que no lo necesitan. Ver docs/pagos-tuu.md.
   output: "static",
-  adapter: vercel(),
+
+  adapter: vercel({
+    /*
+     * ─────────────────────────────────────────────────────────────────────
+     * ISR — el catálogo sigue sirviéndose como estático, pero sale de la base
+     * ─────────────────────────────────────────────────────────────────────
+     *
+     * La portada, la tienda y las fichas de producto dejaron de generarse en
+     * el build porque su contenido se edita desde el panel: prerenderizarlas
+     * significaría un deploy por cada cambio de precio.
+     *
+     * Con ISR, Vercel renderiza la página la primera vez que alguien la pide
+     * y guarda el HTML en su CDN. El resto de los visitantes reciben ese
+     * archivo cacheado, igual de rápido que antes; la función solo vuelve a
+     * correr cuando el contenido expira.
+     *
+     * ⚠️ `exclude` es la parte que no se puede equivocar. Sin esta lista,
+     * Vercel cachearía TAMBIÉN las rutas de abajo, y cada una fallaría de una
+     * forma distinta y difícil de notar:
+     *
+     *   /api/orders/[reference]  el estado del pago quedaría congelado en
+     *                            "pendiente" para todos los compradores que
+     *                            consultaran después — la página de éxito no
+     *                            cambiaría nunca.
+     *   /api/tuu/callback        la notificación de TUU es un POST, pero
+     *                            cachear esta ruta es jugar con el mecanismo
+     *                            que confirma los pagos. No se toca.
+     *   /api/checkout            ídem: crea una orden, nunca se cachea.
+     *   /admin                   sirve la clave de sesión del panel y depende
+     *                            de quién mire. Cachearla sería servirle a un
+     *                            visitante la respuesta preparada para otro.
+     */
+    isr: {
+      // Una hora. Los cambios del panel no esperan tanto: el botón de
+      // publicar invalida la caché al instante (ver el token de más abajo).
+      // Esto es solo el techo para lo que nadie revalidó a mano.
+      expiration: 60 * 60,
+
+      // Los patrones son los de las RUTAS de Astro, no URLs sueltas: poner
+      // solo "/admin" deja fuera el exacto y manda igual a la caché todo
+      // /admin/loquesea, que es la ruta atrapa-todo del panel.
+      exclude: [
+        "/api/checkout",
+        "/api/tuu/callback",
+        "/api/orders/[reference]",
+        "/admin",
+        "/admin/[...ruta]",
+      ],
+
+      /*
+       * Permite invalidar la caché desde el panel sin esperar la expiración.
+       *
+       * Va por variable de entorno y no escrito acá: quien tenga este token
+       * puede forzar el rerenderizado de cualquier página del sitio. Si falta
+       * la variable, el ISR sigue funcionando y solo se pierde la
+       * revalidación inmediata.
+       */
+      // El spread condicional no es adorno: con exactOptionalPropertyTypes,
+      // pasar `bypassToken: undefined` no es lo mismo que no pasarlo, y el
+      // adaptador rechaza el primero.
+      ...(process.env.VERCEL_REVALIDATE_TOKEN === undefined
+        ? {}
+        : { bypassToken: process.env.VERCEL_REVALIDATE_TOKEN }),
+    },
+  }),
 
   security: {
     /*

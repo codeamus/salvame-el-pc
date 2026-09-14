@@ -1,5 +1,19 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+
+/*
+ * Se renderiza bajo demanda, y no por gusto.
+ *
+ * Las fichas de producto sí son on-demand (su contenido vive en la base), y
+ * cuando un slug no existe hacen `Astro.rewrite("/404")`. Astro prohíbe que
+ * una ruta on-demand reescriba hacia una prerenderizada: al compilar, esta
+ * página sería un .html suelto que en runtime no se puede recuperar.
+ *
+ * La alternativa era duplicar el diseño del 404 dentro de la ficha de
+ * producto. Un 404 no es una ruta caliente: no vale una copia del marcado
+ * que después se desincroniza.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout title="Página no encontrada">

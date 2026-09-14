@@ -6,9 +6,22 @@ import ProductPhoto from "@/components/product/ProductPhoto.astro";
 import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
 import { SITE } from "@/config/site";
-import { CATEGORIES, productViewTransitionName } from "@/types/product";
+import { getCategories } from "@/data/categories";
+import { productViewTransitionName } from "@/types/product";
+
+/*
+ * Renderizado bajo demanda con ISR.
+ *
+ * La portada dejó de ser un archivo fijo: sale del catálogo y de los textos
+ * que se editan en el panel. Vercel cachea el HTML ya renderizado en su CDN
+ * —así que el visitante sigue recibiendo una página estática— y lo vuelve a
+ * generar cuando expira o cuando el panel pide revalidar. Ver la
+ * configuración en astro.config.mjs.
+ */
+export const prerender = false;
 
 const all = await getAllProducts();
+const categorias = await getCategories();
 const featured = await getFeaturedProducts();
 const offers = await getOfferProducts();
 
@@ -42,7 +55,7 @@ function claimVt(id: number): boolean {
  */
 const claimedBelow = new Set([...featured, ...offers].map((p) => p.id));
 
-const categoryTiles = CATEGORIES.map((category) => {
+const categoryTiles = categorias.map((category) => {
   const inCategory = all.filter((p) => p.category === category);
   const notHero = inCategory.filter((p) => p.photo !== heroProduct.photo);
   const pool = notHero.length > 0 ? notHero : inCategory;

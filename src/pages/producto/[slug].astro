@@ -3,23 +3,30 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuyBox from "@/components/product/BuyBox";
 import ProductPhoto from "@/components/product/ProductPhoto.astro";
 import RelatedCard from "@/components/product/RelatedCard.astro";
-import { getAllProducts, getRelatedProducts } from "@/data/products";
+import { getProductBySlug, getRelatedProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
-import { getDiscountPercent, type Product } from "@/types/product";
+import { getDiscountPercent } from "@/types/product";
 
-export async function getStaticPaths() {
-  const products = await getAllProducts();
-  return products.map((product) => ({
-    params: { slug: product.slug },
-    props: { product },
-  }));
+/*
+ * Se renderiza bajo demanda, no en el build.
+ *
+ * Antes había un getStaticPaths que generaba una página por producto al
+ * compilar. Con el catálogo en la base eso significaría un deploy por cada
+ * producto nuevo — exactamente lo que el panel viene a evitar. Vercel cachea
+ * el resultado en su CDN, así que el visitante recibe lo mismo de siempre.
+ */
+export const prerender = false;
+
+const { slug } = Astro.params;
+const product = slug === undefined ? null : await getProductBySlug(slug);
+
+// Un slug inexistente tiene que responder 404 de verdad, no una ficha vacía
+// con 200: un producto borrado que siga devolviendo OK se queda indexado en
+// Google y manda gente a una página que no existe.
+if (product === null) {
+  return Astro.rewrite("/404");
 }
 
-interface Props {
-  product: Product;
-}
-
-const { product } = Astro.props;
 const related = await getRelatedProducts(product);
 const discount = getDiscountPercent(product);
 const description = `${product.name} — ${product.specs.join(", ")}. ${formatCLP(product.priceCLP)}, envío a todo Chile.`;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   getDiscountPercent,
-  isCategory,
   priceCLP,
   productViewTransitionName,
   type Product,
@@ -38,17 +37,18 @@ describe("priceCLP", () => {
   });
 });
 
-describe("isCategory", () => {
-  it("reconoce las categorías del catálogo", () => {
-    expect(isCategory("Mouse")).toBe(true);
-    expect(isCategory("GPU")).toBe(true);
-  });
-
-  it("rechaza strings desconocidos", () => {
-    expect(isCategory("Sillas")).toBe(false);
-    expect(isCategory("")).toBe(false);
-  });
-});
+/*
+ * Acá vivían los tests de `isCategory`, que comprobaba una categoría contra
+ * la union cerrada CATEGORIES.
+ *
+ * Se fueron con ella cuando las categorías pasaron a administrarse desde el
+ * panel: la lista ya no se conoce al compilar. Quien valida hoy es la clave
+ * foránea products.category → categories.name, probada en la migración
+ * supabase/migrations/0002, y el formulario del panel, probado en
+ * src/lib/admin/productos.test.ts.
+ *
+ * No es un test que se perdió: es un test que cambió de capa.
+ */
 
 describe("getDiscountPercent", () => {
   it("calcula el porcentaje redondeado", () => {

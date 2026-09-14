@@ -100,6 +100,25 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-call": "off",
+
+      /*
+       * Desactivada porque HACE CRASHEAR a ESLint, no porque moleste.
+       *
+       * El frontmatter de una página es un cuerpo de función implícito, así
+       * que un `return` de primer nivel —la forma en que Astro corta el
+       * renderizado para devolver un 404 o una redirección— no tiene un nodo
+       * padre de función. La regla asume que siempre lo hay y revienta con
+       * "Non-null Assertion Failed: Expected node to have a parent",
+       * tumbando el lint del proyecto entero.
+       *
+       * Un comentario eslint-disable no sirve: el crash ocurre al recorrer
+       * el árbol, antes de que se evalúe ninguna supresión.
+       *
+       * Sigue activa en .ts y .tsx, que es donde de verdad atrapa promesas
+       * mal usadas. Revisar si una versión futura de typescript-eslint lo
+       * arregla; se ve en src/pages/producto/[slug].astro.
+       */
+      "@typescript-eslint/no-misused-promises": "off",
     },
   },
 

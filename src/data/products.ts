@@ -1,104 +1,150 @@
-import rawProducts from "@/data/productos.json";
-import { isCategory, priceCLP, type Category, type Product } from "@/types/product";
+import { getSupabaseReader, memoizarBreve } from "@/lib/supabase/reader";
+import { priceCLP, type Category, type Product } from "@/types/product";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
- * CAPA DE DATOS — catálogo desde productos.json (entregado en el handoff).
+ * CAPA DE DATOS — catálogo desde Supabase
  * ─────────────────────────────────────────────────────────────────────────
  *
- * Todo el front consume el catálogo a través de las funciones de este módulo,
- * NUNCA importando el array directamente. Eso hace que el día que conectemos
- * backend solo haya que reescribir el cuerpo de estas funciones (y hacerlas
- * async de verdad) sin tocar un solo componente.
+ * Todo el front consume el catálogo a través de estas funciones, NUNCA
+ * importando datos directamente. Esa disciplina es justo lo que permitió
+ * cambiar de productos.json a la base sin tocar un solo componente: las
+ * firmas ya devolvían Promise porque estaban escritas para este día.
  *
- * Las firmas ya devuelven Promise justamente por eso: los componentes ya
- * están escritos como si el dato viniera de la red.
+ * Se lee con la clave PÚBLICA, así que el RLS decide qué se ve. Que un
+ * producto despublicado no aparezca no depende de que alguien se acuerde de
+ * filtrar `is_published` en cada consulta: la base no lo devuelve. Eso es lo
+ * que hace que un borrador siga siendo un borrador aunque alguien adivine su
+ * slug.
  */
 
-interface RawProduct {
-  readonly id: number;
-  readonly slug: string;
-  readonly nombre: string;
-  readonly marca: string;
-  readonly cat: string;
-  readonly precio: number;
-  readonly antes?: number;
-  readonly destacado?: boolean;
-  readonly foto: string;
-  readonly specs: readonly string[];
+/** Fila de `products` tal como la devuelve PostgREST. */
+interface FilaProducto {
+  id: number;
+  slug: string;
+  name: string;
+  brand: string;
+  category: string;
+  price_clp: number;
+  compare_at_price_clp: number | null;
+  is_featured: boolean;
+  photo_url: string;
+  photo_caption: string | null;
+  specs: string[];
+  stock: number;
+  track_stock: boolean;
+  sort_order: number;
 }
 
-function toProduct(raw: RawProduct): Product {
-  if (!isCategory(raw.cat)) {
-    throw new Error(`Producto ${raw.slug}: categoría desconocida "${raw.cat}"`);
-  }
+const COLUMNAS =
+  "id, slug, name, brand, category, price_clp, compare_at_price_clp, is_featured, photo_url, photo_caption, specs, stock, track_stock, sort_order";
+
+function aProducto(fila: FilaProducto): Product {
   return {
-    id: raw.id,
-    slug: raw.slug,
-    name: raw.nombre,
-    brand: raw.marca,
-    category: raw.cat,
-    priceCLP: priceCLP(raw.precio),
+    id: fila.id,
+    slug: fila.slug,
+    name: fila.name,
+    brand: fila.brand,
+    category: fila.category,
+    priceCLP: priceCLP(fila.price_clp),
     // Spread condicional por exactOptionalPropertyTypes: la propiedad no
-    // debe existir (ni siquiera como undefined) cuando no hay precio anterior.
-    ...(raw.antes === undefined ? {} : { compareAtPriceCLP: priceCLP(raw.antes) }),
-    isFeatured: raw.destacado ?? false,
-    photo: raw.foto,
-    photoCaption: `[ foto: ${raw.nombre.toLowerCase()} ]`,
-    specs: raw.specs,
+    // debe existir (ni como undefined) cuando no hay precio anterior.
+    ...(fila.compare_at_price_clp === null
+      ? {}
+      : { compareAtPriceCLP: priceCLP(fila.compare_at_price_clp) }),
+    isFeatured: fila.is_featured,
+    photo: fila.photo_url,
+    // El caption se genera si nadie escribió uno: null en la base significa
+    // "usa el de por defecto", no "déjalo en blanco".
+    photoCaption: fila.photo_caption ?? `[ foto: ${fila.name.toLowerCase()} ]`,
+    specs: fila.specs,
   };
 }
 
-const CATALOG: readonly Product[] = (rawProducts as readonly RawProduct[]).map(toProduct);
+/**
+ * El catálogo completo, en una sola consulta por render.
+ *
+ * La portada necesita todos los productos, los destacados y las ofertas; el
+ * catálogo los necesita todos y además las marcas. Pedirlos por separado
+ * serían cuatro viajes a la base para mostrar una página. Se traen una vez y
+ * las demás funciones filtran en memoria.
+ *
+ * Con doce productos esto es trivialmente correcto, y sigue siéndolo con
+ * varios cientos. Si el catálogo llegara a miles, lo que cambia es el cuerpo
+ * de estas funciones — no quien las llama.
+ */
+const cargarCatalogo = memoizarBreve(async (): Promise<readonly Product[]> => {
+  const { data, error } = await getSupabaseReader()
+    .from("products")
+    .select(COLUMNAS)
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true })
+    .returns<FilaProducto[]>();
+
+  if (error !== null) {
+    // Se lanza en vez de devolver vacío: una tienda sin productos por un
+    // fallo de red se vería igual que una tienda vacía de verdad, y el
+    // deploy pasaría sin que nadie se entere.
+    throw new Error(`[catálogo] no se pudo leer el catálogo: ${error.message}`);
+  }
+
+  return data.map(aProducto);
+});
 
 /** Devuelve el catálogo completo. */
 export function getAllProducts(): Promise<readonly Product[]> {
-  return Promise.resolve(CATALOG);
+  return cargarCatalogo();
 }
 
 /** Productos marcados como destacados, para la portada (máx. 4). */
-export function getFeaturedProducts(): Promise<readonly Product[]> {
-  return Promise.resolve(CATALOG.filter((product) => product.isFeatured).slice(0, 4));
+export async function getFeaturedProducts(): Promise<readonly Product[]> {
+  const catalogo = await cargarCatalogo();
+  return catalogo.filter((product) => product.isFeatured).slice(0, 4);
 }
 
 /** Productos con precio anterior — "Ofertas de la semana" (máx. 3). */
-export function getOfferProducts(): Promise<readonly Product[]> {
-  return Promise.resolve(
-    CATALOG.filter((product) => product.compareAtPriceCLP !== undefined).slice(0, 3),
-  );
+export async function getOfferProducts(): Promise<readonly Product[]> {
+  const catalogo = await cargarCatalogo();
+  return catalogo.filter((product) => product.compareAtPriceCLP !== undefined).slice(0, 3);
 }
 
 /** Busca por slug. Devuelve null si no existe (no lanza). */
-export function getProductBySlug(slug: string): Promise<Product | null> {
-  return Promise.resolve(CATALOG.find((product) => product.slug === slug) ?? null);
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  const catalogo = await cargarCatalogo();
+  return catalogo.find((product) => product.slug === slug) ?? null;
 }
 
 /**
  * Busca por id. Devuelve null si no existe (no lanza).
  *
  * Es la que usa /api/checkout para recalcular el precio en el servidor: el
- * carrito viaja por la red con ids y cantidades, nunca con montos.
+ * carrito viaja por la red con ids y cantidades, nunca con montos. Que el
+ * precio salga de acá y no del navegador es lo que impide que alguien pague
+ * $1 por una GPU.
  */
-export function getProductById(id: number): Promise<Product | null> {
-  return Promise.resolve(CATALOG.find((product) => product.id === id) ?? null);
+export async function getProductById(id: number): Promise<Product | null> {
+  const catalogo = await cargarCatalogo();
+  return catalogo.find((product) => product.id === id) ?? null;
 }
 
 /** Productos de la misma categoría, excluyendo al propio (para "Relacionados"). */
-export function getRelatedProducts(product: Product, limit = 3): Promise<readonly Product[]> {
-  return Promise.resolve(
-    CATALOG.filter((p) => p.category === product.category && p.id !== product.id).slice(0, limit),
-  );
+export async function getRelatedProducts(product: Product, limit = 3): Promise<readonly Product[]> {
+  const catalogo = await cargarCatalogo();
+  return catalogo
+    .filter((otro) => otro.category === product.category && otro.id !== product.id)
+    .slice(0, limit);
 }
 
 /** Lista de marcas únicas, ordenada alfabéticamente. Para filtros. */
-export function getBrands(): Promise<readonly string[]> {
-  const brands = [...new Set(CATALOG.map((product) => product.brand))].sort((a, b) =>
+export async function getBrands(): Promise<readonly string[]> {
+  const catalogo = await cargarCatalogo();
+  return [...new Set(catalogo.map((product) => product.brand))].sort((a, b) =>
     a.localeCompare(b, "es"),
   );
-  return Promise.resolve(brands);
 }
 
 /** Cantidad de productos por categoría — chips "02 productos" del bento. */
-export function countByCategory(category: Category): Promise<number> {
-  return Promise.resolve(CATALOG.filter((product) => product.category === category).length);
+export async function countByCategory(category: Category): Promise<number> {
+  const catalogo = await cargarCatalogo();
+  return catalogo.filter((product) => product.category === category).length;
 }
