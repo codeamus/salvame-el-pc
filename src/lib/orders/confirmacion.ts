@@ -1,4 +1,4 @@
-import { getSettings, texto } from "@/data/content";
+import { esPendiente, getSettings, texto } from "@/data/content";
 import { enviarCorreo } from "@/lib/email/enviar";
 import { confirmacionDePedido } from "@/lib/email/plantillas";
 import { leerComprador } from "@/lib/admin/pedidos";
@@ -54,10 +54,24 @@ export async function enviarConfirmacionDeCompra(orden: OrderRecord): Promise<vo
       urlSitio: texto(ajustes, "site.url", "https://salvameelpc.cl"),
     });
 
+    /*
+     * Responder tiene que llegarle a una persona.
+     *
+     * Un comprador que recibe la confirmación y aprieta "responder" está
+     * haciendo lo más natural del mundo: preguntar por su pedido. Sin
+     * reply-to, esa respuesta va a la casilla desde la que se envía —que
+     * puede ser un subdominio sin buzón— y le rebota. Perder ahí a alguien
+     * que ya compró es de lo más caro que puede pasar.
+     */
+    const casillaDeContacto = texto(ajustes, "legal.correo_contacto");
+
     const envio = await enviarCorreo({
       para: comprador.correo,
       asunto: plantilla.asunto,
       html: plantilla.html,
+      ...(casillaDeContacto === "" || esPendiente(casillaDeContacto)
+        ? {}
+        : { responderA: casillaDeContacto }),
     });
 
     if (!envio.ok) {
