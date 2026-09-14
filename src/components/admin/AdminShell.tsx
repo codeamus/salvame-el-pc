@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import { useStore } from "@nanostores/react";
 import { SECCIONES } from "./AdminApp";
+import { $publicacion, publicar } from "@/lib/admin/publicar";
 
 /**
  * Estructura del panel: barra lateral, sesión y contenido.
@@ -67,6 +69,8 @@ export default function AdminShell({ supabase, sesion, ruta, navegar, children }
         </nav>
 
         <div className="mt-auto px-6 py-5">
+          <IndicadorPublicacion supabase={supabase} />
+
           <p className="font-mono text-[11px] break-all text-muted">{sesion.user.email}</p>
           <button
             type="button"
@@ -84,6 +88,52 @@ export default function AdminShell({ supabase, sesion, ruta, navegar, children }
       </aside>
 
       <main className="min-w-0 flex-1">{children}</main>
+    </div>
+  );
+}
+
+/**
+ * Qué está pasando con el sitio público.
+ *
+ * La publicación es automática, así que esto no es un botón sino un estado.
+ * El botón solo aparece cuando algo falló: es el único momento en que hay
+ * una decisión que tomar.
+ */
+function IndicadorPublicacion({ supabase }: { supabase: SupabaseClient }) {
+  const estado = useStore($publicacion);
+
+  if (estado.fase === "inactivo") return null;
+
+  return (
+    <div aria-live="polite" className="mb-4 border-t border-line-soft pt-4">
+      {estado.fase === "publicando" && (
+        <p className="font-mono text-[11px] text-muted">[ publicando en el sitio… ]</p>
+      )}
+
+      {estado.fase === "publicado" && (
+        <p className="font-mono text-[11px] text-muted">
+          sitio actualizado ✓{" "}
+          <span className="text-faint">
+            {new Date(estado.cuando).toLocaleTimeString("es-CL", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </p>
+      )}
+
+      {estado.fase === "aviso" && (
+        <div>
+          <p className="text-[11px] leading-relaxed text-coral">{estado.mensaje}</p>
+          <button
+            type="button"
+            onClick={() => void publicar(supabase)}
+            className="mt-2 cursor-pointer border-none bg-transparent p-0 font-mono text-[11px] underline"
+          >
+            reintentar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

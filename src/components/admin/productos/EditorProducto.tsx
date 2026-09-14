@@ -11,6 +11,7 @@ import {
   type FormularioProducto,
   type ProductoAdmin,
 } from "@/lib/admin/productos";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Alta y edición de un producto.
@@ -132,6 +133,7 @@ export default function EditorProducto({ supabase, id, alTerminar }: Props) {
       return;
     }
 
+    void publicar(supabase);
     alTerminar();
   }
 

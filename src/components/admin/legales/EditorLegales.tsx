@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Términos y condiciones, y política de privacidad.
@@ -200,7 +201,10 @@ function CabeceraDocumento({
 
     setGuardando(false);
     if (fallo !== null) setError(fallo.message);
-    else alGuardar();
+    else {
+      void publicar(supabase);
+      alGuardar();
+    }
   }
 
   return (
@@ -301,6 +305,7 @@ function TarjetaSeccionLegal({
       return;
     }
     setEstado("guardado");
+    void publicar(supabase);
   }
 
   return (

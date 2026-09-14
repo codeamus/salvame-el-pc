@@ -1,3 +1,4 @@
+import { resolveSiteUrl } from "@/lib/site-url";
 import type { TuuEnvName } from "./types";
 
 /**
@@ -49,45 +50,6 @@ function required(name: string): string {
     );
   }
   return value;
-}
-
-/**
- * Base pública del sitio, de donde salen las tres URLs de retorno.
- *
- * `PUBLIC_SITE_URL` manda siempre: es lo que permite apuntar a un túnel
- * mientras se desarrolla. Si no está definida se cae a las variables que
- * Vercel inyecta sola, y ahí lo que decide NO es el orden sino el ambiente:
- *
- *   - En producción → VERCEL_PROJECT_PRODUCTION_URL, el dominio real.
- *   - En preview    → VERCEL_BRANCH_URL, el alias estable de la rama. No
- *     cambia entre deploys, así que el callback registrado sigue vivo.
- *   - VERCEL_URL → única por deploy, con hash. Último recurso: sirve para
- *     que no reviente, pero apunta a un deploy que quedará obsoleto.
- *
- * Mirar VERCEL_ENV es obligatorio y no un refinamiento: Vercel define
- * VERCEL_PROJECT_PRODUCTION_URL en TODOS los deploys, preview incluidos. Una
- * cadena de `??` que la pusiera primero nunca llegaría a la rama, y entonces
- * cada preview le pasaría a TUU las URLs de producción: el comprador de
- * prueba terminaría en el sitio real y el callback iría a confirmar una orden
- * que vive en otro deploy.
- */
-function resolveSiteUrl(): string {
-  const explicit = readEnv("PUBLIC_SITE_URL");
-  if (explicit !== undefined) return explicit.replace(/\/+$/, "");
-
-  const fromVercel =
-    readEnv("VERCEL_ENV") === "production"
-      ? (readEnv("VERCEL_PROJECT_PRODUCTION_URL") ?? readEnv("VERCEL_URL"))
-      : (readEnv("VERCEL_BRANCH_URL") ?? readEnv("VERCEL_URL"));
-
-  if (fromVercel === undefined) {
-    throw new Error(
-      "[tuu] Falta PUBLIC_SITE_URL y no se detectó un dominio de Vercel. " +
-        "Define PUBLIC_SITE_URL con la base HTTPS del sitio, sin slash final.",
-    );
-  }
-
-  return `https://${fromVercel.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
 }
 
 export function getTuuConfig(): TuuConfig {

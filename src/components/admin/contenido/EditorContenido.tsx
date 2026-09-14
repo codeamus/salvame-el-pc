@@ -8,6 +8,7 @@ import {
   leerDescriptor,
   type DescriptorSeccion,
 } from "@/lib/admin/contenido";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Textos de todas las páginas del sitio.
@@ -232,6 +233,7 @@ function TarjetaSeccion({
     }
 
     setEstado("guardado");
+    void publicar(supabase);
     alGuardar();
   }
 

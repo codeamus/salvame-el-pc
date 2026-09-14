@@ -6,6 +6,7 @@ import {
   validarNombreCategoria,
   type CategoriaConUso,
 } from "@/lib/admin/categorias";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Categorías del catálogo.
@@ -75,6 +76,7 @@ export default function ListaCategorias({ supabase }: Props) {
 
     setNueva("");
     await cargar();
+    void publicar(supabase);
   }
 
   async function renombrar(): Promise<void> {
@@ -107,6 +109,7 @@ export default function ListaCategorias({ supabase }: Props) {
 
     setEditando(null);
     await cargar();
+    void publicar(supabase);
   }
 
   async function actualizar(
@@ -118,7 +121,10 @@ export default function ListaCategorias({ supabase }: Props) {
     setOcupada(null);
 
     if (fallo !== null) setError(mensajeDeErrorCategoria(fallo.message));
-    else await cargar();
+    else {
+      await cargar();
+      void publicar(supabase);
+    }
   }
 
   async function eliminar(nombre: string): Promise<void> {
@@ -128,7 +134,10 @@ export default function ListaCategorias({ supabase }: Props) {
     setConfirmando(null);
 
     if (fallo !== null) setError(mensajeDeErrorCategoria(fallo.message));
-    else await cargar();
+    else {
+      await cargar();
+      void publicar(supabase);
+    }
   }
 
   if (categorias === null) {

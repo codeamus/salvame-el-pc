@@ -85,15 +85,26 @@ export default defineConfig({
      *                            cachear esta ruta es jugar con el mecanismo
      *                            que confirma los pagos. No se toca.
      *   /api/checkout            ídem: crea una orden, nunca se cachea.
+     *   /api/admin/revalidar     es el que ORDENA regenerar: cacheado, el
+     *                            sitio nunca se actualizaría.
      *   /admin                   sirve la clave de sesión del panel y depende
      *                            de quién mire. Cachearla sería servirle a un
      *                            visitante la respuesta preparada para otro.
      */
     isr: {
-      // Una hora. Los cambios del panel no esperan tanto: el botón de
-      // publicar invalida la caché al instante (ver el token de más abajo).
-      // Esto es solo el techo para lo que nadie revalidó a mano.
-      expiration: 60 * 60,
+      /*
+       * Quince minutos, y es solo una red de seguridad.
+       *
+       * Los cambios del panel no esperan esto: cada guardado dispara la
+       * revalidación y el sitio se rehace en segundos. Esta expiración solo
+       * actúa si esa llamada falla —sin token configurado, sin red—, y por
+       * eso no es una hora: que un precio urgente tarde sesenta minutos
+       * porque algo falló en silencio es demasiado.
+       *
+       * Tampoco es un minuto: sin cambios que publicar, cada expiración es
+       * una regeneración que nadie pidió y que consume cuota del plan.
+       */
+      expiration: 15 * 60,
 
       // Los patrones son los de las RUTAS de Astro, no URLs sueltas: poner
       // solo "/admin" deja fuera el exacto y manda igual a la caché todo
@@ -102,6 +113,9 @@ export default defineConfig({
         "/api/checkout",
         "/api/tuu/callback",
         "/api/orders/[reference]",
+        // Cachear esto sería servir la respuesta de una publicación vieja y
+        // que el sitio nunca se regenere.
+        "/api/admin/revalidar",
         "/admin",
         "/admin/[...ruta]",
       ],

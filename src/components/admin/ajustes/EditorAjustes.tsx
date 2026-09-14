@@ -9,6 +9,7 @@ import {
   leerDescriptor,
   type ClaseCampo,
 } from "@/lib/admin/contenido";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Ajustes globales del sitio.
@@ -125,6 +126,7 @@ export default function EditorAjustes({ supabase }: Props) {
     }
 
     setEstado("guardado");
+    void publicar(supabase);
     await cargar();
   }
 

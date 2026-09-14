@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { mensajeDeErrorSupabase, type ProductoAdmin } from "@/lib/admin/productos";
 import { formatCLP } from "@/lib/format";
+import { publicar } from "@/lib/admin/publicar";
 
 /**
  * Catálogo completo, con las acciones de cada producto.
@@ -66,7 +67,10 @@ export default function ListaProductos({ supabase, alEditar, alCrear }: Props) {
       .eq("id", producto.id);
 
     if (fallo !== null) setError(mensajeDeErrorSupabase(fallo.message));
-    else await cargar();
+    else {
+      await cargar();
+      void publicar(supabase);
+    }
     setOcupado(null);
   }
 
@@ -97,6 +101,7 @@ export default function ListaProductos({ supabase, alEditar, alCrear }: Props) {
     setConfirmando(null);
     setOcupado(null);
     await cargar();
+    void publicar(supabase);
   }
 
   if (error !== null && productos === null) {
