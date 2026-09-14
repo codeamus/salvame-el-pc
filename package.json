@@ -40,6 +40,7 @@
     "nanostores": "^1.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "resend": "^6.28.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

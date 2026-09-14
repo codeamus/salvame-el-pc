@@ -74,11 +74,22 @@ export interface Comprador {
   readonly direccion: string | null;
 }
 
-export function leerComprador(customer: Record<string, unknown>): Comprador {
-  const txt = (clave: string): string =>
-    typeof customer[clave] === "string" ? customer[clave] : "";
+/**
+ * Acepta `unknown` y no un Record con forma, a propósito.
+ *
+ * El valor viene de una columna jsonb: lo escribió una versión del
+ * formulario que pudo cambiar, y puede ser cualquier cosa. Tiparlo como si
+ * tuviera garantías sería una promesa que la base no hace — y obligaría a
+ * castear en cada punto de uso, que es la forma de que un `as` termine
+ * mintiendo.
+ */
+export function leerComprador(customer: unknown): Comprador {
+  const datos: Record<string, unknown> =
+    typeof customer === "object" && customer !== null ? (customer as Record<string, unknown>) : {};
 
-  const dir = customer.direccion;
+  const txt = (clave: string): string => (typeof datos[clave] === "string" ? datos[clave] : "");
+
+  const dir = datos.direccion;
   let direccion: string | null = null;
 
   if (typeof dir === "object" && dir !== null) {

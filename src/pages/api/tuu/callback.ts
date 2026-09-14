@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { enviarConfirmacionDeCompra } from "@/lib/orders/confirmacion";
 import { getOrder, markOrderResult } from "@/lib/orders/store";
 import { getTuuConfig } from "@/lib/tuu/env";
 import { verifySignature } from "@/lib/tuu/signature";
@@ -81,10 +82,28 @@ export const POST: APIRoute = async ({ request }) => {
   const { changed } = await markOrderResult(reference, status, params);
 
   if (changed && status === "completed") {
-    // TODO(pagos): acá va lo que dispara la venta — correo al comprador,
-    // aviso al equipo, descuento de stock y emisión de boleta. Va dentro del
-    // `changed` justamente para que un reintento no lo ejecute dos veces.
     console.info("[tuu:callback] pago confirmado", { reference, amount: order.amountCLP });
+
+    /*
+     * Confirmación escrita al comprador.
+     *
+     * Va dentro del `changed` para que los reintentos de TUU —hasta 10— no
+     * manden diez correos por una compra.
+     *
+     * Se espera el envío en vez de dejarlo suelto: en una función serverless
+     * el proceso se congela apenas se responde, así que un `void` sin await
+     * simplemente no se ejecutaría. El envío tiene su propio tope de 4
+     * segundos por debajo del límite de ~5 s que exige TUU, y nunca lanza:
+     * si falla, la orden queda con confirmation_sent_at en null y el panel
+     * la muestra para reenviar.
+     *
+     * No hacerlo no es un detalle de cortesía. La Ley 19.496 exige
+     * confirmación escrita, y sin ella el derecho a retracto del comprador
+     * pasa de 10 a 90 días corridos.
+     */
+    await enviarConfirmacionDeCompra(order);
+
+    // TODO(pagos): falta el aviso al equipo y la emisión de la boleta (DTE).
   }
 
   return new Response("ok", { status: 200 });

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { waitForIslands } from "./helpers";
+import { waitForIslands, congelarAnimaciones } from "./helpers";
 
 const STORAGE_KEY = "salvameelpc:theme";
 
@@ -223,6 +223,7 @@ test.describe("Accesibilidad en modo oscuro", () => {
     test(`la página de ${name} no tiene violaciones en oscuro`, async ({ page }) => {
       await page.goto(path);
       await waitForIslands(page);
+      await congelarAnimaciones(page);
 
       // A diferencia del modo claro, acá NO se excluye color-contrast: sobre
       // el fondo oscuro el coral llega a 6:1 y cumple AA, así que la excepción

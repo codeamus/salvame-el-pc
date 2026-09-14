@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { waitForIslands } from "./helpers";
+import { waitForIslands, congelarAnimaciones } from "./helpers";
 
 /**
  * Auditoría automática de accesibilidad con axe-core.
@@ -34,6 +34,7 @@ for (const { name, path } of PAGES) {
     // Se audita el DOM ya hidratado: antes de eso, /carrito muestra el
     // estado vacío del servidor y no lo que ve realmente el visitante.
     await waitForIslands(page);
+    await congelarAnimaciones(page);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -64,6 +65,7 @@ test("el carrito con productos tampoco tiene violaciones", async ({ page }) => {
   await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
   await page.goto("/carrito");
   await waitForIslands(page);
+  await congelarAnimaciones(page);
 
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

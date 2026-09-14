@@ -44,6 +44,27 @@ export const prerender = false;
       */
       }
       <form data-contact-form class="flex flex-col gap-4">
+        {
+          /*
+            Trampa para bots: se esconde de la vista Y de los lectores de
+            pantalla, y se saca del orden de tabulación. Una persona nunca lo
+            llena; un robot que rellena todo lo que encuentra, sí. El
+            servidor descarta lo que venga con esto puesto.
+
+            `hidden` a secas no sirve: hay bots que igual lo completan. Lo que
+            importa es que ninguna persona pueda llegar a él por accidente.
+          */
+        }
+        <div aria-hidden="true" class="absolute -left-[9999px]">
+          <label for="contacto-sitio-web">No llenar</label>
+          <input
+            id="contacto-sitio-web"
+            name="sitio_web"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
         <label class="sr-only" for="contacto-nombre">Nombre</label>
         <input
           id="contacto-nombre"
@@ -77,9 +98,18 @@ export const prerender = false;
           placeholder={campo(secciones, "formulario.placeholder_mensaje")}
           class="field resize-y"></textarea>
 
-        <button type="submit" class="btn-primary self-start px-7 py-3.75">
+        <button type="submit" data-contact-submit class="btn-primary self-start px-7 py-3.75">
           {campo(secciones, "formulario.submit_label")}
         </button>
+
+        {/* Errores del servidor: casilla inválida, mensaje muy largo, caída. */}
+        <p
+          data-contact-error
+          hidden
+          role="alert"
+          class="border border-coral px-4 py-3 text-[13px] text-coral"
+        >
+        </p>
       </form>
 
       <div
@@ -178,15 +208,70 @@ export const prerender = false;
 </BaseLayout>
 
 <script>
+  /**
+   * Envío real del formulario de contacto.
+   *
+   * Antes esto solo escondía el formulario y mostraba "mensaje enviado ✓"
+   * sin mandar nada. La persona se iba tranquila y su consulta no llegaba a
+   * ninguna parte — el engaño más caro que puede tener una tienda, porque
+   * el que se va creyendo que escribió no vuelve a intentarlo.
+   *
+   * El estado de éxito ahora se muestra SOLO cuando el servidor confirmó que
+   * guardó el mensaje.
+   */
   function initContactForm(): void {
     const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
     const success = document.querySelector<HTMLElement>("[data-contact-success]");
+    const errorBox = document.querySelector<HTMLElement>("[data-contact-error]");
+    const submit = document.querySelector<HTMLButtonElement>("[data-contact-submit]");
     if (!form || !success) return;
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      form.hidden = true;
-      success.hidden = false;
+
+      const datos = Object.fromEntries(new FormData(form));
+      const etiquetaOriginal = submit?.textContent ?? "";
+
+      if (errorBox) errorBox.hidden = true;
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = "Enviando…";
+      }
+
+      void fetch("/api/contacto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+      })
+        .then(async (respuesta) => {
+          const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
+
+          if (respuesta.ok) {
+            form.hidden = true;
+            success.hidden = false;
+            return;
+          }
+
+          if (errorBox) {
+            errorBox.textContent =
+              cuerpo.error ?? "No pudimos enviar tu mensaje. Inténtalo de nuevo.";
+            errorBox.hidden = false;
+          }
+        })
+        .catch(() => {
+          // Sin conexión. Se ofrece la alternativa que sí va a funcionar en
+          // vez de dejar a la persona reintentando contra el vacío.
+          if (errorBox) {
+            errorBox.textContent = "No hay conexión. Revisa tu red o escríbenos por WhatsApp.";
+            errorBox.hidden = false;
+          }
+        })
+        .finally(() => {
+          if (submit) {
+            submit.disabled = false;
+            submit.textContent = etiquetaOriginal;
+          }
+        });
     });
   }
 

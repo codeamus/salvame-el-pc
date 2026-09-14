@@ -8,6 +8,7 @@ import EditorAjustes from "./ajustes/EditorAjustes";
 import ListaCategorias from "./categorias/ListaCategorias";
 import EditorContenido from "./contenido/EditorContenido";
 import EditorLegales from "./legales/EditorLegales";
+import ListaMensajes from "./mensajes/ListaMensajes";
 import ListaPedidos from "./pedidos/ListaPedidos";
 import ListaProductos from "./productos/ListaProductos";
 import { getSupabaseBrowser, type SupabaseBrowserConfig } from "@/lib/supabase/browser";
@@ -41,6 +42,7 @@ export const SECCIONES = [
   { ruta: "/admin/contenido", etiqueta: "Contenido" },
   { ruta: "/admin/legales", etiqueta: "Legales" },
   { ruta: "/admin/pedidos", etiqueta: "Pedidos" },
+  { ruta: "/admin/mensajes", etiqueta: "Mensajes" },
   { ruta: "/admin/ajustes", etiqueta: "Ajustes" },
 ] as const;
 
@@ -156,6 +158,7 @@ function Seccion({
   if (ruta === "/admin/ajustes") return <EditorAjustes supabase={supabase} />;
   if (ruta === "/admin/legales") return <EditorLegales supabase={supabase} />;
   if (ruta === "/admin/pedidos") return <ListaPedidos supabase={supabase} />;
+  if (ruta === "/admin/mensajes") return <ListaMensajes supabase={supabase} />;
 
   if (ruta === "/admin/productos/nuevo") {
     return (

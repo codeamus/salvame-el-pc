@@ -142,3 +142,30 @@ export function envioPara(subtotal: number, reglas: ReglasEnvio): number {
   if (subtotal === 0) return 0;
   return subtotal >= reglas.freeShippingFromCLP ? 0 : reglas.shippingCostCLP;
 }
+
+/**
+ * Congela transiciones y animaciones.
+ *
+ * Axe mide los colores computados en el instante en que corre. Si un
+ * elemento está a mitad de una transición, lee valores MEZCLADOS que no
+ * existen en ninguna paleta y reporta un contraste que el sitio nunca
+ * muestra de verdad.
+ *
+ * Pasó con los filtros del catálogo: `catalog-filter.ts` les pone
+ * `data-active` después de hidratar, eso dispara su `transition-colors`, y
+ * axe cazó el punto medio — un #67635d sobre #9f9a92 que no es ni el tema
+ * claro ni el oscuro. El test fallaba en un navegador distinto cada vez.
+ *
+ * Congelarlas no debilita la prueba: lo que hay que auditar es el estado en
+ * el que la persona ve la página, no los 150 ms de camino.
+ */
+export async function congelarAnimaciones(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `*, *::before, *::after {
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+    }`,
+  });
+}
