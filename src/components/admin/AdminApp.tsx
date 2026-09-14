@@ -4,7 +4,9 @@ import AdminShell from "./AdminShell";
 import Dashboard from "./Dashboard";
 import LoginForm from "./LoginForm";
 import EditorProducto from "./productos/EditorProducto";
+import EditorAjustes from "./ajustes/EditorAjustes";
 import ListaCategorias from "./categorias/ListaCategorias";
+import EditorContenido from "./contenido/EditorContenido";
 import ListaProductos from "./productos/ListaProductos";
 import { getSupabaseBrowser, type SupabaseBrowserConfig } from "@/lib/supabase/browser";
 
@@ -148,6 +150,8 @@ function Seccion({
   }
 
   if (ruta === "/admin/categorias") return <ListaCategorias supabase={supabase} />;
+  if (ruta === "/admin/contenido") return <EditorContenido supabase={supabase} />;
+  if (ruta === "/admin/ajustes") return <EditorAjustes supabase={supabase} />;
 
   if (ruta === "/admin/productos/nuevo") {
     return (
