@@ -1,5 +1,6 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import BotonWhatsapp from "@/components/layout/BotonWhatsapp.astro";
 import Footer from "@/components/layout/Footer.astro";
 import Header from "@/components/layout/Header.astro";
 import ReglasEnvio from "@/components/layout/ReglasEnvio.astro";
@@ -80,6 +81,8 @@ const fullTitle = `${title} · ${nombreSitio}`;
     </main>
 
     <Footer />
+
+    <BotonWhatsapp />
 
     {
       /* Contenedor del panel del carrito. Se llena bajo demanda desde
