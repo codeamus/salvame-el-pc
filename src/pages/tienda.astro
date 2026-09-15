@@ -3,12 +3,14 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import ProductCard from "@/components/product/ProductCard.astro";
 import { getAllProducts, getBrands } from "@/data/products";
 import { getCategories } from "@/data/categories";
+import { campo, getSections } from "@/data/content";
 
 export const prerender = false;
 
 const products = await getAllProducts();
 const brands = await getBrands();
-const categoryChips = ["Todos", ...(await getCategories())];
+const secciones = await getSections("tienda");
+const categoryChips = [campo(secciones, "filtros.chip_todos", "Todos"), ...(await getCategories())];
 ---
 
 {
@@ -32,7 +34,9 @@ const categoryChips = ["Todos", ...(await getCategories())];
       aria-label="Filtros del catálogo"
     >
       <div>
-        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Categoría</p>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "filtros.label_categoria", "Categoría")}
+        </p>
         <div class="flex flex-col gap-1.5">
           {
             categoryChips.map((category) => (
@@ -49,7 +53,9 @@ const categoryChips = ["Todos", ...(await getCategories())];
       </div>
 
       <div>
-        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">Marca</p>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "filtros.label_marca", "Marca")}
+        </p>
         <div class="flex flex-col gap-2">
           {
             brands.map((brand) => (
@@ -74,16 +80,20 @@ const categoryChips = ["Todos", ...(await getCategories())];
           for="orden"
           class="mb-3.5 block font-mono text-[11px] tracking-[.14em] text-muted uppercase"
         >
-          Ordenar
+          {campo(secciones, "filtros.label_orden", "Ordenar")}
         </label>
         <select
           id="orden"
           data-filter-orden
           class="w-full border border-line bg-transparent px-3 py-2.5 text-[13px] font-semibold"
         >
-          <option value="rel">Relevancia</option>
-          <option value="menor">Precio: menor a mayor</option>
-          <option value="mayor">Precio: mayor a menor</option>
+          <option value="rel">{campo(secciones, "filtros.orden_relevancia", "Relevancia")}</option>
+          <option value="menor"
+            >{campo(secciones, "filtros.orden_menor", "Precio: menor a mayor")}</option
+          >
+          <option value="mayor"
+            >{campo(secciones, "filtros.orden_mayor", "Precio: mayor a menor")}</option
+          >
         </select>
       </div>
     </aside>
@@ -92,10 +102,11 @@ const categoryChips = ["Todos", ...(await getCategories())];
     <div>
       <div class="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-9 pb-6 sm:px-10">
         <h1 class="text-[44px] font-extrabold tracking-[-.03em] uppercase" data-catalog-title>
-          Catálogo
+          {campo(secciones, "encabezado.heading", "Catálogo")}
         </h1>
         <p class="font-mono text-[13px] text-muted" aria-live="polite">
-          <span data-catalog-count>{String(products.length).padStart(2, "0")}</span> productos
+          <span data-catalog-count>{String(products.length).padStart(2, "0")}</span>
+          {campo(secciones, "encabezado.count_suffix", "productos")}
         </p>
       </div>
 

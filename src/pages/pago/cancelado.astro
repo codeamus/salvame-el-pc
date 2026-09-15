@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { campo, getSections } from "@/data/content";
 
 /**
  * El comprador canceló en la pasarela.
@@ -18,31 +19,35 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
  * generado, así que el visitante no nota diferencia.
  */
 export const prerender = false;
+
+const secciones = await getSections("pago-cancelado");
 ---
 
 <BaseLayout title="Pago cancelado" noindex>
   <section
     class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-5 px-5 py-24 text-center"
   >
-    <p class="font-mono text-[13px] text-muted">[ pago cancelado ]</p>
-
+    <p class="font-mono text-[13px] text-muted">{campo(secciones, "contenido.label")}</p>
     <h1
       class="text-[clamp(32px,5.5vw,64px)] leading-[.98] font-extrabold tracking-[-.04em] uppercase"
     >
-      Cancelaste<br />el pago<span class="text-coral">.</span>
+      {campo(secciones, "contenido.heading")}<br />{
+        campo(secciones, "contenido.heading_line2")
+      }<span class="text-coral">.</span>
     </h1>
-
-    <p class="max-w-md text-[15px] text-ink/70">
-      No se realizó ningún cargo y tu carrito sigue tal como lo dejaste.
-    </p>
+    <p class="max-w-md text-[15px] text-ink/70">{campo(secciones, "contenido.body")}</p>
 
     <p class="font-mono text-xs text-muted" data-orden hidden>
       orden <span class="text-ink" data-orden-ref></span>
     </p>
 
     <div class="mt-4 flex flex-wrap justify-center gap-4">
-      <a href="/checkout" class="btn-primary">Retomar el pago →</a>
-      <a href="/carrito" class="btn-secondary">Ver mi carrito</a>
+      <a href={campo(secciones, "contenido.cta_primary_href", "/checkout")} class="btn-primary">
+        {campo(secciones, "contenido.cta_primary_label")}
+      </a>
+      <a href={campo(secciones, "contenido.cta_secondary_href", "/carrito")} class="btn-secondary">
+        {campo(secciones, "contenido.cta_secondary_label")}
+      </a>
     </div>
   </section>
 </BaseLayout>

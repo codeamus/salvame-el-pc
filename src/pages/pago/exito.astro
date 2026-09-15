@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getSections } from "@/data/content";
 
 /**
  * Resultado del pago.
@@ -23,9 +24,22 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
  * generado, así que el visitante no nota diferencia.
  */
 export const prerender = false;
+
+const secciones = await getSections("pago-exito");
+const textosEditables = secciones.estados ?? {};
 ---
 
 <BaseLayout title="Resultado del pago" noindex>
+  {
+    /*
+      Los textos de cada estado viajan como dato, no como marcado.
+      Quien decide cuál mostrar es el script —según lo que responda
+      /api/orders/[reference]— así que el servidor no puede pintarlos:
+      no sabe todavía si el pago salió bien. Mismo patrón que las reglas
+      de envío.
+    */
+  }
+  <script type="application/json" data-textos-pago set:html={JSON.stringify(textosEditables)} />
   <section
     class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-5 px-5 py-24 text-center"
     data-pago-resultado
@@ -98,7 +112,21 @@ export const prerender = false;
    */
   type Estado = "pending" | "completed" | "failed" | "unknown" | "demorado";
 
-  const TEXTOS: Record<Estado, { label: string; titulo: string; detalle: string }> = {
+  interface TextoEstado {
+    label: string;
+    titulo: string;
+    detalle: string;
+  }
+
+  /*
+   * Textos de reserva.
+   *
+   * Son los mismos que trae la base sembrada, y están acá porque esta
+   * pantalla es la que ve alguien que ACABA DE PAGAR. Si la consulta de
+   * contenido fallara, mostrarle un hueco en blanco a quien tiene el cargo
+   * hecho es el peor momento posible para quedarse sin texto.
+   */
+  const RESERVA: Record<Estado, TextoEstado> = {
     pending: {
       label: "[ verificando pago… ]",
       titulo: "Confirmando<br />tu pago<span class='text-coral'>…</span>",
@@ -116,19 +144,38 @@ export const prerender = false;
       detalle:
         "No se realizó ningún cargo. Puedes intentar de nuevo con otro medio de pago; tu carrito sigue disponible.",
     },
-    demorado: {
-      label: "[ pago en verificación ]",
-      titulo: "Tu pago está<br />en verificación<span class='text-coral'>.</span>",
-      detalle:
-        "Ya recibimos tu pedido y la pasarela todavía no nos confirma. Te escribimos por correo apenas se resuelva — no vuelvas a pagar.",
-    },
     unknown: {
       label: "[ orden no encontrada ]",
       titulo: "No encontramos<br />esta orden<span class='text-coral'>.</span>",
       detalle:
         "Si acabas de pagar, escríbenos con el número de orden y lo revisamos. No vuelvas a pagar antes de hablar con nosotros.",
     },
+    demorado: {
+      label: "[ pago en verificación ]",
+      titulo: "Tu pago está<br />en verificación<span class='text-coral'>.</span>",
+      detalle:
+        "Ya recibimos tu pedido y la pasarela todavía no nos confirma. Te escribimos por correo apenas se resuelva — no vuelvas a pagar.",
+    },
   };
+
+  /** Lo editable del panel, encima de la reserva. */
+  const TEXTOS: Record<Estado, TextoEstado> = (() => {
+    const nodo = document.querySelector("[data-textos-pago]");
+    if (nodo?.textContent == null) return RESERVA;
+
+    try {
+      const editados = JSON.parse(nodo.textContent) as Partial<
+        Record<Estado, Partial<TextoEstado>>
+      >;
+      const salida = { ...RESERVA };
+      for (const estado of Object.keys(RESERVA) as Estado[]) {
+        salida[estado] = { ...RESERVA[estado], ...(editados[estado] ?? {}) };
+      }
+      return salida;
+    } catch {
+      return RESERVA;
+    }
+  })();
 
   /**
    * Qué puede hacer el comprador según cómo terminó el pago.
