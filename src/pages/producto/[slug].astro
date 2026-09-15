@@ -1,9 +1,9 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import BuyBox from "@/components/product/BuyBox";
-import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import Galeria from "@/components/product/Galeria.astro";
 import RelatedCard from "@/components/product/RelatedCard.astro";
-import { getProductBySlug, getRelatedProducts } from "@/data/products";
+import { getProductBySlug, getProductGallery, getRelatedProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
 import { getDiscountPercent } from "@/types/product";
 
@@ -27,6 +27,7 @@ if (product === null) {
   return Astro.rewrite("/404");
 }
 
+const fotos = await getProductGallery(product);
 const related = await getRelatedProducts(product);
 const discount = getDiscountPercent(product);
 const description = `${product.name} — ${product.specs.join(", ")}. ${formatCLP(product.priceCLP)}, envío a todo Chile.`;
@@ -49,20 +50,15 @@ const description = `${product.name} — ${product.specs.join(", ")}. ${formatCL
 
   <section class="grid grid-cols-1 border-t border-b border-line lg:grid-cols-[1.1fr_1fr]">
     {/* Foto — llega volando desde la card gracias a la view transition. */}
-    <ProductPhoto
-      product={product}
-      eager
-      alt={product.name}
-      class="aspect-4/3 border-b border-line lg:border-r lg:border-b-0"
-    >
+    <Galeria product={product} fotos={fotos} class="border-b border-line lg:border-r lg:border-b-0">
       {
         discount !== null && (
-          <span class="absolute top-4 left-4 border border-line bg-coral px-3 py-1 font-mono text-[13px] font-bold text-on-coral">
+          <span class="absolute top-4 left-4 z-10 border border-line bg-coral px-3 py-1 font-mono text-[13px] font-bold text-on-coral">
             -{discount}%
           </span>
         )
       }
-    </ProductPhoto>
+    </Galeria>
 
     <div class="flex flex-col gap-4.5 px-6 py-11 sm:px-12">
       <p class="eyebrow">{product.brand} · {product.category}</p>
@@ -82,7 +78,7 @@ const description = `${product.name} — ${product.specs.join(", ")}. ${formatCL
         }
       </div>
 
-      <ul class="border-t border-line">
+      <ul class="border-t border-line" data-specs>
         {
           product.specs.map((spec) => (
             <li class="flex gap-2.5 border-b border-line-soft py-2.5 text-sm">

@@ -1,0 +1,195 @@
+---
+import type { FotoProducto } from "@/data/products";
+import { productViewTransitionName, type Product } from "@/types/product";
+
+/**
+ * Galería de la ficha de producto.
+ *
+ * ── Por qué scroll-snap y no un carrusel de JavaScript ────────────────────
+ *
+ * El track es un contenedor con `overflow-x` y `scroll-snap`. Eso significa
+ * que deslizar con el dedo, arrastrar con el trackpad y girar la rueda
+ * funcionan ANTES de que cargue una sola línea de JavaScript, con la inercia
+ * y el rebote nativos del sistema — que ninguna librería imita bien.
+ *
+ * El script que viene abajo solo agrega lo que el navegador no da gratis:
+ * las flechas, el estado activo de las miniaturas y las teclas. Si falla o
+ * llega tarde, la galería sigue siendo usable.
+ *
+ * ── El view-transition-name ───────────────────────────────────────────────
+ *
+ * Va SOLO en la primera foto. Es la que viene volando desde la card del
+ * catálogo, y dos elementos con el mismo nombre abortan la transición
+ * entera — no la del duplicado: la de toda la página.
+ */
+
+interface Props {
+  product: Product;
+  fotos: readonly FotoProducto[];
+  class?: string;
+}
+
+const { product, fotos, class: clase = "" } = Astro.props;
+const varias = fotos.length > 1;
+---
+
+<div class:list={["flex flex-col", clase]} data-galeria>
+  <div class="relative">
+    <div
+      class="flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
+      data-galeria-track
+    >
+      {
+        fotos.map((foto, indice) => (
+          <div
+            class="stripes relative flex aspect-4/3 w-full shrink-0 snap-center items-center justify-center overflow-hidden"
+            style={
+              indice === 0 ? { viewTransitionName: productViewTransitionName(product) } : undefined
+            }
+          >
+            <span class="px-2 text-center font-mono text-[11px] text-faint" aria-hidden="true">
+              {product.photoCaption}
+            </span>
+            <img
+              src={foto.url}
+              alt={foto.alt}
+              loading={indice === 0 ? "eager" : "lazy"}
+              decoding="async"
+              data-photo-fallback
+              class="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+        ))
+      }
+    </div>
+
+    <slot />
+
+    {
+      varias && (
+        <>
+          <button
+            type="button"
+            data-galeria-anterior
+            aria-label="Foto anterior"
+            class="absolute top-1/2 left-3 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center border border-line bg-cream text-lg transition-colors hover:bg-coral hover:text-on-coral"
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            data-galeria-siguiente
+            aria-label="Foto siguiente"
+            class="absolute top-1/2 right-3 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center border border-line bg-cream text-lg transition-colors hover:bg-coral hover:text-on-coral"
+          >
+            →
+          </button>
+          <span
+            data-galeria-contador
+            aria-live="polite"
+            class="absolute right-3 bottom-3 border border-line bg-cream px-2 py-0.5 font-mono text-[11px]"
+          >
+            1 / {fotos.length}
+          </span>
+        </>
+      )
+    }
+  </div>
+
+  {
+    varias && (
+      <div class="flex [scrollbar-width:none] gap-2 overflow-x-auto border-t border-line p-3 [&::-webkit-scrollbar]:hidden">
+        {fotos.map((foto, indice) => (
+          <button
+            type="button"
+            data-galeria-miniatura={indice}
+            aria-label={`Ver foto ${String(indice + 1)} de ${String(fotos.length)}`}
+            class="stripes h-16 w-16 shrink-0 cursor-pointer overflow-hidden border border-line-soft p-0 transition-opacity aria-[current=true]:border-2 aria-[current=true]:border-coral [&:not([aria-current=true])]:opacity-60"
+          >
+            <img src={foto.url} alt="" loading="lazy" class="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<script>
+  /**
+   * Flechas, miniaturas y teclado para la galería.
+   *
+   * Todo lo que hay acá es un extra sobre el scroll nativo: si este script
+   * no corriera, la galería seguiría funcionando con el dedo y con la rueda.
+   *
+   * Se ata en `astro:page-load` y no en DOMContentLoaded porque el sitio
+   * navega con el ClientRouter: al pasar de una ficha a otra no hay recarga,
+   * y con DOMContentLoaded la segunda galería quedaría muerta.
+   */
+  function iniciarGalerias(): void {
+    for (const galeria of document.querySelectorAll<HTMLElement>("[data-galeria]")) {
+      const track = galeria.querySelector<HTMLElement>("[data-galeria-track]");
+      if (!track) continue;
+
+      const laminas = [...track.children] as HTMLElement[];
+      const miniaturas = galeria.querySelectorAll<HTMLElement>("[data-galeria-miniatura]");
+      const contador = galeria.querySelector<HTMLElement>("[data-galeria-contador]");
+      if (laminas.length < 2) continue;
+
+      const irA = (indice: number): void => {
+        const destino = laminas[Math.max(0, Math.min(indice, laminas.length - 1))];
+        if (destino) track.scrollTo({ left: destino.offsetLeft, behavior: "smooth" });
+      };
+
+      /* Cuál se está viendo: la lámina cuyo borde izquierdo está más cerca
+         del scroll actual. Se deriva del scroll en vez de guardarse en una
+         variable para que arrastrar con el dedo —que no pasa por irA()—
+         actualice igual las miniaturas. */
+      const indiceActual = (): number => {
+        let cerca = 0;
+        let menor = Infinity;
+        laminas.forEach((lamina, i) => {
+          const distancia = Math.abs(lamina.offsetLeft - track.scrollLeft);
+          if (distancia < menor) {
+            menor = distancia;
+            cerca = i;
+          }
+        });
+        return cerca;
+      };
+
+      const pintar = (): void => {
+        const actual = indiceActual();
+        miniaturas.forEach((boton, i) => {
+          boton.setAttribute("aria-current", String(i === actual));
+        });
+        if (contador) contador.textContent = `${String(actual + 1)} / ${String(laminas.length)}`;
+      };
+
+      galeria.querySelector("[data-galeria-anterior]")?.addEventListener("click", () => {
+        irA(indiceActual() - 1);
+      });
+      galeria.querySelector("[data-galeria-siguiente]")?.addEventListener("click", () => {
+        irA(indiceActual() + 1);
+      });
+
+      miniaturas.forEach((boton, i) => {
+        boton.addEventListener("click", () => {
+          irA(i);
+        });
+      });
+
+      // Las flechas del teclado solo cuando la galería tiene el foco: si
+      // actuaran siempre, alguien navegando la página con el teclado movería
+      // las fotos sin querer mientras lee las especificaciones.
+      galeria.addEventListener("keydown", (evento) => {
+        if (evento.key === "ArrowLeft") irA(indiceActual() - 1);
+        if (evento.key === "ArrowRight") irA(indiceActual() + 1);
+      });
+
+      track.addEventListener("scroll", pintar, { passive: true });
+      pintar();
+    }
+  }
+
+  document.addEventListener("astro:page-load", iniciarGalerias);
+</script>

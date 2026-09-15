@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import CampoFoto from "./CampoFoto";
+import GaleriaProducto from "./GaleriaProducto";
 import {
   FORMULARIO_VACIO,
   aFormulario,
@@ -250,6 +251,10 @@ export default function EditorProducto({ supabase, id, alTerminar }: Props) {
                 setForm((previo) => ({ ...previo, photo_url: foto.url, photo_path: foto.path }))
               }
             />
+          </div>
+
+          <div className="sm:col-span-2">
+            <GaleriaProducto supabase={supabase} productId={id} slug={form.slug} />
           </div>
 
           <Campo

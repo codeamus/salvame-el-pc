@@ -148,3 +148,46 @@ export async function countByCategory(category: Category): Promise<number> {
   const catalogo = await cargarCatalogo();
   return catalogo.filter((product) => product.category === category).length;
 }
+
+/** Foto de la galería de un producto. */
+export interface FotoProducto {
+  readonly url: string;
+  readonly alt: string;
+}
+
+/**
+ * Galería completa de un producto: la principal más las adicionales.
+ *
+ * Es una función aparte y no un campo de `Product` a propósito. El catálogo,
+ * la portada y el buscador muestran UNA foto por producto; traer la galería
+ * en esa consulta sería pedir decenas de filas que nadie va a mirar, en la
+ * página que más tiene que pesar poco.
+ *
+ * Devuelve siempre al menos la principal, así la ficha no necesita un caso
+ * especial para el producto que todavía no tiene fotos extra —que hoy son
+ * todos—.
+ */
+export async function getProductGallery(product: Product): Promise<readonly FotoProducto[]> {
+  const { data, error } = await getSupabaseReader()
+    .from("product_images")
+    .select("url, alt")
+    .eq("product_id", product.id)
+    .order("sort_order", { ascending: true })
+    .returns<{ url: string; alt: string }[]>();
+
+  const principal: FotoProducto = { url: product.photo, alt: product.name };
+
+  // Un fallo acá no puede dejar la ficha sin foto: la principal ya la
+  // tenemos, y una galería incompleta es mejor que un producto sin imagen.
+  if (error !== null) {
+    console.error(`[catálogo] no se pudo leer la galería de ${product.slug}: ${error.message}`);
+    return [principal];
+  }
+
+  return [
+    principal,
+    ...data
+      .filter((fila) => fila.url.trim() !== "" && fila.url !== product.photo)
+      .map((fila) => ({ url: fila.url, alt: fila.alt })),
+  ];
+}
