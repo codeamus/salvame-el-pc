@@ -5,17 +5,29 @@ import {
   formatearCLP,
   leerMonto,
   leerReglasEnvio,
+  productoDePrueba,
   stubOrderStatus,
   stubPaymentGateway,
   waitForIslands,
 } from "./helpers";
 
-const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711";
-
-/** Abre la ficha y espera a que el island de compra quede utilizable. */
+/**
+ * Abre la ficha y espera a que el island de compra quede utilizable.
+ *
+ * Qué producto es sale del catálogo vigente, no de un slug escrito acá:
+ * ver el bloque "EL CATÁLOGO" en helpers.ts.
+ */
 async function openProduct(page: Page): Promise<void> {
-  await page.goto(PRODUCT_URL);
+  const producto = await productoDePrueba(page);
+  await page.goto(producto.url);
   await waitForIslands(page);
+}
+
+/** La card del producto de prueba dentro del catálogo. */
+async function cardDe(page: Page) {
+  const producto = await productoDePrueba(page);
+  await page.goto("/tienda");
+  return page.locator("article").filter({ hasText: producto.nombre }).first();
 }
 
 /** Abre el carrito. Su contenido real solo existe después de hidratar. */
@@ -30,7 +42,8 @@ test.describe("Flujo del carrito", () => {
 
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
-    await expect(page.getByRole("status")).toContainText("Agregado: Mouse Redragon Cobra M711");
+    const producto = await productoDePrueba(page);
+    await expect(page.getByRole("status")).toContainText(`Agregado: ${producto.nombre}`);
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
 
@@ -40,7 +53,8 @@ test.describe("Flujo del carrito", () => {
 
     await openCart(page);
 
-    await expect(page.getByRole("link", { name: "Mouse Redragon Cobra M711" })).toBeVisible();
+    const producto = await productoDePrueba(page);
+    await expect(page.getByRole("link", { name: producto.nombre })).toBeVisible();
 
     // Se apunta a los testids porque el mismo monto aparece varias veces
     // (precio unitario, subtotal, total) y getByText fallaría por ambigüedad.
@@ -96,7 +110,8 @@ test.describe("Flujo del carrito", () => {
     await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
     await openCart(page);
 
-    await page.getByRole("button", { name: /quitar mouse redragon .* del carrito/i }).click();
+    const producto = await productoDePrueba(page);
+    await page.getByRole("button", { name: `Quitar ${producto.nombre} del carrito` }).click();
 
     await expect(page.getByText("Todavía no agregas nada.")).toBeVisible();
   });
@@ -104,25 +119,22 @@ test.describe("Flujo del carrito", () => {
   test("las cards del catálogo agregan sin hidratar React", async ({ page }) => {
     // El catálogo no carga React: el botón lo maneja la delegación de
     // cart-ui.ts, que corre antes del evento load.
+    const producto = await productoDePrueba(page);
     await page.goto("/tienda");
+    await page.getByRole("button", { name: `Agregar ${producto.nombre} al carrito` }).click();
 
-    await page
-      .getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" })
-      .click();
-
-    await expect(page.getByRole("status")).toContainText("Agregado: Mouse Redragon Cobra M711");
+    await expect(page.getByRole("status")).toContainText(`Agregado: ${producto.nombre}`);
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
 
   test("el selector de la card agrega varias unidades de una vez", async ({ page }) => {
-    await page.goto("/tienda");
-    const card = page.locator("article").filter({ hasText: "Mouse Redragon Cobra M711" }).first();
+    const card = await cardDe(page);
 
     await card.getByRole("button", { name: /más unidades/i }).click();
     await card.getByRole("button", { name: /más unidades/i }).click();
     await expect(card.locator("[data-qty-value]")).toHaveText("3");
 
-    await card.getByRole("button", { name: /agregar mouse redragon .* al carrito/i }).click();
+    await card.getByRole("button", { name: /^agregar .* al carrito$/i }).click();
 
     await expect(page.locator("[data-cart-count]")).toHaveText("3");
     // Vuelve a 1: si quedara en 3, el siguiente clic agregaría otras 3 sin
@@ -131,8 +143,7 @@ test.describe("Flujo del carrito", () => {
   });
 
   test("el selector de la card nunca baja de 1", async ({ page }) => {
-    await page.goto("/tienda");
-    const card = page.locator("article").filter({ hasText: "Mouse Redragon Cobra M711" }).first();
+    const card = await cardDe(page);
 
     await card.getByRole("button", { name: /menos unidades/i }).click();
     await card.getByRole("button", { name: /menos unidades/i }).click();
@@ -144,10 +155,9 @@ test.describe("Flujo del carrito", () => {
 test.describe("Panel lateral del carrito", () => {
   /** Agrega un producto y abre el panel desde el botón del header. */
   async function abrirPanel(page: Page) {
+    const producto = await productoDePrueba(page);
     await page.goto("/tienda");
-    await page
-      .getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" })
-      .click();
+    await page.getByRole("button", { name: `Agregar ${producto.nombre} al carrito` }).click();
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
 
     await page.locator("[data-cart-open]").click();
@@ -175,11 +185,12 @@ test.describe("Panel lateral del carrito", () => {
 
     const unitario = await leerMonto(page, "drawer-subtotal");
 
-    await panel.getByRole("button", { name: /agregar una unidad de mouse/i }).click();
+    const producto = await productoDePrueba(page);
+    await panel.getByRole("button", { name: `Agregar una unidad de ${producto.nombre}` }).click();
     await expect(page.getByTestId("drawer-subtotal")).toHaveText(formatearCLP(unitario * 2));
     await expect(page.locator("[data-cart-count]")).toHaveText("2");
 
-    await panel.getByRole("button", { name: /quitar una unidad de mouse/i }).click();
+    await panel.getByRole("button", { name: `Quitar una unidad de ${producto.nombre}` }).click();
     await expect(page.getByTestId("drawer-subtotal")).toHaveText(formatearCLP(unitario));
     await expect(page.locator("[data-cart-count]")).toHaveText("1");
   });
@@ -187,17 +198,17 @@ test.describe("Panel lateral del carrito", () => {
   test("el ✕ del panel elimina el producto", async ({ page }) => {
     const panel = await abrirPanel(page);
 
-    await panel.getByRole("button", { name: /quitar mouse redragon .* del carrito/i }).click();
+    const producto = await productoDePrueba(page);
+    await panel.getByRole("button", { name: `Quitar ${producto.nombre} del carrito` }).click();
 
     await expect(panel.getByText("Todavía no agregas nada.")).toBeVisible();
     await expect(page.locator("[data-cart-count]")).toHaveText("0");
   });
 
   test("se cierra con Escape y devuelve el foco al botón del carrito", async ({ page }) => {
+    const producto = await productoDePrueba(page);
     await page.goto("/tienda");
-    await page
-      .getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" })
-      .click();
+    await page.getByRole("button", { name: `Agregar ${producto.nombre} al carrito` }).click();
 
     // Se abre con el teclado a propósito: devolver el foco importa
     // justamente para quien navega así. Además, en WebKit un clic no enfoca

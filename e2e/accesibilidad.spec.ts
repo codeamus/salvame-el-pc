@@ -1,6 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { waitForIslands, congelarAnimaciones } from "./helpers";
+import { auditor, congelarAnimaciones, productoDePrueba, waitForIslands } from "./helpers";
 
 /**
  * Auditoría automática de accesibilidad con axe-core.
@@ -11,17 +10,12 @@ import { waitForIslands, congelarAnimaciones } from "./helpers";
  * obvios de los que una máquina puede detectar. La revisión con teclado y
  * lector de pantalla sigue siendo necesaria.
  *
- * NOTA sobre color-contrast: el design system aprobado por el cliente usa
- * coral #FF5A48 como color de texto para eyebrows/chips sobre crema, que da
- * 2.74:1 (bajo el AA de 4.5:1). Es una decisión de diseño del handoff
- * (high-fidelity, colores finales), así que la regla se excluye acá y queda
- * documentado el tradeoff en vez de esconderlo.
+ * Qué se excluye y por qué está en `auditor()`, en helpers.ts.
  */
 
 const PAGES: readonly { name: string; path: string }[] = [
   { name: "portada", path: "/" },
   { name: "catálogo", path: "/tienda" },
-  { name: "ficha de producto", path: "/producto/mouse-redragon-cobra-m711" },
   { name: "servicio técnico", path: "/servicio-tecnico" },
   { name: "contacto", path: "/contacto" },
   { name: "carrito vacío", path: "/carrito" },
@@ -36,41 +30,49 @@ for (const { name, path } of PAGES) {
     await waitForIslands(page);
     await congelarAnimaciones(page);
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .disableRules(["color-contrast"])
-      .analyze();
+    const results = await auditor(page, { contraste: false }).analyze();
 
     expect(results.violations).toEqual([]);
   });
 }
 
+// La ficha va aparte porque su URL sale del catálogo. Cuando estaba en la
+// lista de arriba con un slug escrito a mano, el día que ese producto dejó
+// de existir el test siguió pasando: auditaba el 404.
+test("la ficha de producto no tiene violaciones de accesibilidad", async ({ page }) => {
+  const producto = await productoDePrueba(page);
+  await page.goto(producto.url);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(producto.nombre);
+  await waitForIslands(page);
+  await congelarAnimaciones(page);
+
+  const results = await auditor(page, { contraste: false }).analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
 test("el panel lateral del carrito tampoco tiene violaciones", async ({ page }) => {
+  const producto = await productoDePrueba(page);
   await page.goto("/tienda");
-  await page.getByRole("button", { name: "Agregar Mouse Redragon Cobra M711 al carrito" }).click();
+  await page.getByRole("button", { name: `Agregar ${producto.nombre} al carrito` }).click();
   await page.locator("[data-cart-open]").click();
   await expect(page.getByRole("dialog", { name: /carrito/i })).toBeVisible();
 
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await auditor(page, { contraste: false }).analyze();
 
   expect(results.violations).toEqual([]);
 });
 
 test("el carrito con productos tampoco tiene violaciones", async ({ page }) => {
-  await page.goto("/producto/mouse-redragon-cobra-m711");
+  const producto = await productoDePrueba(page);
+  await page.goto(producto.url);
   await waitForIslands(page);
   await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
   await page.goto("/carrito");
   await waitForIslands(page);
   await congelarAnimaciones(page);
 
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .disableRules(["color-contrast"])
-    .analyze();
+  const results = await auditor(page, { contraste: false }).analyze();
 
   expect(results.violations).toEqual([]);
 });

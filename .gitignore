@@ -19,3 +19,7 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+# artefactos de Playwright (capturas y trazas de cada corrida)
+test-results/
+playwright-report/

@@ -1,6 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { waitForIslands, congelarAnimaciones } from "./helpers";
+import { auditor, congelarAnimaciones, productoDePrueba, waitForIslands } from "./helpers";
 
 const STORAGE_KEY = "salvameelpc:theme";
 
@@ -209,7 +208,6 @@ test.describe("Modo oscuro por preferencia del sistema", () => {
 const PAGES: readonly { name: string; path: string }[] = [
   { name: "portada", path: "/" },
   { name: "catálogo", path: "/tienda" },
-  { name: "ficha de producto", path: "/producto/mouse-redragon-cobra-m711" },
   { name: "servicio técnico", path: "/servicio-tecnico" },
   { name: "contacto", path: "/contacto" },
   { name: "carrito vacío", path: "/carrito" },
@@ -219,21 +217,31 @@ const PAGES: readonly { name: string; path: string }[] = [
 test.describe("Accesibilidad en modo oscuro", () => {
   test.use({ colorScheme: "dark" });
 
+  // A diferencia del modo claro, acá NO se excluye color-contrast: sobre el
+  // fondo oscuro el coral llega a 6:1 y cumple AA, así que la excepción que
+  // el handoff pide para el modo claro no hace falta y se aprovecha para
+  // cubrir de verdad el contraste de toda la paleta.
   for (const { name, path } of PAGES) {
     test(`la página de ${name} no tiene violaciones en oscuro`, async ({ page }) => {
       await page.goto(path);
       await waitForIslands(page);
       await congelarAnimaciones(page);
 
-      // A diferencia del modo claro, acá NO se excluye color-contrast: sobre
-      // el fondo oscuro el coral llega a 6:1 y cumple AA, así que la excepción
-      // que el handoff pide para el modo claro no hace falta y se aprovecha
-      // para cubrir de verdad el contraste de toda la paleta nueva.
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-        .analyze();
+      const results = await auditor(page).analyze();
 
       expect(results.violations).toEqual([]);
     });
   }
+
+  test("la ficha de producto no tiene violaciones en oscuro", async ({ page }) => {
+    const producto = await productoDePrueba(page);
+    await page.goto(producto.url);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(producto.nombre);
+    await waitForIslands(page);
+    await congelarAnimaciones(page);
+
+    const results = await auditor(page).analyze();
+
+    expect(results.violations).toEqual([]);
+  });
 });

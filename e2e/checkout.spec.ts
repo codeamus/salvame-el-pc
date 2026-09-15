@@ -1,25 +1,32 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
   FAKE_INTENT_URL,
+  auditor,
   envioPara,
   formatearCLP,
   leerMonto,
   leerReglasEnvio,
+  productoDePrueba,
+  type ProductoDelCatalogo,
   stubPaymentGateway,
   waitForIslands,
 } from "./helpers";
 
-const PRODUCT_URL = "/producto/mouse-redragon-cobra-m711";
-
-/** Deja un producto en el carrito y abre el checkout ya hidratado. */
-async function openCheckout(page: Page): Promise<void> {
-  await page.goto(PRODUCT_URL);
+/**
+ * Deja un producto en el carrito y abre el checkout ya hidratado.
+ *
+ * Devuelve el producto porque alguna prueba necesita saber CUÁL fue: sale
+ * del catálogo vigente, no de un slug escrito acá (ver helpers.ts).
+ */
+async function openCheckout(page: Page): Promise<ProductoDelCatalogo> {
+  const producto = await productoDePrueba(page);
+  await page.goto(producto.url);
   await waitForIslands(page);
   await page.getByRole("button", { name: /agregar .* al carrito/i }).click();
 
   await page.goto("/checkout");
   await waitForIslands(page);
+  return producto;
 }
 
 /** Llena el formulario con datos válidos. Los overrides rompen un campo. */
@@ -155,7 +162,7 @@ test.describe("Checkout", () => {
   });
 
   test("con todos los datos válidos redirige a la pasarela", async ({ page }) => {
-    await openCheckout(page);
+    const producto = await openCheckout(page);
     const requests = await stubPaymentGateway(page);
     await fillCheckout(page);
 
@@ -167,8 +174,8 @@ test.describe("Checkout", () => {
     // Lo que se manda al servidor son ids y cantidades. El precio se
     // recalcula allá: si viajara desde el navegador, se podría editar.
     expect(requests).toHaveLength(1);
-    expect(requests[0]?.items).toEqual([{ id: 1, quantity: 1 }]);
-    expect(JSON.stringify(requests[0]?.items)).not.toContain("19990");
+    expect(requests[0]?.items).toEqual([{ id: producto.id, quantity: 1 }]);
+    expect(JSON.stringify(requests[0]?.items)).not.toContain(String(producto.precio));
     expect(requests[0]?.cliente.telefono).toBe("+56957243741");
   });
 
@@ -208,10 +215,7 @@ test.describe("Checkout", () => {
     await page.getByRole("button", { name: /pagar con tuu/i }).click();
     await expect(page.getByTestId("error-nombre")).toBeVisible();
 
-    const conDespacho = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .disableRules(["color-contrast"])
-      .analyze();
+    const conDespacho = await auditor(page, { contraste: false }).analyze();
 
     expect(conDespacho.violations).toEqual([]);
 
@@ -220,10 +224,7 @@ test.describe("Checkout", () => {
     await page.getByTestId("entrega-acordar").click();
     await expect(page.getByTestId("acordar-entrega-nota")).toBeVisible();
 
-    const conAcordar = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .disableRules(["color-contrast"])
-      .analyze();
+    const conAcordar = await auditor(page, { contraste: false }).analyze();
 
     expect(conAcordar.violations).toEqual([]);
   });

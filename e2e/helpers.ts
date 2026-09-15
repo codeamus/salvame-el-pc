@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
 
 /**
@@ -168,4 +169,151 @@ export async function congelarAnimaciones(page: Page): Promise<void> {
       animation-delay: 0s !important;
     }`,
   });
+
+  // El CSS evita que EMPIECEN transiciones nuevas, pero no toca las que ya
+  // están a mitad de camino en el momento de inyectarlo — y esas son justo
+  // las que hacían fallar el test una corrida de cada tantas, siempre en
+  // otro navegador. Se las manda al final de golpe.
+  //
+  // Las infinitas (la cinta de marcas) se dejan correr: finish() no se puede
+  // aplicar sobre algo que no termina nunca, y su color no cambia.
+  await page.evaluate(async () => {
+    for (const animacion of document.getAnimations()) {
+      try {
+        animacion.finish();
+      } catch {
+        /* infinita: sigue girando, y está bien */
+      }
+    }
+    // Dos cuadros para que el navegador recalcule estilos con todo lo
+    // anterior ya aplicado. Sin esto, axe puede medir el fotograma viejo.
+    await new Promise((listo) => requestAnimationFrame(() => requestAnimationFrame(listo)));
+  });
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * EL CATÁLOGO: leerlo, no nombrarlo
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Misma historia que los precios, un paso más arriba. La suite entera
+ * apuntaba a "/producto/mouse-redragon-cobra-m711": el día que el cliente
+ * cargó su catálogo real desde el panel y borró los productos de ejemplo,
+ * 35 tests se cayeron de golpe — y ninguno señalaba nada roto. Peor: la
+ * auditoría de accesibilidad de la ficha SEGUÍA EN VERDE, porque estaba
+ * midiendo la página 404 sin saberlo.
+ *
+ * Desde acá el producto con el que se prueba sale del catálogo que hay.
+ * Los tests siguen comprobando lo mismo —que agregar suma al contador, que
+ * el filtro esconde las otras categorías— y eso es cierto con cualquier
+ * catálogo. Si el catálogo queda vacío, fallan al leerlo, con ese motivo.
+ */
+
+export interface ProductoDelCatalogo {
+  /** El id real de la base: es lo único que el carrito manda al servidor. */
+  readonly id: number;
+  readonly slug: string;
+  /** Ruta de la ficha, lista para page.goto(). */
+  readonly url: string;
+  readonly nombre: string;
+  readonly categoria: string;
+  readonly marca: string;
+  readonly precio: number;
+}
+
+/** Una sola lectura por worker: el catálogo no cambia durante la corrida. */
+let catalogoLeido: readonly ProductoDelCatalogo[] | null = null;
+
+export async function leerCatalogo(page: Page): Promise<readonly ProductoDelCatalogo[]> {
+  if (catalogoLeido !== null) return catalogoLeido;
+
+  await page.goto("/tienda");
+  const productos = await page.locator("[data-item]").evaluateAll((items) =>
+    items.map((item) => {
+      const enlace = item.querySelector<HTMLAnchorElement>('h3 a[href^="/producto/"]');
+      const href = enlace?.getAttribute("href") ?? "";
+      // El mismo payload que la card le entrega al carrito, que es donde
+      // vive el id del producto.
+      const payload = item.querySelector("[data-add-to-cart]")?.getAttribute("data-add-to-cart");
+      return {
+        id: Number((JSON.parse(payload ?? "{}") as { id?: number }).id ?? 0),
+        slug: href.replace("/producto/", ""),
+        url: href,
+        nombre: enlace?.textContent?.trim() ?? "",
+        categoria: item.getAttribute("data-cat") ?? "",
+        marca: item.getAttribute("data-marca") ?? "",
+        precio: Number(item.getAttribute("data-precio") ?? "0"),
+      };
+    }),
+  );
+
+  if (productos.length === 0) {
+    throw new Error("El catálogo no trae productos publicados: no hay con qué probar la tienda.");
+  }
+
+  catalogoLeido = productos;
+  return productos;
+}
+
+/**
+ * El producto con el que se prueba: el MÁS BARATO del catálogo.
+ *
+ * No es un capricho de orden. Varios tests necesitan que un producto solo
+ * quede por debajo del umbral de envío gratis —para ver el "te faltan $X"—
+ * y que unas pocas unidades alcancen para cruzarlo. El más barato es el que
+ * cumple las dos cosas si es que alguno las cumple.
+ */
+export async function productoDePrueba(page: Page): Promise<ProductoDelCatalogo> {
+  const catalogo = await leerCatalogo(page);
+  return catalogo.reduce((barato, otro) => (otro.precio < barato.precio ? otro : barato));
+}
+
+/**
+ * Un producto de OTRA categoría, para comprobar que el filtro lo esconde.
+ *
+ * Devuelve null si todo el catálogo comparte categoría: ahí no hay nada que
+ * filtrar y el test que lo pida tiene que saltearse esa mitad, no inventar
+ * un producto que no existe.
+ */
+export async function productoDeOtraCategoria(
+  page: Page,
+  producto: ProductoDelCatalogo,
+): Promise<ProductoDelCatalogo | null> {
+  const catalogo = await leerCatalogo(page);
+  return catalogo.find((otro) => otro.categoria !== producto.categoria) ?? null;
+}
+
+/** Escapa un nombre de producto para meterlo en una expresión regular. */
+export function comoRegex(texto: string): RegExp {
+  return new RegExp(texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * AUDITORÍA DE ACCESIBILIDAD
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Un solo lugar donde se decide QUÉ se audita, para que la auditoría del
+ * modo claro y la del oscuro no se vayan separando con el tiempo.
+ *
+ * Se excluyen los <iframe>: son videos de YouTube y el mapa de Google, y lo
+ * que axe mide ahí adentro es el DOM de ellos, no el nuestro. La primera
+ * vez que se incrustó un video, servicio-tecnico pasó de 0 a 183
+ * violaciones de golpe —aria-level en un <a>, botones sin nombre, todo del
+ * reproductor— y ninguna se podía arreglar desde este repo. Dejarlas
+ * adentro no habría hecho el sitio más accesible: habría hecho que nadie
+ * volviera a mirar este test.
+ *
+ * Lo que SÍ es nuestro del embed —que el <iframe> tenga title, que el
+ * contenedor no rompa el orden de foco— se sigue auditando, porque el
+ * elemento vive en nuestra página.
+ */
+export function auditor(page: Page, { contraste = true } = {}): AxeBuilder {
+  const builder = new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .exclude("iframe");
+
+  // En claro el handoff pide coral sobre crema para eyebrows y chips, que
+  // da 2.74:1. Es una decisión de diseño documentada, no un descuido.
+  return contraste ? builder : builder.disableRules(["color-contrast"]);
 }

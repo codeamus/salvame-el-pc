@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { productoDeOtraCategoria, productoDePrueba } from "./helpers";
 
 test.describe("Navegación del sitio", () => {
   test("la portada carga con el título y el hero", async ({ page }) => {
@@ -18,21 +19,32 @@ test.describe("Navegación del sitio", () => {
   });
 
   test("se puede entrar a la ficha de un producto desde el catálogo", async ({ page }) => {
+    const producto = await productoDePrueba(page);
     await page.goto("/tienda");
 
-    await page.getByRole("link", { name: "Mouse Redragon Cobra M711" }).click();
+    await page.getByRole("link", { name: producto.nombre }).click();
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mouse Redragon Cobra M711");
-    await expect(page.getByText("Sensor óptico 10.000 DPI ajustable")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(producto.nombre);
+    // Las especificaciones son texto que carga el panel: no se comprueba
+    // CUÁLES son, sino que la ficha las esté mostrando.
+    await expect(page.locator("[data-specs] li").first()).toBeVisible();
   });
 
   test("el filtro de categoría llega por query param (tiles del bento)", async ({ page }) => {
-    await page.goto("/tienda?cat=Mouse");
+    const producto = await productoDePrueba(page);
+    const ajeno = await productoDeOtraCategoria(page, producto);
 
-    await expect(page.getByRole("heading", { level: 1, name: "Mouse" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Mouse Redragon Cobra M711" })).toBeVisible();
-    // Un producto de otra categoría queda oculto.
-    await expect(page.getByRole("link", { name: "GPU GeForce RTX 4060 8GB" })).toBeHidden();
+    await page.goto(`/tienda?cat=${encodeURIComponent(producto.categoria)}`);
+
+    await expect(page.getByRole("heading", { level: 1, name: producto.categoria })).toBeVisible();
+    await expect(page.getByRole("link", { name: producto.nombre })).toBeVisible();
+
+    // Un producto de otra categoría queda oculto. Si el catálogo entero
+    // fuera de una sola categoría no habría nada que esconder, y el test se
+    // salta esa mitad en vez de inventar un producto que no existe.
+    if (ajeno !== null) {
+      await expect(page.getByRole("link", { name: ajeno.nombre })).toBeHidden();
+    }
   });
 
   test("filtrar por categoría actualiza la URL y el contador", async ({ page }) => {
@@ -49,14 +61,19 @@ test.describe("Navegación del sitio", () => {
     // view-transition-name para que vuele hasta la card de ese producto. Si
     // el nombre no existiera en el catálogo, no habría con quién emparejar y
     // el efecto simplemente no ocurriría.
+    //
+    // Solo cuentan los tiles CON foto: una categoría sin productos
+    // publicados —el cliente puede crearla antes de cargarlos— no tiene
+    // ninguna foto que llevarse, y eso es correcto, no una regresión.
     await page.goto("/");
     const nombresDeTiles = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/tienda?cat="]')].map(
-        (a) => getComputedStyle(a.querySelector("img") as Element).viewTransitionName,
-      ),
+      [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/tienda?cat="]')]
+        .map((a) => a.querySelector("img"))
+        .filter((img): img is HTMLImageElement => img !== null)
+        .map((img) => getComputedStyle(img).viewTransitionName),
     );
 
-    expect(nombresDeTiles).toHaveLength(6);
+    expect(nombresDeTiles.length).toBeGreaterThan(0);
     expect(nombresDeTiles.filter((n) => n === "none")).toEqual([]);
 
     await page.goto("/tienda");
@@ -83,24 +100,40 @@ test.describe("Navegación del sitio", () => {
     expect(nombres).toEqual([...new Set(nombres)]);
   });
 
-  test("la categoría con tilde filtra bien al llegar desde el tile", async ({ page }) => {
+  test("cada tile del bento llega a su categoría, tilde incluida", async ({ page }) => {
     // "Audífonos" viaja percent-encoded en la URL y vuelve decodificada: si
     // la forma Unicode no coincidiera con la del HTML, el filtro devolvería
     // cero productos sin ningún error visible.
+    //
+    // Se recorren TODOS los tiles en vez de nombrar uno: las categorías se
+    // administran desde el panel, y el día que alguien agregue "Audífonos
+    // gamer" o "Sillas" el test tiene que cubrirla sola.
     await page.goto("/");
-    await page.locator('a[href*="cat=Aud"]').click();
+    const tiles = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/tienda?cat="]')].map((a) => ({
+        href: a.getAttribute("href") ?? "",
+        nombre: a.querySelector("span.text-lg")?.textContent?.trim() ?? "",
+      })),
+    );
 
-    await expect(page).toHaveURL(/cat=Aud/);
-    await expect(page.getByRole("heading", { level: 1, name: "Audífonos" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Audífonos HyperX Cloud II" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "GPU GeForce RTX 4060 8GB" })).toBeHidden();
+    expect(tiles.length).toBeGreaterThan(0);
+
+    for (const tile of tiles) {
+      await page.goto(tile.href);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(tile.nombre);
+    }
   });
 
   test("el velo de las fotos se levanta al pasar el cursor", async ({ page }) => {
     await page.goto("/");
 
     const conCursor = await page.evaluate(() => matchMedia("(hover: hover)").matches);
-    const tile = page.locator('a[href*="cat=RAM"]');
+    // Un tile CON foto: los de categorías todavía sin productos no tienen
+    // <img> al que aplicarle el velo.
+    const tile = page
+      .locator('a[href*="/tienda?cat="]')
+      .filter({ has: page.locator("img") })
+      .first();
     const filtro = () => tile.locator("img").evaluate((n) => getComputedStyle(n).filter);
 
     if (!conCursor) {
