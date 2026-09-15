@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import Video from "@/components/media/Video.astro";
 import { campo, getSettings, getSections, items, texto } from "@/data/content";
 
 const ajustes = await getSettings();
@@ -57,18 +58,7 @@ const videos = items(secciones, "videos.items");
       <span class="text-coral">{campo(secciones, "videos.heading_accent")}</span>
     </h2>
     <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
-      {
-        videos.map((video) => (
-          <div class="stripes-dark relative flex aspect-video cursor-pointer items-center justify-center border border-on-invert/30 transition-colors hover:border-coral">
-            <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]">
-              ▶
-            </div>
-            <span class="absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint">
-              {video.caption}
-            </span>
-          </div>
-        ))
-      }
+      {videos.map((video) => <Video url={video.url ?? ""} caption={video.caption ?? ""} />)}
     </div>
   </section>
 

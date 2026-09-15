@@ -1,0 +1,55 @@
+---
+import { urlParaIncrustar } from "@/lib/video-embed";
+
+/**
+ * Video del taller.
+ *
+ * Con URL válida muestra el reproductor; sin ella —o con una que no se
+ * reconoce— cae al placeholder rayado del handoff con su pie de foto.
+ *
+ * Esa caída importa: el sitio se administra desde un panel, y alguien va a
+ * pegar una URL mal tarde o temprano. La alternativa —un iframe roto, o un
+ * hueco blanco— deja la página peor que el marcador de "acá va un video",
+ * que al menos comunica que falta algo.
+ *
+ * El iframe va con loading="lazy" porque servicio técnico muestra tres a la
+ * vez y cada uno arrastra el reproductor completo de YouTube. Sin eso, la
+ * página carga tres veces más de lo que se ve en pantalla.
+ */
+
+interface Props {
+  url: string;
+  caption: string;
+  class?: string;
+}
+
+const { url, caption, class: clase = "" } = Astro.props;
+const embed = urlParaIncrustar(url);
+---
+
+{
+  embed === null ? (
+    <div
+      class:list={[
+        "stripes-dark relative flex aspect-video items-center justify-center border border-on-invert/30",
+        clase,
+      ]}
+    >
+      <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]">
+        ▶
+      </div>
+      <span class="absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint">
+        {caption}
+      </span>
+    </div>
+  ) : (
+    <iframe
+      src={embed}
+      title={caption}
+      loading="lazy"
+      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen
+      class:list={["aspect-video w-full border border-on-invert/30", clase]}
+    />
+  )
+}

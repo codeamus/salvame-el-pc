@@ -3,6 +3,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import OfferCard from "@/components/product/OfferCard.astro";
 import ProductCard from "@/components/product/ProductCard.astro";
 import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import Video from "@/components/media/Video.astro";
 import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
 import { campo, getSections, getSettings, listaDeSeccion, texto } from "@/data/content";
@@ -183,7 +184,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => marcasCinta).
 
     {/* Tile servicio técnico 2×1 */}
     <a
-      href="/servicio-tecnico"
+      href={campo(secciones, "bento_servicio.href", "/servicio-tecnico")}
       class="col-span-2 flex flex-col justify-between bg-invert p-5 px-6 text-on-invert no-underline transition-colors hover:text-coral"
     >
       <span class="font-mono text-[11px] tracking-[.12em] text-coral uppercase">
@@ -225,7 +226,7 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => marcasCinta).
         {campo(secciones, "destacados.heading")}
       </h2>
       <a
-        href="/tienda"
+        href={campo(secciones, "destacados.link_href", "/tienda")}
         class="border-b-2 border-coral font-mono text-[13px] no-underline hover:text-coral"
       >
         {campo(secciones, "destacados.link_label")}
@@ -264,22 +265,22 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => marcasCinta).
       <p class="max-w-[46ch] text-base leading-relaxed text-on-invert-soft">
         {campo(secciones, "banner_servicio.body")}
       </p>
-      <a href="/servicio-tecnico" class="btn-primary self-start border-none">
+      <a
+        href={campo(secciones, "banner_servicio.cta_href", "/servicio-tecnico")}
+        class="btn-primary self-start border-none"
+      >
         {campo(secciones, "banner_servicio.cta_label")}
       </a>
     </div>
-    {/* Placeholder del video del taller — se reemplaza por el embed real. */}
+    {/* El video del taller. Si el panel no trae URL, Video deja el rayado. */}
     <div
-      class="stripes-dark relative flex min-h-85 items-center justify-center border-t border-on-invert-line lg:border-t-0 lg:border-l"
+      class="flex min-h-85 items-center border-t border-on-invert-line lg:border-t-0 lg:border-l"
     >
-      <div
-        class="flex h-18 w-18 items-center justify-center rounded-full border-2 border-on-invert text-[22px]"
-      >
-        ▶
-      </div>
-      <span class="absolute bottom-4.5 left-6 font-mono text-[11px] text-on-invert-faint">
-        {campo(secciones, "banner_servicio.video_caption")}
-      </span>
+      <Video
+        url={campo(secciones, "banner_servicio.video_url")}
+        caption={campo(secciones, "banner_servicio.video_caption")}
+        class="border-0"
+      />
     </div>
   </section>
 </BaseLayout>
