@@ -128,9 +128,13 @@
    *   2. Transicionar color en todos los nodos de la página es caro. Que
    *      exista un cuarto de segundo y desaparezca lo vuelve gratis.
    *
-   * Se transicionan solo propiedades de color. `opacity` queda fuera a
-   * propósito: la usan el velo de las fotos y las animaciones de scroll, y
-   * meterla acá las haría parpadear en cada cambio de tema.
+   * Se transicionan propiedades de color, y `filter` por el mapa: es un
+   * <iframe> de Google al que el tema se le aplica con un invert, y sin
+   * esta línea era lo único de la página que cambiaba de golpe.
+   *
+   * `opacity` queda fuera a propósito: la usan el velo de las fotos y las
+   * animaciones de scroll, y meterla acá las haría parpadear en cada
+   * cambio de tema.
    */
   @media (prefers-reduced-motion: no-preference) {
     .theme-switching,
@@ -144,7 +148,8 @@
         fill var(--theme-switch-duration) ease,
         stroke var(--theme-switch-duration) ease,
         box-shadow var(--theme-switch-duration) ease,
-        outline-color var(--theme-switch-duration) ease !important;
+        outline-color var(--theme-switch-duration) ease,
+        filter var(--theme-switch-duration) ease !important;
     }
   }
 
@@ -266,6 +271,40 @@
       rgb(246 241 231 / 0.05) 0 14px,
       transparent 14px 28px
     );
+  }
+
+  /* ── Mapa incrustado ──────────────────────────────────────────────────
+   * Google Maps no tiene modo oscuro en el embed gratuito: ni respeta
+   * `prefers-color-scheme` ni acepta un estilo sin API key con facturación
+   * asociada. Comprobado, no supuesto: el mismo embed se ve idéntico con el
+   * sistema en claro y en oscuro.
+   *
+   * Así que lo oscurece el sitio, con un filtro. `invert` lo da vuelta y
+   * `hue-rotate(180deg)` devuelve los tonos a su lugar: sin la segunda
+   * mitad, el pin rojo de la tienda salía celeste, los parques violeta y el
+   * logo de Google al revés.
+   *
+   * Por qué invertir y no pasar a grises, que sería más fiel a cómo esta
+   * paleta trata las fotos: en grises el pin queda de un gris claro igual
+   * al de los demás marcadores del mapa, y el pin es lo único que la
+   * persona vino a buscar. Se probaron las dos y esta es la que deja la
+   * tienda señalada.
+   *
+   * El filtro va solo en oscuro. Las dos ramas son las mismas de
+   * tokens.css: el atributo (elección explícita) y la media query (sistema,
+   * sin elección). */
+  .mapa-embebido {
+    filter: none;
+  }
+
+  :root[data-theme="dark"] .mapa-embebido {
+    filter: invert(1) hue-rotate(180deg);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .mapa-embebido {
+      filter: invert(1) hue-rotate(180deg);
+    }
   }
 
   /* ── Scroll reveal ────────────────────────────────────────────────────

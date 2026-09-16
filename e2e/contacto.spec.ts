@@ -125,4 +125,38 @@ test.describe("Mapa de la tienda", () => {
     expect(src).toMatch(/^https:\/\/www\.google\.[a-z.]+\/maps\/embed\?/);
     expect(src).not.toContain("goo.gl");
   });
+
+  /**
+   * El embed de Google no tiene modo oscuro: comprobado, no supuesto — se
+   * ve igual con el sistema en claro que en oscuro. Lo oscurece el sitio
+   * con un `filter`, así que lo que se cubre es que ese filtro esté puesto
+   * cuando corresponde y NO cuando no.
+   */
+  test("el mapa se oscurece con el sitio, y solo ahí", async ({ page }) => {
+    await page.goto("/contacto");
+    const mapa = page.locator("iframe.mapa-embebido");
+    if ((await mapa.count()) === 0) return;
+
+    // Elección explícita: oscuro.
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.getByRole("button", { name: /cambiar a modo oscuro/i }).click();
+    await expect(mapa).toHaveCSS("filter", /invert/);
+
+    // Y de vuelta a claro, sin filtro. Este es el caso que se rompe solo si
+    // alguien escribe la regla con la media query y se olvida del atributo.
+    await page.getByRole("button", { name: /cambiar a modo claro/i }).click();
+    await expect(mapa).toHaveCSS("filter", "none");
+  });
+
+  test("el borde del mapa no se invierte junto con el mapa", async ({ page }) => {
+    // `filter` pinta también el borde del elemento: con la línea en el
+    // <iframe>, en oscuro se invertía hasta desaparecer y el mapa quedaba
+    // como el único recuadro de la columna sin marco. Vive en el envoltorio.
+    await page.goto("/contacto");
+    const mapa = page.locator("iframe.mapa-embebido");
+    if ((await mapa.count()) === 0) return;
+
+    await expect(mapa).toHaveCSS("border-top-width", "0px");
+    await expect(mapa.locator("xpath=..")).not.toHaveCSS("border-top-width", "0px");
+  });
 });

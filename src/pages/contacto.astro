@@ -216,13 +216,19 @@ export const prerender = false;
            cargado. Que el sitio no se rompa por un campo vacío —ni por uno
            mal llenado— es parte de que sea administrable. */
         mapaUrl !== "" ? (
-          <iframe
-            src={mapaUrl}
-            title="Ubicación de la tienda"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            class="mt-auto aspect-[16/7] w-full border border-line"
-          />
+          /* El borde va en el envoltorio y no en el <iframe>: `filter`
+             pinta TAMBIÉN el borde del elemento, así que en oscuro la
+             línea se invertía hasta desaparecer y el mapa era el único
+             recuadro de la columna sin marco. */
+          <div class="mt-auto border border-line">
+            <iframe
+              src={mapaUrl}
+              title="Ubicación de la tienda"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              class="mapa-embebido block aspect-[16/7] w-full border-0"
+            />
+          </div>
         ) : (
           <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line">
             {mapaDeRespaldo === "" ? (
