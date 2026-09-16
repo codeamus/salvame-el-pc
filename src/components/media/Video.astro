@@ -1,20 +1,47 @@
 ---
-import { urlParaIncrustar } from "@/lib/video-embed";
+import { datosDeVideo } from "@/lib/video-embed";
 
 /**
  * Video del taller.
  *
- * Con URL válida muestra el reproductor; sin ella —o con una que no se
- * reconoce— cae al placeholder rayado del handoff con su pie de foto.
+ * ── Por qué no se incrusta el reproductor de entrada ──────────────────────
  *
- * Esa caída importa: el sitio se administra desde un panel, y alguien va a
- * pegar una URL mal tarde o temprano. La alternativa —un iframe roto, o un
- * hueco blanco— deja la página peor que el marcador de "acá va un video",
- * que al menos comunica que falta algo.
+ * Porque rompía la página. Con el <iframe> puesto desde el principio, lo que
+ * se veía en la grilla era la carátula de YouTube: la foto del canal, el
+ * título en su tipografía, el botón rojo, el "Mirar en YouTube". Al lado de
+ * los dos marcadores rayados del handoff, parecía un pedazo de otro sitio
+ * pegado encima — y con un Short, que es vertical, encima quedaba con
+ * franjas negras a los costados.
  *
- * El iframe va con loading="lazy" porque servicio técnico muestra tres a la
- * vez y cada uno arrastra el reproductor completo de YouTube. Sin eso, la
- * página carga tres veces más de lo que se ve en pantalla.
+ * Ahora cada video se dibuja como lo dibuja este sitio: la miniatura tratada
+ * igual que las fotos de producto —en gris, con el velo de tinta que se
+ * levanta al pasar el cursor— con el mismo círculo de play y el mismo pie
+ * mono que ya tenían los marcadores vacíos. Los tres huecos de la grilla son
+ * la misma cosa; uno tiene video y los otros todavía no.
+ *
+ * El reproductor de YouTube entra recién al hacer clic. Eso, además de la
+ * estética, da dos cosas:
+ *
+ *   · Peso. Cada <iframe> de YouTube arrastra cerca de un mega de
+ *     JavaScript. Tres en una página eran tres. Ahora son tres imágenes.
+ *
+ *   · Privacidad, más de la que había. youtube-nocookie evita las cookies
+ *     pero igual carga el reproductor entero; así no se carga nada de
+ *     YouTube hasta que la persona decide mirar. Solo la miniatura, que
+ *     viene de un dominio estático sin cookies.
+ *
+ * ── Qué pasa cuando algo falla ───────────────────────────────────────────
+ *
+ * Sin URL, o con una que no se reconoce: queda el marcador rayado con su
+ * pie. Es el estado en el que están dos de los tres hoy.
+ *
+ * Con URL buena pero miniatura caída (YouTube no genera la grande para todos
+ * los videos): la imagen se esconde sola —`data-photo-fallback`, el mismo
+ * mecanismo de las fotos de producto— y abajo queda el rayado. Se sigue
+ * viendo un video que se puede reproducir, sin foto.
+ *
+ * Sin JavaScript: el play es un <a> al video en YouTube. Se abre allá en vez
+ * de acá, que es peor, pero no es nada.
  */
 
 interface Props {
@@ -24,32 +51,121 @@ interface Props {
 }
 
 const { url, caption, class: clase = "" } = Astro.props;
-const embed = urlParaIncrustar(url);
+const datos = datosDeVideo(url);
+
+/*
+ * maxresdefault y no hqdefault.
+ *
+ * hqdefault existe siempre pero es de 480×360, y para un Short mete el video
+ * vertical dentro de un 4:3 con barras. maxresdefault viene en 16:9 de
+ * verdad: para los Shorts, YouTube arma la carátula con el cuadro ampliado y
+ * desenfocado a los lados, que es justo lo que llena bien esta caja. No
+ * existe para todos los videos, y para eso está el fallback.
+ */
+const miniatura =
+  datos?.proveedor === "youtube" ? `https://i.ytimg.com/vi/${datos.id}/maxresdefault.jpg` : null;
 ---
 
-{
-  embed === null ? (
-    <div
-      class:list={[
-        "stripes-dark relative flex aspect-video items-center justify-center border border-on-invert/30",
-        clase,
-      ]}
-    >
-      <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]">
+<div
+  class:list={[
+    "group stripes-dark photo-veiled relative flex aspect-video w-full items-center justify-center overflow-hidden border border-on-invert/30",
+    clase,
+  ]}
+  data-video
+>
+  {
+    miniatura !== null && (
+      <img
+        src={miniatura}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        data-photo-fallback
+        class="absolute inset-0 h-full w-full object-cover"
+      />
+    )
+  }
+
+  <span class="photo-veil" aria-hidden="true"></span>
+
+  {
+    datos === null ? (
+      /* Sin video cargado: el círculo es decorativo, no lleva a ninguna
+         parte. Por eso no es un enlace ni recibe el foco. */
+      <span
+        class="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px]"
+        aria-hidden="true"
+      >
         ▶
-      </div>
-      <span class="absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint">
-        {caption}
       </span>
-    </div>
-  ) : (
-    <iframe
-      src={embed}
-      title={caption}
-      loading="lazy"
-      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen
-      class:list={["aspect-video w-full border border-on-invert/30", clase]}
-    />
-  )
-}
+    ) : (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener"
+        data-video-play
+        data-embed={datos.embed}
+        data-titulo={caption}
+        aria-label={`Reproducir el video: ${caption}`}
+        class="absolute inset-0 flex items-center justify-center no-underline"
+      >
+        {/* Se pinta de coral al pasar el cursor. Es lo que distingue de un
+            golpe el hueco que YA tiene video del que todavía no. */}
+        <span class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-on-invert text-[17px] text-on-invert transition-colors group-hover:border-coral group-hover:bg-coral group-hover:text-on-coral">
+          ▶
+        </span>
+      </a>
+    )
+  }
+
+  {/* pointer-events-none: el pie no puede robarle el clic al play. */}
+  <span
+    class="pointer-events-none absolute bottom-3 left-4 font-mono text-[11px] text-on-invert-faint"
+  >
+    {caption}
+  </span>
+</div>
+
+<script>
+  /**
+   * Cambia la carátula por el reproductor al hacer clic.
+   *
+   * Se ata en `astro:page-load` y no en DOMContentLoaded porque el sitio
+   * navega con el ClientRouter: al entrar a servicio técnico desde otra
+   * página no hay recarga, y con DOMContentLoaded los videos quedarían
+   * muertos.
+   */
+  function iniciarVideos(): void {
+    for (const enlace of document.querySelectorAll<HTMLAnchorElement>("[data-video-play]")) {
+      enlace.addEventListener("click", (evento) => {
+        const embed = enlace.dataset.embed;
+        const caja = enlace.closest<HTMLElement>("[data-video]");
+        // Sin una de las dos cosas no se toca el evento: el <a> sigue siendo
+        // un enlace a YouTube y la persona igual llega al video.
+        if (embed === undefined || caja === null) return;
+
+        // Ctrl/Cmd+clic y el botón del medio abren en otra pestaña: es lo que
+        // la persona pidió, y adueñarse de eso sería hostil.
+        if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.button !== 0) return;
+
+        evento.preventDefault();
+
+        const reproductor = document.createElement("iframe");
+        // autoplay porque el clic YA fue la decisión de mirar: obligar a un
+        // segundo clic sobre el play de YouTube es un paso de más.
+        reproductor.src = `${embed}&autoplay=1&playsinline=1`;
+        reproductor.title = enlace.dataset.titulo ?? "Video del taller";
+        reproductor.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+        reproductor.allowFullscreen = true;
+        reproductor.className = "absolute inset-0 h-full w-full border-0";
+
+        // replaceChildren y no append: se va la miniatura, el velo, el play y
+        // el pie de una vez. Si quedaran debajo, el velo taparía el video.
+        caja.replaceChildren(reproductor);
+      });
+    }
+  }
+
+  document.addEventListener("astro:page-load", iniciarVideos);
+</script>

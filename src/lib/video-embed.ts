@@ -22,7 +22,20 @@
 /** Los ids de YouTube son 11 caracteres de un alfabeto acotado. */
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
 
+/** Lo que hace falta para pintar un video: dónde vive y con qué id. */
+export interface DatosDeVideo {
+  readonly proveedor: "youtube" | "vimeo";
+  readonly id: string;
+  /** El src del <iframe>. */
+  readonly embed: string;
+}
+
+/** Solo el src del reproductor, para quien no necesita el resto. */
 export function urlParaIncrustar(url: string): string | null {
+  return datosDeVideo(url)?.embed ?? null;
+}
+
+export function datosDeVideo(url: string): DatosDeVideo | null {
   const limpia = url.trim();
   if (limpia === "") return null;
 
@@ -40,18 +53,18 @@ export function urlParaIncrustar(url: string): string | null {
   // ── YouTube ────────────────────────────────────────────────────────────
   if (host === "youtu.be") {
     const id = parsed.pathname.slice(1);
-    return ID_YOUTUBE.test(id) ? incrustarYoutube(id) : null;
+    return ID_YOUTUBE.test(id) ? youtube(id) : null;
   }
 
   if (host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
     const enWatch = parsed.searchParams.get("v");
-    if (enWatch !== null && ID_YOUTUBE.test(enWatch)) return incrustarYoutube(enWatch);
+    if (enWatch !== null && ID_YOUTUBE.test(enWatch)) return youtube(enWatch);
 
     // /shorts/ID, /embed/ID y /v/ID comparten forma.
     const segmentos = parsed.pathname.split("/").filter((x) => x !== "");
     if (segmentos.length === 2 && ["shorts", "embed", "v", "live"].includes(segmentos[0] ?? "")) {
       const id = segmentos[1] ?? "";
-      return ID_YOUTUBE.test(id) ? incrustarYoutube(id) : null;
+      return ID_YOUTUBE.test(id) ? youtube(id) : null;
     }
     return null;
   }
@@ -59,10 +72,14 @@ export function urlParaIncrustar(url: string): string | null {
   // ── Vimeo ──────────────────────────────────────────────────────────────
   if (host === "vimeo.com") {
     const id = parsed.pathname.split("/").find((x) => x !== "") ?? "";
-    return /^\d+$/.test(id) ? `https://player.vimeo.com/video/${id}` : null;
+    if (!/^\d+$/.test(id)) return null;
+    return { proveedor: "vimeo", id, embed: `https://player.vimeo.com/video/${id}` };
   }
 
-  if (host === "player.vimeo.com") return parsed.toString();
+  if (host === "player.vimeo.com") {
+    const id = parsed.pathname.split("/").at(-1) ?? "";
+    return { proveedor: "vimeo", id, embed: parsed.toString() };
+  }
 
   // Un dominio desconocido se rechaza en vez de meterse en un <iframe> a
   // ciegas: incrustar cualquier URL que alguien pegue es entregarle la
@@ -79,6 +96,10 @@ export function urlParaIncrustar(url: string): string | null {
  * el tipo de dato que la Ley 19.628 obliga a declarar, y no vale la pena
  * declararlo por tres videos del taller.
  */
-function incrustarYoutube(id: string): string {
-  return `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+function youtube(id: string): DatosDeVideo {
+  return {
+    proveedor: "youtube",
+    id,
+    embed: `https://www.youtube-nocookie.com/embed/${id}?rel=0`,
+  };
 }
