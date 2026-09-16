@@ -35,9 +35,23 @@ const varias = fotos.length > 1;
 
 <div class:list={["flex flex-col", clase]} data-galeria>
   <div class="relative">
+    {
+      /*
+      tabindex y aria-label solo cuando hay más de una foto.
+
+      El track se puede arrastrar con el dedo y con la rueda, pero sin esto
+      no había forma de llegar a él con el teclado: quien navega así podía
+      usar las flechas y las miniaturas —que son botones— y nunca el
+      carrusel mismo. Con una sola foto no hay nada que recorrer, y un punto
+      de tabulación que no lleva a ninguna parte estorba.
+    */
+    }
     <div
       class="flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
       data-galeria-track
+      tabindex={varias ? 0 : undefined}
+      role={varias ? "group" : undefined}
+      aria-label={varias ? `Fotos de ${product.name}` : undefined}
     >
       {
         fotos.map((foto, indice) => (
@@ -182,8 +196,13 @@ const varias = fotos.length > 1;
       // actuaran siempre, alguien navegando la página con el teclado movería
       // las fotos sin querer mientras lee las especificaciones.
       galeria.addEventListener("keydown", (evento) => {
-        if (evento.key === "ArrowLeft") irA(indiceActual() - 1);
-        if (evento.key === "ArrowRight") irA(indiceActual() + 1);
+        if (evento.key !== "ArrowLeft" && evento.key !== "ArrowRight") return;
+
+        // preventDefault porque el track ahora recibe el foco: sin esto, la
+        // flecha movía DOS veces —el scroll nativo del navegador y el salto
+        // de irA()— y la galería se pasaba de foto.
+        evento.preventDefault();
+        irA(indiceActual() + (evento.key === "ArrowLeft" ? -1 : 1));
       });
 
       track.addEventListener("scroll", pintar, { passive: true });
