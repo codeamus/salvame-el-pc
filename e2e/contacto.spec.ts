@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { waitForIslands } from "./helpers";
+import { formatearCLP, leerReglasEnvio, waitForIslands } from "./helpers";
 
 /**
  * Formulario de contacto.
@@ -91,72 +91,40 @@ test.describe("Formulario de contacto", () => {
   });
 });
 
-test.describe("Mapa de la tienda", () => {
-  /**
-   * El mapa se rompió en silencio una vez y así se queda cubierto.
-   *
-   * En el panel había un enlace de los que da el botón Compartir de Google
-   * Maps (maps.app.goo.gl/…). Google responde a esos con
-   * `x-frame-options: SAMEORIGIN`, así que el navegador se niega a
-   * dibujarlos dentro de un <iframe>: la página mostraba un recuadro vacío,
-   * sin ningún error, y nadie tenía cómo darse cuenta.
-   *
-   * Lo que se comprueba no es qué dirección es —eso lo edita el cliente—,
-   * sino que lo que termine en el src sea una forma INCRUSTABLE, o que en su
-   * defecto haya una salida para el visitante.
-   */
-  test("o se puede incrustar, o hay un enlace para salir a Google Maps", async ({ page }) => {
+test.describe("Columna de datos", () => {
+  test("ya no hay dirección ni mapa", async ({ page }) => {
+    // La tienda no tiene local a la calle. Se sacaron los dos a propósito y
+    // este test es para que no vuelvan sin que nadie lo decida.
     await page.goto("/contacto");
 
-    const mapa = page.locator("iframe[title='Ubicación de la tienda']");
-
-    if ((await mapa.count()) === 0) {
-      // Sin mapa cargado se muestra el rayado; si hay un enlace que no se
-      // pudo traducir, tiene que ofrecer la salida a Maps.
-      const salida = page.getByRole("link", { name: /ver en google maps/i });
-      if ((await salida.count()) > 0) {
-        await expect(salida).toHaveAttribute("target", "_blank");
-      }
-      return;
-    }
-
-    const src = (await mapa.getAttribute("src")) ?? "";
-    // /maps/embed es la única forma que Google sirve sin x-frame-options.
-    expect(src).toMatch(/^https:\/\/www\.google\.[a-z.]+\/maps\/embed\?/);
-    expect(src).not.toContain("goo.gl");
+    await expect(page.locator("iframe")).toHaveCount(0);
+    await expect(page.getByText(/taller y tienda/i)).toHaveCount(0);
   });
 
-  /**
-   * El embed de Google no tiene modo oscuro: comprobado, no supuesto — se
-   * ve igual con el sistema en claro que en oscuro. Lo oscurece el sitio
-   * con un `filter`, así que lo que se cubre es que ese filtro esté puesto
-   * cuando corresponde y NO cuando no.
-   */
-  test("el mapa se oscurece con el sitio, y solo ahí", async ({ page }) => {
+  test("los montos del despacho salen de las reglas, no escritos a mano", async ({ page }) => {
+    // El bloque de despacho reemplazó al mapa, y sus montos vienen de las
+    // mismas reglas que cotiza el carrito. Si alguien los escribiera acá, el
+    // día que el cliente suba el envío gratis a $60.000 la página de
+    // contacto seguiría prometiendo $50.000 — y esa promesa se cobra.
     await page.goto("/contacto");
-    const mapa = page.locator("iframe.mapa-embebido");
-    if ((await mapa.count()) === 0) return;
 
-    // Elección explícita: oscuro.
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.getByRole("button", { name: /cambiar a modo oscuro/i }).click();
-    await expect(mapa).toHaveCSS("filter", /invert/);
+    const reglas = await leerReglasEnvio(page);
+    // Acotado a la columna: la cinta promo de arriba también dice "envío
+    // gratis sobre", y sin esto el locator coincide con las dos.
+    const columna = page.getByRole("main").locator("section").last();
+    const despacho = columna.getByRole("listitem").filter({ hasText: /envío gratis sobre/i });
 
-    // Y de vuelta a claro, sin filtro. Este es el caso que se rompe solo si
-    // alguien escribe la regla con la media query y se olvida del atributo.
-    await page.getByRole("button", { name: /cambiar a modo claro/i }).click();
-    await expect(mapa).toHaveCSS("filter", "none");
+    await expect(despacho).toContainText(formatearCLP(reglas.freeShippingFromCLP));
+    await expect(despacho).toContainText(formatearCLP(reglas.shippingCostCLP));
   });
 
-  test("el borde del mapa no se invierte junto con el mapa", async ({ page }) => {
-    // `filter` pinta también el borde del elemento: con la línea en el
-    // <iframe>, en oscuro se invertía hasta desaparecer y el mapa quedaba
-    // como el único recuadro de la columna sin marco. Vive en el envoltorio.
+  test("WhatsApp está una sola vez, y es el canal destacado", async ({ page }) => {
+    // Estaba como un botón más entre las redes, del mismo tamaño que
+    // Facebook. Subió a los canales directos; tenerlo en los dos lugares lo
+    // volvía ruido. (El botón flotante es del layout y no cuenta acá.)
     await page.goto("/contacto");
-    const mapa = page.locator("iframe.mapa-embebido");
-    if ((await mapa.count()) === 0) return;
 
-    await expect(mapa).toHaveCSS("border-top-width", "0px");
-    await expect(mapa.locator("xpath=..")).not.toHaveCSS("border-top-width", "0px");
+    const columna = page.getByRole("main").locator("section").last();
+    await expect(columna.getByRole("link", { name: /whatsapp/i })).toHaveCount(1);
   });
 });

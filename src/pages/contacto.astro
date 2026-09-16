@@ -4,37 +4,49 @@ import {
   campo,
   enlaces as enlacesDeAjuste,
   getSections,
+  esPendiente,
   getSettings,
   lista,
   listaDeSeccion,
   texto,
 } from "@/data/content";
-import { resolverUrlDeMapa } from "@/lib/mapa-embed";
+import { aplicarReglasDePedido } from "@/data/order-rules";
+import { formatCLP } from "@/lib/format";
 
 const ajustes = await getSettings();
 const secciones = await getSections("contacto");
 
 const subjects = listaDeSeccion(secciones, "formulario.subjects");
-const direccion = lista(ajustes, "contact.address");
 const horario = lista(ajustes, "contact.hours");
 const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
 const redes = enlacesDeAjuste(ajustes, "contact.redes");
-const mapaConfigurado = texto(ajustes, "contact.maps_embed_url");
 
 /*
- * El mapa.
+ * ── Por qué esta columna ya no tiene dirección ni mapa ───────────────────
  *
- * Lo que se guarda en el panel es "el enlace del mapa", que en la práctica
- * es cualquiera de las cinco formas que Google reparte. Acá se traduce a la
- * única que se puede incrustar (ver src/lib/mapa-embed.ts).
+ * Porque la tienda no tiene local a la calle. Una dirección que nadie puede
+ * ir a visitar y un mapa apuntando a una comuna no le resuelven nada a
+ * quien entra a contactarse: le responden una pregunta que no hizo.
  *
- * Si no se puede —un enlace corto que no se dejó resolver, un dominio que
- * no es Maps—, en vez del rayado mudo se ofrece el enlace original en una
- * pestaña nueva: el visitante igual llega a la tienda, que es para lo que
- * estaba el mapa.
+ * Lo legal no depende de esto. El domicilio de la empresa vive en
+ * `legal.domicilio` y sale publicado en los términos y en la política de
+ * privacidad, que es donde la Ley 19.496 pide que esté identificado quién
+ * vende.
+ *
+ * En su lugar va lo que sí se pregunta al entrar acá: por dónde escribir,
+ * a qué hora contestan, y cómo llega lo que compre.
  */
-const mapaUrl = (await resolverUrlDeMapa(mapaConfigurado)) ?? "";
-const mapaDeRespaldo = mapaUrl === "" && mapaConfigurado !== "" ? mapaConfigurado : "";
+
+/* El correo que ya usan los documentos legales: una sola fuente. Si todavía
+ * es el placeholder entre corchetes, no se muestra —mejor un canal menos
+ * que un mailto a "[ correo pendiente ]"—. */
+const correo = texto(ajustes, "legal.correo_contacto");
+const correoVisible = correo !== "" && !esPendiente(correo);
+
+/* Las mismas reglas que cotizan el carrito y que citan los términos. Se leen
+ * de acá para que no haya dos verdades sobre cuánto cuesta el despacho. */
+const reglas = await aplicarReglasDePedido();
 
 /*
  * On-demand con ISR.
@@ -148,24 +160,57 @@ export const prerender = false;
       </div>
     </section>
 
-    {/* ── Datos de la tienda ─────────────────────────────────────────── */}
-    <section class="flex flex-col gap-8 px-6 py-14 sm:px-12">
+    {/* ── Cómo llegar a nosotros ─────────────────────────────────────── */}
+    <section class="flex flex-col gap-9 px-6 py-14 sm:px-12">
+      {/* ── Canales directos ────────────────────────────────────────── */}
       <div>
-        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
-          {campo(secciones, "datos.label_direccion")}
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_canales", "Escríbenos directo")}
         </p>
-        <p class="text-base font-bold">
-          {
-            direccion.map((linea, i) => (
-              <>
-                {i > 0 && <br />}
-                {linea}
-              </>
-            ))
-          }
-        </p>
+
+        {
+          /* WhatsApp arriba y en coral porque es el canal real de esta
+            tienda: el que contestan primero. Antes estaba como un botón más
+            entre las redes sociales, del mismo tamaño que Facebook. */
+        }
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener"
+          class="flex items-center justify-between gap-4 border border-line bg-coral px-5 py-4 text-on-coral no-underline transition-transform hover:-translate-y-0.5"
+        >
+          <span class="flex flex-col gap-0.5">
+            {
+              /* Sin opacity: atenuado quedaba en 4,18:1 sobre el coral, bajo el
+                mínimo AA de 4,5:1 para texto chico. */
+            }
+            <span class="font-mono text-[11px] tracking-[.14em] uppercase">WhatsApp</span>
+            <span class="text-lg font-bold">{whatsappDisplay}</span>
+          </span>
+          <span class="text-xl" aria-hidden="true">→</span>
+        </a>
+
+        {
+          correoVisible && (
+            <a
+              href={`mailto:${correo}`}
+              class="mt-3 flex items-center justify-between gap-4 border border-line px-5 py-4 no-underline transition-colors hover:bg-coral hover:text-on-coral"
+            >
+              <span class="flex flex-col gap-0.5">
+                <span class="font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+                  {campo(secciones, "datos.label_correo", "Correo")}
+                </span>
+                <span class="text-[15px] font-bold break-all">{correo}</span>
+              </span>
+              <span class="text-xl" aria-hidden="true">
+                →
+              </span>
+            </a>
+          )
+        }
       </div>
 
+      {/* ── Horario ─────────────────────────────────────────────────── */}
       <div>
         <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
           {campo(secciones, "datos.label_horario")}
@@ -182,12 +227,41 @@ export const prerender = false;
         </p>
       </div>
 
+      {
+        /* ── Despacho ────────────────────────────────────────────────────
+          Ocupa el lugar del mapa y responde la pregunta que el mapa
+          contestaba mal: no "dónde quedan" —que a nadie le sirve si no hay
+          local— sino "cómo me llega". Los montos salen de las mismas
+          reglas que cotiza el carrito, no escritos acá: si el cliente sube
+          el envío gratis a $60.000, esta línea cambia sola. */
+      }
+      <div>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_despacho", "Despacho")}
+        </p>
+        <ul class="flex flex-col border-t border-line-soft">
+          <li class="border-b border-line-soft py-2.5 text-[15px]">
+            {campo(secciones, "datos.despacho_cobertura", "Despacho a todo Chile")}
+          </li>
+          <li class="border-b border-line-soft py-2.5 text-[15px]">
+            Envío gratis sobre <strong>{formatCLP(reglas.freeShippingFromCLP)}</strong>. Bajo ese
+            monto, {formatCLP(reglas.shippingCostCLP)}.
+          </li>
+          <li class="border-b border-line-soft py-2.5 text-[15px]">
+            {campo(secciones, "datos.despacho_retiro", "Entrega a convenir dentro de Santiago")}
+          </li>
+        </ul>
+      </div>
+
+      {/* ── Redes ───────────────────────────────────────────────────── */}
       <div>
         <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
           {campo(secciones, "datos.label_redes")}
         </p>
         <div class="flex flex-wrap gap-3">
           {
+            /* WhatsApp ya no se agrega acá a mano: subió a los canales
+               directos, y tenerlo en los dos lugares lo volvía ruido. */
             redes.map((red) => (
               <a
                 href={red.href}
@@ -199,55 +273,8 @@ export const prerender = false;
               </a>
             ))
           }
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener"
-            class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
-          >
-            WhatsApp →
-          </a>
         </div>
       </div>
-
-      {
-        /* Tres estados: el mapa, el enlace de respaldo cuando la URL no se
-           puede incrustar, y el rayado del handoff cuando no hay nada
-           cargado. Que el sitio no se rompa por un campo vacío —ni por uno
-           mal llenado— es parte de que sea administrable. */
-        mapaUrl !== "" ? (
-          /* El borde va en el envoltorio y no en el <iframe>: `filter`
-             pinta TAMBIÉN el borde del elemento, así que en oscuro la
-             línea se invertía hasta desaparecer y el mapa era el único
-             recuadro de la columna sin marco. */
-          <div class="mt-auto border border-line">
-            <iframe
-              src={mapaUrl}
-              title="Ubicación de la tienda"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              class="mapa-embebido block aspect-[16/7] w-full border-0"
-            />
-          </div>
-        ) : (
-          <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line">
-            {mapaDeRespaldo === "" ? (
-              <span class="font-mono text-xs text-faint">
-                {campo(secciones, "datos.map_caption")}
-              </span>
-            ) : (
-              <a
-                href={mapaDeRespaldo}
-                target="_blank"
-                rel="noopener"
-                class="border border-line bg-cream px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
-              >
-                Ver en Google Maps →
-              </a>
-            )}
-          </div>
-        )
-      }
     </section>
   </div>
 </BaseLayout>
