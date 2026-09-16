@@ -42,20 +42,28 @@ set
   content = (content - 'label_direccion' - 'map_caption')
     || jsonb_build_object(
       'label_canales', 'Escríbenos directo',
+      'label_whatsapp', 'WhatsApp',
       'label_correo', 'Correo',
       'label_despacho', 'Despacho',
       'despacho_cobertura', 'Despacho a todo Chile',
+      'despacho_envio', 'Envío gratis sobre <strong>{{shipping.free_from_clp}}</strong>. Bajo ese monto, {{shipping.cost_clp}}.',
       'despacho_retiro', 'Entrega a convenir dentro de Santiago'
     ),
   fields = (fields - 'label_direccion' - 'map_caption')
     || jsonb_build_object(
       'label_canales', jsonb_build_object('label', 'Rótulo — canales', 'kind', 'text'),
+      'label_whatsapp', jsonb_build_object('label', 'Rótulo — WhatsApp', 'kind', 'text'),
       'label_correo', jsonb_build_object('label', 'Rótulo — correo', 'kind', 'text'),
       'label_despacho', jsonb_build_object('label', 'Rótulo — despacho', 'kind', 'text'),
       'despacho_cobertura', jsonb_build_object(
         'label', 'Despacho — cobertura',
         'kind', 'text',
         'help', 'Primera línea del bloque. Ej: "Despacho a todo Chile".'
+      ),
+      'despacho_envio', jsonb_build_object(
+        'label', 'Despacho — envío',
+        'kind', 'textarea',
+        'help', 'Segunda línea. Los montos NO se escriben acá: {{shipping.free_from_clp}} y {{shipping.cost_clp}} se reemplazan solos con lo que haya en Ajustes → Comercio, así esta frase nunca contradice al carrito.'
       ),
       'despacho_retiro', jsonb_build_object(
         'label', 'Despacho — retiro o entrega',
@@ -66,3 +74,22 @@ set
   name = 'Cómo llegar a nosotros'
 where page_id = (select id from public.pages where slug = 'contacto')
   and key = 'datos';
+
+-- ── Los placeholders del formulario ahora hacen doble trabajo ───────────
+--
+-- Cada uno se usa como texto guía DENTRO del campo y como rótulo para
+-- lector de pantalla. Antes el rótulo estaba escrito en el HTML: cambiar
+-- "Nombre" por "Tu nombre" en el panel lo cambiaba en pantalla y no para
+-- quien navega escuchando. Se deja dicho en la ayuda para que quien lo
+-- edite sepa que está tocando las dos cosas.
+update public.page_sections
+set fields = fields || jsonb_build_object(
+  'placeholder_nombre', coalesce(fields -> 'placeholder_nombre', '{"kind":"text"}'::jsonb)
+    || jsonb_build_object('label', 'Campo — nombre', 'help', 'Se usa dentro del campo y como rótulo para lector de pantalla.'),
+  'placeholder_correo', coalesce(fields -> 'placeholder_correo', '{"kind":"text"}'::jsonb)
+    || jsonb_build_object('label', 'Campo — correo', 'help', 'Se usa dentro del campo y como rótulo para lector de pantalla.'),
+  'placeholder_mensaje', coalesce(fields -> 'placeholder_mensaje', '{"kind":"text"}'::jsonb)
+    || jsonb_build_object('label', 'Campo — mensaje', 'help', 'Se usa dentro del campo y como rótulo para lector de pantalla.')
+)
+where page_id = (select id from public.pages where slug = 'contacto')
+  and key = 'formulario';

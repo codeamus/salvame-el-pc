@@ -8,9 +8,9 @@ import {
   getSettings,
   lista,
   listaDeSeccion,
+  resolverPlaceholders,
   texto,
 } from "@/data/content";
-import { aplicarReglasDePedido } from "@/data/order-rules";
 import { formatCLP } from "@/lib/format";
 
 const ajustes = await getSettings();
@@ -41,12 +41,33 @@ const redes = enlacesDeAjuste(ajustes, "contact.redes");
 /* El correo que ya usan los documentos legales: una sola fuente. Si todavía
  * es el placeholder entre corchetes, no se muestra —mejor un canal menos
  * que un mailto a "[ correo pendiente ]"—. */
+/*
+ * Los textos del formulario se leen una vez y se usan DOS veces: como
+ * placeholder y como rótulo para lector de pantalla. Antes el rótulo estaba
+ * escrito en el HTML, así que cambiar "Nombre" por "Tu nombre" en el panel
+ * lo cambiaba en pantalla y no para quien navega escuchando.
+ */
+const phNombre = campo(secciones, "formulario.placeholder_nombre", "Nombre");
+const phCorreo = campo(secciones, "formulario.placeholder_correo", "Correo electrónico");
+const phMensaje = campo(secciones, "formulario.placeholder_mensaje", "Mensaje");
+
 const correo = texto(ajustes, "legal.correo_contacto");
 const correoVisible = correo !== "" && !esPendiente(correo);
 
-/* Las mismas reglas que cotizan el carrito y que citan los términos. Se leen
- * de acá para que no haya dos verdades sobre cuánto cuesta el despacho. */
-const reglas = await aplicarReglasDePedido();
+/* Los montos del despacho salen de los mismos ajustes que cotiza el carrito
+ * y que cita la letra chica de los términos: una sola verdad sobre cuánto
+ * cuesta el envío. Si la clave faltara, el texto queda con el {{...}} a la
+ * vista en vez de inventar un número — es el mismo criterio de los
+ * documentos legales, y es lo que hace que alguien lo note. */
+const lineaEnvio = resolverPlaceholders(
+  campo(
+    secciones,
+    "datos.despacho_envio",
+    "Envío gratis sobre <strong>{{shipping.free_from_clp}}</strong>. Bajo ese monto, {{shipping.cost_clp}}.",
+  ),
+  ajustes,
+  formatCLP,
+);
 
 /*
  * On-demand con ISR.
@@ -100,22 +121,16 @@ export const prerender = false;
             autocomplete="off"
           />
         </div>
-        <label class="sr-only" for="contacto-nombre">Nombre</label>
-        <input
-          id="contacto-nombre"
-          name="nombre"
-          required
-          placeholder={campo(secciones, "formulario.placeholder_nombre", "Nombre")}
-          class="field"
-        />
+        <label class="sr-only" for="contacto-nombre">{phNombre}</label>
+        <input id="contacto-nombre" name="nombre" required placeholder={phNombre} class="field" />
 
-        <label class="sr-only" for="contacto-correo">Correo electrónico</label>
+        <label class="sr-only" for="contacto-correo">{phCorreo}</label>
         <input
           id="contacto-correo"
           name="correo"
           type="email"
           required
-          placeholder={campo(secciones, "formulario.placeholder_correo", "Correo electrónico")}
+          placeholder={phCorreo}
           class="field"
         />
 
@@ -124,13 +139,13 @@ export const prerender = false;
           {subjects.map((subject) => <option>{subject}</option>)}
         </select>
 
-        <label class="sr-only" for="contacto-mensaje">Mensaje</label>
+        <label class="sr-only" for="contacto-mensaje">{phMensaje}</label>
         <textarea
           id="contacto-mensaje"
           name="mensaje"
           required
           rows="5"
-          placeholder={campo(secciones, "formulario.placeholder_mensaje")}
+          placeholder={phMensaje}
           class="field resize-y"></textarea>
 
         <button type="submit" data-contact-submit class="btn-primary self-start px-7 py-3.75">
@@ -184,7 +199,9 @@ export const prerender = false;
               /* Sin opacity: atenuado quedaba en 4,18:1 sobre el coral, bajo el
                 mínimo AA de 4,5:1 para texto chico. */
             }
-            <span class="font-mono text-[11px] tracking-[.14em] uppercase">WhatsApp</span>
+            <span class="font-mono text-[11px] tracking-[.14em] uppercase">
+              {campo(secciones, "datos.label_whatsapp", "WhatsApp")}
+            </span>
             <span class="text-lg font-bold">{whatsappDisplay}</span>
           </span>
           <span class="text-xl" aria-hidden="true">→</span>
@@ -243,10 +260,14 @@ export const prerender = false;
           <li class="border-b border-line-soft py-2.5 text-[15px]">
             {campo(secciones, "datos.despacho_cobertura", "Despacho a todo Chile")}
           </li>
-          <li class="border-b border-line-soft py-2.5 text-[15px]">
-            Envío gratis sobre <strong>{formatCLP(reglas.freeShippingFromCLP)}</strong>. Bajo ese
-            monto, {formatCLP(reglas.shippingCostCLP)}.
-          </li>
+          {
+            /* La redacción se edita en el panel; los montos NO se escriben
+              ahí: van como {{shipping.free_from_clp}} y los resuelve el
+              mismo mecanismo que la letra chica de los términos, con el
+              mismo formatCLP del carrito. Así la frase se puede reescribir
+              sin riesgo de que alguien deje un monto viejo adentro. */
+          }
+          <li class="border-b border-line-soft py-2.5 text-[15px]" set:html={lineaEnvio} />
           <li class="border-b border-line-soft py-2.5 text-[15px]">
             {campo(secciones, "datos.despacho_retiro", "Entrega a convenir dentro de Santiago")}
           </li>
