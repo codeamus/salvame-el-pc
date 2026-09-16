@@ -90,3 +90,39 @@ test.describe("Formulario de contacto", () => {
     await expect(page.locator('[aria-hidden="true"] input[name="sitio_web"]')).toHaveCount(1);
   });
 });
+
+test.describe("Mapa de la tienda", () => {
+  /**
+   * El mapa se rompió en silencio una vez y así se queda cubierto.
+   *
+   * En el panel había un enlace de los que da el botón Compartir de Google
+   * Maps (maps.app.goo.gl/…). Google responde a esos con
+   * `x-frame-options: SAMEORIGIN`, así que el navegador se niega a
+   * dibujarlos dentro de un <iframe>: la página mostraba un recuadro vacío,
+   * sin ningún error, y nadie tenía cómo darse cuenta.
+   *
+   * Lo que se comprueba no es qué dirección es —eso lo edita el cliente—,
+   * sino que lo que termine en el src sea una forma INCRUSTABLE, o que en su
+   * defecto haya una salida para el visitante.
+   */
+  test("o se puede incrustar, o hay un enlace para salir a Google Maps", async ({ page }) => {
+    await page.goto("/contacto");
+
+    const mapa = page.locator("iframe[title='Ubicación de la tienda']");
+
+    if ((await mapa.count()) === 0) {
+      // Sin mapa cargado se muestra el rayado; si hay un enlace que no se
+      // pudo traducir, tiene que ofrecer la salida a Maps.
+      const salida = page.getByRole("link", { name: /ver en google maps/i });
+      if ((await salida.count()) > 0) {
+        await expect(salida).toHaveAttribute("target", "_blank");
+      }
+      return;
+    }
+
+    const src = (await mapa.getAttribute("src")) ?? "";
+    // /maps/embed es la única forma que Google sirve sin x-frame-options.
+    expect(src).toMatch(/^https:\/\/www\.google\.[a-z.]+\/maps\/embed\?/);
+    expect(src).not.toContain("goo.gl");
+  });
+});

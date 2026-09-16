@@ -9,6 +9,7 @@ import {
   listaDeSeccion,
   texto,
 } from "@/data/content";
+import { resolverUrlDeMapa } from "@/lib/mapa-embed";
 
 const ajustes = await getSettings();
 const secciones = await getSections("contacto");
@@ -18,7 +19,22 @@ const direccion = lista(ajustes, "contact.address");
 const horario = lista(ajustes, "contact.hours");
 const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
 const redes = enlacesDeAjuste(ajustes, "contact.redes");
-const mapaUrl = texto(ajustes, "contact.maps_embed_url");
+const mapaConfigurado = texto(ajustes, "contact.maps_embed_url");
+
+/*
+ * El mapa.
+ *
+ * Lo que se guarda en el panel es "el enlace del mapa", que en la práctica
+ * es cualquiera de las cinco formas que Google reparte. Acá se traduce a la
+ * única que se puede incrustar (ver src/lib/mapa-embed.ts).
+ *
+ * Si no se puede —un enlace corto que no se dejó resolver, un dominio que
+ * no es Maps—, en vez del rayado mudo se ofrece el enlace original en una
+ * pestaña nueva: el visitante igual llega a la tienda, que es para lo que
+ * estaba el mapa.
+ */
+const mapaUrl = (await resolverUrlDeMapa(mapaConfigurado)) ?? "";
+const mapaDeRespaldo = mapaUrl === "" && mapaConfigurado !== "" ? mapaConfigurado : "";
 
 /*
  * On-demand con ISR.
@@ -195,16 +211,11 @@ export const prerender = false;
       </div>
 
       {
-        /* Con URL de embed configurada se muestra el mapa; sin ella, el
-           placeholder rayado del handoff. Que el sitio no se rompa por un
-           campo vacío es parte de que sea administrable. */
-        mapaUrl === "" ? (
-          <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line">
-            <span class="font-mono text-xs text-faint">
-              {campo(secciones, "datos.map_caption")}
-            </span>
-          </div>
-        ) : (
+        /* Tres estados: el mapa, el enlace de respaldo cuando la URL no se
+           puede incrustar, y el rayado del handoff cuando no hay nada
+           cargado. Que el sitio no se rompa por un campo vacío —ni por uno
+           mal llenado— es parte de que sea administrable. */
+        mapaUrl !== "" ? (
           <iframe
             src={mapaUrl}
             title="Ubicación de la tienda"
@@ -212,6 +223,23 @@ export const prerender = false;
             referrerpolicy="no-referrer-when-downgrade"
             class="mt-auto aspect-[16/7] w-full border border-line"
           />
+        ) : (
+          <div class="stripes mt-auto flex aspect-[16/7] items-center justify-center border border-line">
+            {mapaDeRespaldo === "" ? (
+              <span class="font-mono text-xs text-faint">
+                {campo(secciones, "datos.map_caption")}
+              </span>
+            ) : (
+              <a
+                href={mapaDeRespaldo}
+                target="_blank"
+                rel="noopener"
+                class="border border-line bg-cream px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
+              >
+                Ver en Google Maps →
+              </a>
+            )}
+          </div>
         )
       }
     </section>
