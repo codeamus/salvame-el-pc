@@ -6,16 +6,23 @@ test.describe("Navegación del sitio", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/Sálvame el PC/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Hardware y periféricos");
+    // El texto del hero lo escribe el cliente en el panel. Lo que tiene que
+    // ser cierto siempre es que haya UN h1 y que no venga vacío: un h1 en
+    // blanco es lo que se vería si la sección dejara de traer contenido.
+    const titulo = page.getByRole("heading", { level: 1 });
+    await expect(titulo).toHaveCount(1);
+    await expect(titulo).toBeVisible();
+    await expect(titulo).not.toHaveText(/^\s*$/);
   });
 
   test("se puede ir de la portada al catálogo", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("link", { name: "Ver catálogo →" }).first().click();
+    // Por destino y no por rótulo: "Ver catálogo →" es texto del panel.
+    await page.locator('a[href="/tienda"]').first().click();
 
     await expect(page).toHaveURL(/\/tienda/);
-    await expect(page.getByRole("heading", { level: 1, name: "Catálogo" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
   test("se puede entrar a la ficha de un producto desde el catálogo", async ({ page }) => {
@@ -175,7 +182,9 @@ test.describe("Navegación del sitio", () => {
     const response = await page.goto("/producto-que-no-existe");
 
     expect(response?.status()).toBe(404);
-    await expect(page.getByText("[ error 404 ]")).toBeVisible();
+    // El rótulo se edita desde el panel —el cliente le agregó "Caso sin
+    // resolver"— así que se busca el 404 y no la frase completa.
+    await expect(page.getByText(/error 404/i)).toBeVisible();
   });
 
   test("el overlay clickeable de las tarjetas no se sale de su tarjeta", async ({ page }) => {

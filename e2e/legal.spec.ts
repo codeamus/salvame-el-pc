@@ -120,25 +120,26 @@ test.describe("Enlaces legales en el footer", () => {
 
     const ayuda = page.getByRole("navigation", { name: "Ayuda" });
 
-    await expect(ayuda.getByRole("link", { name: "Términos y condiciones" })).toHaveAttribute(
-      "href",
-      "/terminos-y-condiciones",
-    );
-    await expect(ayuda.getByRole("link", { name: "Política de privacidad" })).toHaveAttribute(
-      "href",
-      "/politica-de-privacidad",
-    );
-    await expect(page.getByText("Garantías")).toHaveCount(0);
+    // Se busca por DESTINO y no por rótulo: cómo se llame cada enlace lo
+    // decide el panel, pero que exista uno a cada documento es del sitio.
+    // Su texto sí se mira —que no venga vacío—, porque un enlace sin nombre
+    // es inservible para quien usa lector de pantalla.
+    for (const ruta of ["/terminos-y-condiciones", "/politica-de-privacidad"]) {
+      const enlace = ayuda.locator(`a[href="${ruta}"]`);
+      await expect(enlace).toHaveCount(1);
+      await expect(enlace).not.toHaveText(/^\s*$/);
+    }
+
+    // Garantías era una página propia y se absorbió en los términos: lo que
+    // no puede volver es la ruta, aunque alguien vuelva a usar la palabra.
+    await expect(page.locator('a[href*="garantia"]')).toHaveCount(0);
   });
 
   test("«Envíos y devoluciones» aterriza en la sección de despacho", async ({ page }) => {
     await page.goto("/");
     await waitForIslands(page);
 
-    await page
-      .getByRole("navigation", { name: "Ayuda" })
-      .getByRole("link", { name: "Envíos y devoluciones" })
-      .click();
+    await page.getByRole("navigation", { name: "Ayuda" }).locator('a[href$="#despacho"]').click();
 
     await expect(page).toHaveURL(/\/terminos-y-condiciones#despacho$/);
     await expect(page.locator("#despacho")).toBeVisible();
