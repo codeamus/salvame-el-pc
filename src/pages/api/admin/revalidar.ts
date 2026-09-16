@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { dominiosDelProyecto, seRegenero } from "@/lib/admin/revalidacion";
+import { RUTAS_DE_CONTENIDO } from "@/lib/admin/rutas";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
@@ -33,9 +34,6 @@ const json = (data: unknown, status: number): Response =>
     status,
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
-
-/** Rutas fijas del sitio. Las fichas de producto se agregan dinámicamente. */
-const RUTAS_FIJAS = ["/", "/tienda", "/404"];
 
 /**
  * ¿Vercel rehízo de verdad esta página?
@@ -106,7 +104,7 @@ export const POST: APIRoute = async ({ request }) => {
     .eq("is_published", true)
     .returns<{ slug: string }[]>();
 
-  const rutas = [...RUTAS_FIJAS, ...(productos ?? []).map((p) => `/producto/${p.slug}`)];
+  const rutas = [...RUTAS_DE_CONTENIDO, ...(productos ?? []).map((p) => `/producto/${p.slug}`)];
 
   // ── 4. Pedirle a Vercel que las rehaga, en TODOS sus dominios ──────────
   const bases = dominiosDelProyecto(request);

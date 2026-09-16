@@ -11,6 +11,20 @@ const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
 
 const services = items(secciones, "servicios.items");
 const videos = items(secciones, "videos.items");
+
+/*
+ * On-demand con ISR, como el resto del sitio.
+ *
+ * Esta página era la única que NO lo declaraba, así que se horneaba en el
+ * build: un archivo HTML fijo con lo que hubiera en Supabase el día del
+ * deploy. Editar el hero desde el panel guardaba bien, revalidar respondía
+ * que todo salió bien, y la página seguía igual — porque no había ninguna
+ * función que volver a ejecutar, solo un archivo servido tal cual.
+ *
+ * Costó encontrarlo justamente porque no fallaba nada: fallaba que no
+ * pasara nada.
+ */
+export const prerender = false;
 ---
 
 <BaseLayout
