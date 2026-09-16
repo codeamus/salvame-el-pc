@@ -398,9 +398,34 @@
    * producto quedarían apagadas para siempre.
    */
   @media (hover: hover) {
+    /* `--foto-luz` es una variable y no un valor fijo porque en oscuro hay
+     * que bajarla. Vive en el CONTENEDOR y no en la <img> a propósito: así
+     * el `filter: none` del hover, que está más abajo, gana por orden sin
+     * tener que pelear especificidad con los selectores del tema. */
     .photo-veiled img {
-      filter: grayscale(1) contrast(1.04);
+      --foto-luz: 1;
+      filter: grayscale(1) contrast(1.04) brightness(var(--foto-luz));
       transition: filter 0.3s ease;
+    }
+
+    /* En oscuro, además de quitarle el color, se le bajan las luces.
+     *
+     * La desaturación sola no alcanza: las fotos de producto vienen de las
+     * fichas del fabricante y la mitad trae fondo blanco o gris claro. En
+     * gris, un fondo blanco sigue siendo blanco — en la grilla del catálogo
+     * quedaban tres rectángulos encendidos sobre una página de tinta, cada
+     * uno de un brillo distinto según de qué ficha salió.
+     *
+     * En claro no hace falta y no se aplica: ahí esos mismos fondos se
+     * apoyan en la crema de la página en vez de pelearse con ella. */
+    :root[data-theme="dark"] .photo-veiled img {
+      --foto-luz: 0.62;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .photo-veiled img {
+        --foto-luz: 0.62;
+      }
     }
 
     .photo-veil {

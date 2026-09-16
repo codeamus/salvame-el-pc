@@ -160,6 +160,55 @@ test.describe("Navegación del sitio", () => {
     await expect.poll(filtro).toBe("none");
   });
 
+  test("las fotos del catálogo también llevan el velo", async ({ page }) => {
+    // Estuvieron sin tratar un tiempo: el velo era opt-in y la portada lo
+    // pedía, pero el catálogo no. En una página de tinta, con fotos que
+    // vienen de las fichas del fabricante y la mitad con fondo blanco, eso
+    // se veía como tres rectángulos encendidos en medio de la grilla.
+    await page.goto("/tienda");
+
+    const conCursor = await page.evaluate(() => matchMedia("(hover: hover)").matches);
+    const card = page.locator("article").first();
+    const foto = card.locator("img[data-photo-fallback]").first();
+    const filtro = () => foto.evaluate((n) => getComputedStyle(n).filter);
+
+    if (!conCursor) {
+      // En táctil no hay hover, así que no habría forma de quitar el velo:
+      // las fotos van a color desde el principio. Misma decisión que en los
+      // tiles de la portada.
+      expect(await filtro()).toBe("none");
+      return;
+    }
+
+    expect(await filtro()).toContain("grayscale");
+
+    await card.hover();
+
+    // La foto tal cual la subió el cliente, sin nada encima.
+    await expect.poll(filtro).toBe("none");
+  });
+
+  test("en oscuro las fotos además se apagan, y en claro no", async ({ page }) => {
+    // La desaturación sola no alcanza en oscuro: un fondo blanco en gris
+    // sigue siendo blanco. En claro ese mismo fondo se apoya en la crema de
+    // la página, así que bajarle las luces ahí sería apagarla de gratis.
+    await page.goto("/tienda");
+    if (!(await page.evaluate(() => matchMedia("(hover: hover)").matches))) return;
+
+    const foto = page.locator("article img[data-photo-fallback]").first();
+    const filtro = () => foto.evaluate((n) => getComputedStyle(n).filter);
+
+    // Con poll y no con una lectura seca: el filtro está en transición de
+    // 0,3 s, y leerlo de una cazaba el punto medio —brightness(0.989…)—
+    // que no es ni un tema ni el otro. Es el mismo motivo por el que el
+    // test de acá arriba espera el "none".
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect.poll(filtro).toMatch(/brightness\(0\.\d+\)/);
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect.poll(filtro).toMatch(/brightness\(1\)/);
+  });
+
   test("la cinta de marcas no deja huecos al reiniciar el bucle", async ({ page }) => {
     // El bucle son dos copias con translateX(-50%), así que una copia tiene
     // que ser al menos tan ancha como la pantalla. Si alguien acorta la lista
