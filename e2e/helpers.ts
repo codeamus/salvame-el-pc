@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page } from "./fixtures";
 
 /**
  * Espera a que terminen de hidratar los islands de la página.

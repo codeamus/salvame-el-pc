@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { auditor, congelarAnimaciones, productoDePrueba, waitForIslands } from "./helpers";
 
 const STORAGE_KEY = "salvameelpc:theme";
