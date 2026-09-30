@@ -611,6 +611,73 @@ grant execute on function public.place_order(text, int, jsonb, jsonb) to service
 grant execute on function public.settle_order(text, public.order_payment_status, jsonb, text) to service_role;
 grant execute on function public.adjust_stock(bigint, int, text, text) to authenticated, service_role;
 
+/* ═══════════════════════════════════════════════════════════════════════
+ * PERMISOS DE TABLA
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Son DOS capas distintas y hacen falta las dos:
+ *
+ *   · El GRANT decide si un rol puede tocar la tabla.
+ *   · El RLS decide QUÉ FILAS ve dentro de ella.
+ *
+ * Hasta ahora esto no estaba escrito porque Supabase le daba los permisos
+ * a las tablas nuevas de public por su cuenta. Eso se termina el 30 de
+ * octubre de 2026: desde esa fecha, una tabla creada sin GRANT queda
+ * invisible para la Data API, y `supabase-js` responde "permission denied".
+ *
+ * Las tablas que ya existen conservan lo que tienen, así que este bloque no
+ * cambia nada en el proyecto actual. Importa el día que haya que levantar
+ * el proyecto de cero —otro entorno, una rama de preview, o una
+ * recuperación— porque sin esto el sitio arrancaría con TODAS las tablas
+ * inaccesibles a la vez, que es un fallo tan grande que cuesta leerlo.
+ *
+ * Las migraciones 0002, 0003 y 0005 ya traían su grant; esto pone al día al
+ * resto.
+ */
+
+-- Lectura pública. El RLS de más arriba es el que filtra: de `products`
+-- solo salen los publicados, de `pages` las publicadas, y así. El grant no
+-- abre nada que la política no permita ya.
+grant select on
+  public.site_settings,
+  public.pages,
+  public.page_sections,
+  public.legal_documents,
+  public.legal_sections,
+  public.products
+to anon;
+
+-- El panel, que entra con sesión. Escribe el contenido y el catálogo.
+grant select, insert, update, delete on
+  public.site_settings,
+  public.pages,
+  public.page_sections,
+  public.legal_documents,
+  public.legal_sections,
+  public.products
+to authenticated;
+
+-- Los pedidos NO se le dan a anon en ninguna forma: ni el grant ni el RLS
+-- lo permiten, y que fallen las dos capas a la vez es justamente el punto.
+-- El admin lee y gestiona; crear y cerrar pedidos pasa solo por las
+-- funciones de arriba, que son de service_role.
+grant select, update on public.orders to authenticated;
+grant select on public.order_items to authenticated;
+grant select on public.stock_movements to authenticated;
+
+-- El servidor, que ya se salta el RLS por ser service_role.
+grant select, insert, update, delete on
+  public.site_settings,
+  public.pages,
+  public.page_sections,
+  public.legal_documents,
+  public.legal_sections,
+  public.products,
+  public.orders,
+  public.order_items,
+  public.stock_movements
+to service_role;
+
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 8. TRIGGERS de updated_at
