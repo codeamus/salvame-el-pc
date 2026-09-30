@@ -96,6 +96,19 @@ export default defineConfig({
       sizes: [64, 128, 256, 384, 640, 828, 1080, 1200, 1920],
       formats: ["image/webp"],
       remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+
+      /*
+       * Un año. Sin esto, Vercel usa su valor por defecto —60 segundos— y
+       * cada minuto vuelve a pedirle el original a Supabase para revalidar.
+       * Eso deja el arreglo a medias: el visitante deja de ir a Supabase,
+       * pero Vercel sigue yendo.
+       *
+       * Es seguro porque el nombre del archivo lleva un timestamp: el panel
+       * sube cada foto como "producto-1789491103347.jpg", así que
+       * reemplazarla genera una URL nueva y el caché viejo deja de
+       * referenciarse solo. Nunca hay que invalidar nada a mano.
+       */
+      minimumCacheTTL: 31_536_000,
     },
 
     /*
