@@ -1,0 +1,90 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Video from "@/components/media/Video.astro";
+import { campo, getSettings, getSections, items, texto } from "@/data/content";
+
+const ajustes = await getSettings();
+const secciones = await getSections("servicio-tecnico");
+
+const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
+
+const services = items(secciones, "servicios.items");
+const videos = items(secciones, "videos.items");
+
+/*
+ * On-demand con ISR, como el resto del sitio.
+ *
+ * Esta página era la única que NO lo declaraba, así que se horneaba en el
+ * build: un archivo HTML fijo con lo que hubiera en Supabase el día del
+ * deploy. Editar el hero desde el panel guardaba bien, revalidar respondía
+ * que todo salió bien, y la página seguía igual — porque no había ninguna
+ * función que volver a ejecutar, solo un archivo servido tal cual.
+ *
+ * Costó encontrarlo justamente porque no fallaba nada: fallaba que no
+ * pasara nada.
+ */
+export const prerender = false;
+---
+
+<BaseLayout
+  title="Servicio técnico"
+  description="Armado de PC, reparación y mantención en Santiago. Diagnóstico en 24 horas, repuestos originales y videos reales de cada trabajo."
+>
+  {/* ── Hero ─────────────────────────────────────────────────────────── */}
+  <section class="border-b border-line px-5 pt-18 pb-12 sm:px-10">
+    <p class="eyebrow">{campo(secciones, "hero.eyebrow")}</p>
+    <h1
+      class="mt-4 text-[clamp(48px,7vw,104px)] leading-[.94] font-extrabold tracking-[-.045em] uppercase"
+    >
+      {campo(secciones, "hero.heading")}<br />{campo(secciones, "hero.heading_line2")}<span
+        class="text-coral">.</span
+      >
+    </h1>
+    <p class="mt-6 max-w-[52ch] text-[17px] leading-relaxed text-ink/75">
+      {campo(secciones, "hero.body")}
+    </p>
+  </section>
+
+  {/* ── Los 3 servicios ──────────────────────────────────────────────── */}
+  <section class="grid grid-cols-1 border-b border-line md:grid-cols-3">
+    {
+      services.map((service, index) => (
+        <div
+          class:list={[
+            "flex flex-col gap-3.5 border-line px-8 py-9",
+            index < services.length - 1 && "border-b md:border-r md:border-b-0",
+          ]}
+        >
+          <span class="font-mono text-[13px] text-coral">{service.number}</span>
+          <h2 class="text-2xl font-extrabold tracking-[-.02em]">{service.title}</h2>
+          <p class="text-sm leading-relaxed text-ink/70">{service.description}</p>
+          <span class="mt-auto font-mono text-xs">{service.price}</span>
+        </div>
+      ))
+    }
+  </section>
+
+  {/* ── Videos del taller ────────────────────────────────────────────── */}
+  <section class="border-b border-line bg-invert px-5 py-14 text-on-invert sm:px-10">
+    <h2 class="mb-7 text-[32px] font-extrabold tracking-[-.03em] uppercase">
+      {campo(secciones, "videos.heading")}
+      <span class="text-coral">{campo(secciones, "videos.heading_accent")}</span>
+    </h2>
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+      {videos.map((video) => <Video url={video.url ?? ""} caption={video.caption ?? ""} />)}
+    </div>
+  </section>
+
+  {/* ── CTA WhatsApp ─────────────────────────────────────────────────── */}
+  <section
+    class="flex flex-wrap items-center justify-between gap-6 border-b border-line px-5 py-12 sm:px-10"
+  >
+    <h2 class="text-[clamp(24px,3vw,40px)] font-extrabold tracking-[-.03em] uppercase">
+      {campo(secciones, "cta.heading")}
+    </h2>
+    <a href={whatsappUrl} target="_blank" rel="noopener" class="btn-primary">
+      {whatsappDisplay} →
+    </a>
+  </section>
+</BaseLayout>

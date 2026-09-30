@@ -15,13 +15,6 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: "./e2e",
-  /*
-   * Fase "próximamente": las specs del sitio completo esperan en e2e/_wip/
-   * porque sus rutas no se publican (ver src/pages/index.astro). Se ignoran
-   * en vez de borrarse — al reactivar las páginas se mueven de vuelta y esta
-   * línea se elimina.
-   */
-  testIgnore: "**/_wip/**",
   fullyParallel: true,
   // En CI, fallar si quedó un test.only olvidado en el código.
   forbidOnly: isCI,
@@ -50,8 +43,13 @@ export default defineConfig({
   // porque este último se levanta como daemon: el proceso en primer plano
   // termina apenas arranca, y Playwright lo interpreta como que el webServer
   // murió. Ver el comentario en ese archivo.
+  //
+  // `--env-file-if-exists` porque desde que el contenido vive en Supabase,
+  // renderizar una página necesita credenciales. Va en su variante "if
+  // exists" para que en CI —donde las variables llegan del entorno y no hay
+  // .env— el server arranque igual.
   webServer: {
-    command: `pnpm build && node scripts/serve-dist.mjs ${String(PORT)}`,
+    command: `pnpm build && node --env-file-if-exists=.env scripts/serve-dist.mjs ${String(PORT)}`,
     url: BASE_URL,
     // Nunca se reutiliza un server ajeno, ni en local. Reutilizarlo hacía que
     // la suite corriera contra lo que hubiera escuchando en el puerto: con un

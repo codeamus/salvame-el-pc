@@ -1,0 +1,329 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getSections } from "@/data/content";
+
+/**
+ * Resultado del pago.
+ *
+ * Esta página NO decide nada. Llegar acá solo significa que la pasarela
+ * devolvió al comprador al sitio — cualquiera puede escribir la URL a mano.
+ * El estado real lo escribe /api/tuu/callback, que viene firmado por TUU, y
+ * acá se consulta con un polling corto contra /api/orders/[reference].
+ *
+ * Se queda estática (sin prerender: false) y lee la referencia desde
+ * location.search en el cliente: no hay nada que renderizar en el servidor
+ * que el script no necesite pedir igual, así que no vale una función.
+ */
+
+/*
+ * On-demand con ISR.
+ *
+ * Su contenido —nombre del sitio, contacto, textos— sale de Supabase, y el
+ * layout necesita esos datos para renderizar. Prerenderizarla la congelaría
+ * con lo que hubiera en la base el día del deploy. Vercel cachea el HTML ya
+ * generado, así que el visitante no nota diferencia.
+ */
+export const prerender = false;
+
+const secciones = await getSections("pago-exito");
+const textosEditables = secciones.estados ?? {};
+---
+
+<BaseLayout title="Resultado del pago" noindex>
+  {
+    /*
+      Los textos de cada estado viajan como dato, no como marcado.
+      Quien decide cuál mostrar es el script —según lo que responda
+      /api/orders/[reference]— así que el servidor no puede pintarlos:
+      no sabe todavía si el pago salió bien. Mismo patrón que las reglas
+      de envío.
+    */
+  }
+  <script type="application/json" data-textos-pago set:html={JSON.stringify(textosEditables)} />
+  <section
+    class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-5 px-5 py-24 text-center"
+    data-pago-resultado
+  >
+    <p class="font-mono text-[13px] text-muted" data-estado-label>[ verificando pago… ]</p>
+
+    <h1
+      class="text-[clamp(32px,5.5vw,64px)] leading-[.98] font-extrabold tracking-[-.04em] uppercase"
+      data-estado-titulo
+    >
+      Confirmando<br />tu pago<span class="text-coral">…</span>
+    </h1>
+
+    <p class="max-w-md text-[15px] text-ink/70" data-estado-detalle>
+      Estamos esperando la confirmación de la pasarela. No cierres esta ventana.
+    </p>
+
+    <p class="font-mono text-xs text-muted" data-orden hidden>
+      orden <span class="text-ink" data-orden-ref></span>
+    </p>
+
+    {/* Las acciones cambian según el resultado: ver ACCIONES en el script. */}
+    <div class="mt-4 flex flex-wrap justify-center gap-4" data-acciones>
+      <a href="/tienda" class="btn-primary">Seguir comprando →</a>
+      <a href="/contacto" class="btn-secondary">Contactar soporte</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { clearCart } from "@/lib/cart-store";
+
+  /**
+   * Consulta el estado real de la orden.
+   *
+   * El callback de TUU puede tardar unos segundos en llegar, así que se
+   * reintenta un rato en vez de mostrar "no encontramos tu orden" al toque:
+   * ver eso justo después de pagar es exactamente el momento en que un
+   * comprador entra en pánico y paga dos veces.
+   */
+  /*
+   * Cadencia del polling, medida contra un pago real en QA.
+   *
+   * Antes eran 10 intentos cada 2 s: 20 segundos en total. Se quedaba corto
+   * por un margen enorme. En la primera compra de verdad, TUU aprobó el pago
+   * a los 41 s de creada la orden y el callback recién cerró la orden a los
+   * 2 min 42 s — más de ocho veces la ventana que teníamos. El resultado era
+   * que el comprador SIEMPRE veía "confirmando tu pago…" congelado, aunque
+   * todo hubiera funcionado perfecto.
+   *
+   * Los intervalos crecen en vez de ser fijos: la mayoría de los pagos se
+   * resuelven rápido y merecen una respuesta inmediata, pero insistir cada
+   * 2 s durante tres minutos son 90 peticiones por comprador para nada.
+   * Esta escalera suma ~3 minutos en 16 intentos.
+   */
+  const ESPERAS_MS = [
+    2000, 2000, 2000, 3000, 3000, 5000, 5000, 8000, 8000, 10000, 15000, 15000, 20000, 20000, 30000,
+    30000,
+  ];
+
+  /*
+   * "demorado" no es un estado de la orden: la orden sigue pending. Es lo que
+   * la PÁGINA muestra cuando se quedó sin intentos.
+   *
+   * Existe porque el texto de "pending" dice "no cierres esta ventana", y
+   * seguir mostrándolo después de haber dejado de preguntar es mentirle al
+   * comprador: lo deja esperando frente a una pantalla que ya no va a
+   * cambiar sola. Peor aún, es el escenario exacto en que alguien decide
+   * pagar de nuevo por las dudas.
+   */
+  type Estado = "pending" | "completed" | "failed" | "unknown" | "demorado";
+
+  interface TextoEstado {
+    label: string;
+    titulo: string;
+    detalle: string;
+  }
+
+  /*
+   * Textos de reserva.
+   *
+   * Son los mismos que trae la base sembrada, y están acá porque esta
+   * pantalla es la que ve alguien que ACABA DE PAGAR. Si la consulta de
+   * contenido fallara, mostrarle un hueco en blanco a quien tiene el cargo
+   * hecho es el peor momento posible para quedarse sin texto.
+   */
+  const RESERVA: Record<Estado, TextoEstado> = {
+    pending: {
+      label: "[ verificando pago… ]",
+      titulo: "Confirmando<br />tu pago<span class='text-coral'>…</span>",
+      detalle: "Estamos esperando la confirmación de la pasarela. No cierres esta ventana.",
+    },
+    completed: {
+      label: "[ pago confirmado ]",
+      titulo: "¡Gracias<br />por tu compra<span class='text-coral'>!</span>",
+      detalle:
+        "Tu pago quedó confirmado. Te enviamos el detalle a tu correo y te escribimos para coordinar la entrega.",
+    },
+    failed: {
+      label: "[ pago rechazado ]",
+      titulo: "El pago<br />no se completó<span class='text-coral'>.</span>",
+      detalle:
+        "No se realizó ningún cargo. Puedes intentar de nuevo con otro medio de pago; tu carrito sigue disponible.",
+    },
+    unknown: {
+      label: "[ orden no encontrada ]",
+      titulo: "No encontramos<br />esta orden<span class='text-coral'>.</span>",
+      detalle:
+        "Si acabas de pagar, escríbenos con el número de orden y lo revisamos. No vuelvas a pagar antes de hablar con nosotros.",
+    },
+    demorado: {
+      label: "[ pago en verificación ]",
+      titulo: "Tu pago está<br />en verificación<span class='text-coral'>.</span>",
+      detalle:
+        "Ya recibimos tu pedido y la pasarela todavía no nos confirma. Te escribimos por correo apenas se resuelva — no vuelvas a pagar.",
+    },
+  };
+
+  /** Lo editable del panel, encima de la reserva. */
+  const TEXTOS: Record<Estado, TextoEstado> = (() => {
+    const nodo = document.querySelector("[data-textos-pago]");
+    if (nodo?.textContent == null) return RESERVA;
+
+    try {
+      const editados = JSON.parse(nodo.textContent) as Partial<
+        Record<Estado, Partial<TextoEstado>>
+      >;
+      const salida = { ...RESERVA };
+      for (const estado of Object.keys(RESERVA) as Estado[]) {
+        salida[estado] = { ...RESERVA[estado], ...(editados[estado] ?? {}) };
+      }
+      return salida;
+    } catch {
+      return RESERVA;
+    }
+  })();
+
+  /**
+   * Qué puede hacer el comprador según cómo terminó el pago.
+   *
+   * No es decoración: después de un rechazo, mandarlo a "seguir comprando"
+   * es perder la venta que ya casi estaba hecha. La acción principal tiene
+   * que ser retomar el pago, con el carrito intacto esperándolo.
+   */
+  const ACCIONES: Record<Estado, { href: string; label: string; primaria: boolean }[]> = {
+    pending: [
+      { href: "/tienda", label: "Seguir comprando →", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
+    ],
+    completed: [
+      { href: "/tienda", label: "Seguir comprando →", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
+    ],
+    failed: [
+      { href: "/checkout", label: "Reintentar el pago →", primaria: true },
+      { href: "/carrito", label: "Ver mi carrito", primaria: false },
+    ],
+    // Botón para volver a consultar: es lo único que este comprador quiere,
+    // y evita que "reintentar" signifique para él volver a pagar.
+    demorado: [
+      { href: "", label: "Volver a consultar", primaria: true },
+      { href: "/contacto", label: "Contactar soporte", primaria: false },
+    ],
+    unknown: [
+      { href: "/contacto", label: "Contactar soporte →", primaria: true },
+      { href: "/", label: "Ir al inicio", primaria: false },
+    ],
+  };
+
+  const seccion = document.querySelector<HTMLElement>("[data-pago-resultado]");
+
+  if (seccion) {
+    const label = seccion.querySelector<HTMLElement>("[data-estado-label]");
+    const titulo = seccion.querySelector<HTMLElement>("[data-estado-titulo]");
+    const detalle = seccion.querySelector<HTMLElement>("[data-estado-detalle]");
+    const orden = seccion.querySelector<HTMLElement>("[data-orden]");
+    const ordenRef = seccion.querySelector<HTMLElement>("[data-orden-ref]");
+
+    // `x_reference` es el parámetro que manda TUU en la redirección y es la
+    // fuente preferida. `ref` queda como alternativa por si se llega desde un
+    // enlace propio, y el sessionStorage como último respaldo para quien
+    // vuelva sin query params (botón atrás, o la pasarela recortó la URL).
+    //
+    // Estos valores son informativos: no definen el estado de la orden, solo
+    // dicen POR CUÁL preguntar. La verdad la escribe el callback firmado.
+    const params = new URLSearchParams(window.location.search);
+    const referencia =
+      params.get("x_reference") ??
+      params.get("ref") ??
+      sessionStorage.getItem("salvameelpc:ultima-orden") ??
+      "";
+
+    if (referencia !== "" && orden && ordenRef) {
+      ordenRef.textContent = referencia;
+      orden.hidden = false;
+    }
+
+    const acciones = seccion.querySelector<HTMLElement>("[data-acciones]");
+
+    function pintar(estado: Estado): void {
+      const texto = TEXTOS[estado];
+      if (label) label.textContent = texto.label;
+      if (titulo) titulo.innerHTML = texto.titulo;
+      if (detalle) detalle.textContent = texto.detalle;
+
+      if (acciones) {
+        acciones.replaceChildren(
+          ...ACCIONES[estado].map((accion) => {
+            // href vacío = acción de la propia página, no navegación. Va como
+            // <button> y no como <a href="#">: un enlace que no lleva a
+            // ninguna parte se anuncia como enlace a un lector de pantalla y
+            // no responde a la barra espaciadora.
+            if (accion.href === "") {
+              const boton = document.createElement("button");
+              boton.type = "button";
+              boton.className = accion.primaria ? "btn-primary" : "btn-secondary";
+              boton.textContent = accion.label;
+              boton.addEventListener("click", () => {
+                pintar("pending");
+                void consultar(0);
+              });
+              return boton;
+            }
+
+            const enlace = document.createElement("a");
+            enlace.href = accion.href;
+            enlace.className = accion.primaria ? "btn-primary" : "btn-secondary";
+            enlace.textContent = accion.label;
+            return enlace;
+          }),
+        );
+      }
+    }
+
+    /** `intento` es el índice dentro de ESPERAS_MS, no una cuenta regresiva. */
+    async function consultar(intento: number): Promise<void> {
+      if (referencia === "") {
+        pintar("unknown");
+        return;
+      }
+
+      let estado: Estado = "unknown";
+
+      try {
+        const respuesta = await fetch(`/api/orders/${encodeURIComponent(referencia)}`);
+        const datos = (await respuesta.json()) as { status?: string };
+        if (
+          datos.status === "pending" ||
+          datos.status === "completed" ||
+          datos.status === "failed"
+        ) {
+          estado = datos.status;
+        }
+      } catch {
+        // Un fallo de red no es un resultado: se reintenta como si estuviera
+        // pendiente en vez de decirle al comprador que su orden no existe.
+        estado = "pending";
+      }
+
+      if (estado === "pending") {
+        const espera = ESPERAS_MS[intento];
+
+        if (espera !== undefined) {
+          pintar("pending");
+          window.setTimeout(() => void consultar(intento + 1), espera);
+          return;
+        }
+
+        // Se acabaron los intentos. La orden sigue pending, pero dejamos de
+        // decir "no cierres esta ventana" cuando ya no estamos mirando.
+        pintar("demorado");
+        return;
+      }
+
+      pintar(estado);
+
+      // El carrito se vacía SOLO con el pago confirmado. Vaciarlo antes deja
+      // sin nada a quien canceló o a quien se le rechazó la tarjeta.
+      if (estado === "completed") {
+        clearCart();
+        sessionStorage.removeItem("salvameelpc:ultima-orden");
+      }
+    }
+
+    void consultar(0);
+  }
+</script>

@@ -8,11 +8,11 @@ import {
   addToCart,
   clearCart,
   deserialize,
-  FREE_SHIPPING_FROM_CLP,
+  freeShippingFromCLP,
   isCartLine,
-  MAX_QUANTITY_PER_LINE,
+  maxQuantityPerLine,
   removeFromCart,
-  SHIPPING_COST_CLP,
+  shippingCostCLP,
   shippingFor,
   updateQuantity,
   type CartLine,
@@ -65,8 +65,8 @@ describe("addToCart", () => {
   });
 
   it("respeta el tope por línea", () => {
-    addToCart(makeProduct(), MAX_QUANTITY_PER_LINE + 5);
-    expect($cart.get()[0]?.quantity).toBe(MAX_QUANTITY_PER_LINE);
+    addToCart(makeProduct(), maxQuantityPerLine() + 5);
+    expect($cart.get()[0]?.quantity).toBe(maxQuantityPerLine());
   });
 });
 
@@ -113,8 +113,8 @@ describe("derivados", () => {
 
   it("cobra envío bajo el umbral y lo regala sobre él", () => {
     addToCart(makeProduct({ priceCLP: priceCLP(10000) }));
-    expect($cartShipping.get()).toBe(SHIPPING_COST_CLP);
-    expect($cartTotal.get()).toBe(10000 + SHIPPING_COST_CLP);
+    expect($cartShipping.get()).toBe(shippingCostCLP());
+    expect($cartTotal.get()).toBe(10000 + shippingCostCLP());
 
     updateQuantity(1, 5); // 50.000 — justo el umbral
     expect($cartShipping.get()).toBe(0);
@@ -128,11 +128,11 @@ describe("shippingFor", () => {
   });
 
   it("bajo el umbral paga tarifa plana", () => {
-    expect(shippingFor(FREE_SHIPPING_FROM_CLP - 1)).toBe(SHIPPING_COST_CLP);
+    expect(shippingFor(freeShippingFromCLP() - 1)).toBe(shippingCostCLP());
   });
 
   it("desde el umbral es gratis", () => {
-    expect(shippingFor(FREE_SHIPPING_FROM_CLP)).toBe(0);
+    expect(shippingFor(freeShippingFromCLP())).toBe(0);
   });
 });
 

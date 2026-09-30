@@ -27,7 +27,7 @@ export default function CartLines({ lines, onNavigate }: CartLinesProps) {
           <a
             href={`/producto/${line.slug}`}
             onClick={onNavigate}
-            className="stripes relative h-14 w-18 shrink-0 overflow-hidden border border-ink"
+            className="stripes relative h-14 w-18 shrink-0 overflow-hidden border border-line"
             tabIndex={-1}
             aria-hidden="true"
           >
@@ -73,7 +73,7 @@ export default function CartLines({ lines, onNavigate }: CartLinesProps) {
             <p className="font-mono text-[11px] text-muted">{formatCLP(line.priceCLP)} c/u</p>
 
             <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <div className="flex border border-ink">
+              <div className="flex border border-line">
                 <button
                   type="button"
                   aria-label={`Quitar una unidad de ${line.name}`}
@@ -81,11 +81,11 @@ export default function CartLines({ lines, onNavigate }: CartLinesProps) {
                     // Nunca baja de 1: para sacar el producto está el ✕.
                     updateQuantity(line.productId, Math.max(1, line.quantity - 1));
                   }}
-                  className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] leading-none transition-colors hover:bg-coral"
+                  className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] leading-none transition-colors hover:bg-coral hover:text-on-coral"
                 >
                   −
                 </button>
-                <span className="flex w-9 items-center justify-center border-x border-ink font-mono text-[13px] font-bold">
+                <span className="flex w-9 items-center justify-center border-x border-line font-mono text-[13px] font-bold">
                   {line.quantity}
                 </span>
                 <button
@@ -94,7 +94,7 @@ export default function CartLines({ lines, onNavigate }: CartLinesProps) {
                   onClick={() => {
                     updateQuantity(line.productId, line.quantity + 1);
                   }}
-                  className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] leading-none transition-colors hover:bg-coral"
+                  className="h-8 w-8 cursor-pointer border-none bg-transparent text-[15px] leading-none transition-colors hover:bg-coral hover:text-on-coral"
                 >
                   +
                 </button>

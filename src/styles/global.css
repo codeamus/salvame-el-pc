@@ -1,6 +1,29 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+/*
+ * Variante `dark:` para los pocos casos que el intercambio de tokens no
+ * cubre — hoy, el ícono del botón de tema. La regla general es NO usarla: si
+ * hace falta, casi siempre es señal de que falta un token con el papel
+ * correcto (ver tokens.css).
+ *
+ * Tiene dos ramas porque el modo oscuro también tiene dos orígenes: el
+ * atributo (elección explícita) y la media query (sistema, sin elección).
+ * Con solo la primera, el ícono quedaba al revés para quien nunca tocó el
+ * botón y tiene el sistema en oscuro.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
 /* Fuentes self-hosted (Fontsource) — sin depender de Google Fonts CDN:
  * mejor privacidad, sin FOUT por DNS externo, y funciona offline en dev. */
 @import "@fontsource/manrope/400.css";
@@ -39,9 +62,11 @@
     font-family: inherit;
   }
 
+  /* El texto seleccionado va crema sobre coral en los dos modos: `cream`
+   * cambia de papel con el tema y acá el fondo es coral, que no cambia. */
   ::selection {
     background: var(--color-coral);
-    color: var(--color-cream);
+    color: var(--color-on-invert);
   }
 
   /* Focus según el handoff: outline coral hacia adentro en campos de texto,
@@ -90,6 +115,39 @@
     }
   }
 
+  /* ── Fundido al cambiar de tema ───────────────────────────────────────
+   * Sin esto el cambio es un corte seco: la página entera salta de un color
+   * al otro en un fotograma.
+   *
+   * La clase la pone y la saca theme-ui.ts SOLO durante el cambio, y no vive
+   * permanente en <html>, por dos motivos:
+   *
+   *   1. El `transition` con !important sobre `*` pisa el de los botones y
+   *      las cards. Permanente, cada hover pasaría a durar lo que dura el
+   *      cambio de tema y el sitio se sentiría pesado.
+   *   2. Transicionar color en todos los nodos de la página es caro. Que
+   *      exista un cuarto de segundo y desaparezca lo vuelve gratis.
+   *
+   * Se transicionan solo propiedades de color. `opacity` queda fuera a
+   * propósito: la usan el velo de las fotos y las animaciones de scroll, y
+   * meterla acá las haría parpadear en cada cambio de tema.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .theme-switching,
+    .theme-switching *,
+    .theme-switching *::before,
+    .theme-switching *::after {
+      transition:
+        background-color var(--theme-switch-duration) ease,
+        border-color var(--theme-switch-duration) ease,
+        color var(--theme-switch-duration) ease,
+        fill var(--theme-switch-duration) ease,
+        stroke var(--theme-switch-duration) ease,
+        box-shadow var(--theme-switch-duration) ease,
+        outline-color var(--theme-switch-duration) ease !important;
+    }
+  }
+
   /* Respetar a quien pidió menos animación en su sistema operativo. */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -111,8 +169,8 @@
     top: 0;
     z-index: 100;
     padding: 0.75rem 1rem;
-    background-color: var(--color-ink);
-    color: var(--color-cream);
+    background-color: var(--color-invert);
+    color: var(--color-on-invert);
     font-weight: 700;
   }
 
@@ -143,8 +201,8 @@
     justify-content: center;
     gap: 0.5em;
     background: var(--color-coral);
-    color: var(--color-ink);
-    border: 1px solid var(--color-ink);
+    color: var(--color-on-coral);
+    border: 1px solid var(--color-line);
     padding: 16px 32px;
     font-size: 15px;
     font-weight: 800;
@@ -168,7 +226,7 @@
     gap: 0.5em;
     background: transparent;
     color: var(--color-ink);
-    border: 1px solid var(--color-ink);
+    border: 1px solid var(--color-line);
     padding: 16px 32px;
     font-size: 15px;
     font-weight: 700;
@@ -186,7 +244,7 @@
 
   /* Campo de formulario (contacto, checkout). */
   .field {
-    border: 1px solid var(--color-ink);
+    border: 1px solid var(--color-line);
     background: transparent;
     padding: 13px 14px;
     font-size: 14px;
@@ -301,15 +359,42 @@
    * producto quedarían apagadas para siempre.
    */
   @media (hover: hover) {
+    /* `--foto-luz` es una variable y no un valor fijo porque en oscuro hay
+     * que bajarla. Vive en el CONTENEDOR y no en la <img> a propósito: así
+     * el `filter: none` del hover, que está más abajo, gana por orden sin
+     * tener que pelear especificidad con los selectores del tema. */
     .photo-veiled img {
-      filter: grayscale(1) contrast(1.04);
+      --foto-luz: 1;
+      filter: grayscale(1) contrast(1.04) brightness(var(--foto-luz));
       transition: filter 0.3s ease;
+    }
+
+    /* En oscuro, además de quitarle el color, se le bajan las luces.
+     *
+     * La desaturación sola no alcanza: las fotos de producto vienen de las
+     * fichas del fabricante y la mitad trae fondo blanco o gris claro. En
+     * gris, un fondo blanco sigue siendo blanco — en la grilla del catálogo
+     * quedaban tres rectángulos encendidos sobre una página de tinta, cada
+     * uno de un brillo distinto según de qué ficha salió.
+     *
+     * En claro no hace falta y no se aplica: ahí esos mismos fondos se
+     * apoyan en la crema de la página en vez de pelearse con ella. */
+    :root[data-theme="dark"] .photo-veiled img {
+      --foto-luz: 0.62;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .photo-veiled img {
+        --foto-luz: 0.62;
+      }
     }
 
     .photo-veil {
       position: absolute;
       inset: 0;
-      background: var(--color-ink);
+      /* `scrim` y no `ink`: el velo tiene que oscurecer la foto en los dos
+       * modos, y en oscuro `ink` es crema — aclararía. */
+      background: var(--color-scrim);
       opacity: 0.22;
       pointer-events: none;
       transition: opacity 0.3s ease;
@@ -327,6 +412,124 @@
     .group:hover .photo-veil {
       opacity: 0;
     }
+  }
+
+  /* ── Texto largo de las páginas legales ───────────────────────────────
+   * El sitio no tenía prosa corrida hasta ahora: todo era titular, chip o
+   * card. Estas reglas existen para que los términos y la política se lean
+   * de verdad —medida cómoda, jerarquía clara, interlínea alta— sin salirse
+   * del sistema: numeración mono, títulos en versalita, viñetas cuadradas
+   * coral (las mismas de las specs de producto) y cero border-radius.
+   */
+  .legal-prose {
+    max-width: 72ch;
+    font-size: 15px;
+    line-height: 1.75;
+    /* Numera las secciones sola: si mañana se agrega o se saca una, no hay
+     * que renumerar a mano y arriesgar un "07" repetido en un documento
+     * legal, que es justo donde un número mal puesto se nota. */
+    counter-reset: legal-section;
+  }
+
+  .legal-prose > h2 {
+    counter-increment: legal-section;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-line);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    scroll-margin-top: calc(var(--header-height) + 2rem);
+  }
+
+  .legal-prose > h2::before {
+    content: counter(legal-section, decimal-leading-zero);
+    display: block;
+    margin-bottom: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    color: var(--color-coral);
+  }
+
+  .legal-prose h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .legal-prose p {
+    margin-block: 0.9em;
+  }
+
+  .legal-prose ul,
+  .legal-prose ol {
+    margin-block: 0.9em;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .legal-prose li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-block: 0.45em;
+  }
+
+  /* Cuadrado coral, el mismo de las specs de la ficha de producto. */
+  .legal-prose ul > li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 7px;
+    height: 7px;
+    background: var(--color-coral);
+  }
+
+  .legal-prose ol {
+    counter-reset: legal-item;
+  }
+
+  .legal-prose ol > li {
+    counter-increment: legal-item;
+  }
+
+  .legal-prose ol > li::before {
+    content: counter(legal-item) ".";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-coral);
+  }
+
+  .legal-prose a {
+    color: inherit;
+    text-decoration-color: var(--color-coral);
+    text-underline-offset: 3px;
+  }
+
+  .legal-prose a:hover {
+    color: var(--color-coral);
+  }
+
+  .legal-prose strong {
+    font-weight: 700;
+  }
+
+  /* Dato que todavía no entrega el cliente. Se pinta distinto para que no
+   * pase piola en una revisión: un placeholder en un documento legal no
+   * puede parecerse a contenido real. */
+  .legal-pendiente {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    color: var(--color-coral);
+    white-space: nowrap;
   }
 
   /* Hover de cards: levanta y deja sombra dura. */

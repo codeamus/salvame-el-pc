@@ -1,0 +1,130 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import ProductCard from "@/components/product/ProductCard.astro";
+import { getAllProducts, getBrands } from "@/data/products";
+import { getCategories } from "@/data/categories";
+import { campo, getSections } from "@/data/content";
+
+export const prerender = false;
+
+const products = await getAllProducts();
+const brands = await getBrands();
+const secciones = await getSections("tienda");
+const categoryChips = [campo(secciones, "filtros.chip_todos", "Todos"), ...(await getCategories())];
+---
+
+{
+  /*
+  El sitio es 100% estático, así que los filtros (?cat=&marca=&orden=) se
+  aplican en el cliente. La lógica vive en src/lib/catalog-filter.ts, cargado
+  desde el layout: tiene que estar disponible ANTES del swap de la transición
+  de vista para filtrar el documento entrante (ver el comentario del módulo).
+  Cuando el catálogo crezca y se conecte backend, esta página pasa a filtrar
+  en el servidor sin cambiar el marcado.
+*/
+}
+<BaseLayout
+  title="Tienda"
+  description="Catálogo de hardware y periféricos: mouse, teclados, RAM, audífonos, monitores y GPU."
+>
+  <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-[280px_1fr]" data-catalog>
+    {/* ── Sidebar de filtros ─────────────────────────────────────────── */}
+    <aside
+      class="flex flex-col gap-8 border-b border-line px-7 py-9 lg:border-r lg:border-b-0"
+      aria-label="Filtros del catálogo"
+    >
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "filtros.label_categoria", "Categoría")}
+        </p>
+        <div class="flex flex-col gap-1.5">
+          {
+            categoryChips.map((category) => (
+              <button
+                type="button"
+                data-filter-cat={category}
+                class="cursor-pointer border border-line bg-transparent px-3.5 py-2.5 text-left text-[13px] font-bold transition-colors hover:bg-coral hover:text-on-coral data-active:bg-ink data-active:text-cream"
+              >
+                {category}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "filtros.label_marca", "Marca")}
+        </p>
+        <div class="flex flex-col gap-2">
+          {
+            brands.map((brand) => (
+              <button
+                type="button"
+                data-filter-marca={brand}
+                aria-pressed="false"
+                class="flex cursor-pointer items-center gap-2.5 border-none bg-transparent p-0 text-left text-sm font-semibold transition-colors hover:text-coral"
+              >
+                <span class="font-mono" data-marca-mark>
+                  □
+                </span>
+                {brand}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div>
+        <label
+          for="orden"
+          class="mb-3.5 block font-mono text-[11px] tracking-[.14em] text-muted uppercase"
+        >
+          {campo(secciones, "filtros.label_orden", "Ordenar")}
+        </label>
+        <select
+          id="orden"
+          data-filter-orden
+          class="w-full border border-line bg-transparent px-3 py-2.5 text-[13px] font-semibold"
+        >
+          <option value="rel">{campo(secciones, "filtros.orden_relevancia", "Relevancia")}</option>
+          <option value="menor"
+            >{campo(secciones, "filtros.orden_menor", "Precio: menor a mayor")}</option
+          >
+          <option value="mayor"
+            >{campo(secciones, "filtros.orden_mayor", "Precio: mayor a menor")}</option
+          >
+        </select>
+      </div>
+    </aside>
+
+    {/* ── Grilla de productos ────────────────────────────────────────── */}
+    <div>
+      <div class="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-9 pb-6 sm:px-10">
+        <h1 class="text-[44px] font-extrabold tracking-[-.03em] uppercase" data-catalog-title>
+          {campo(secciones, "encabezado.heading", "Catálogo")}
+        </h1>
+        <p class="font-mono text-[13px] text-muted" aria-live="polite">
+          <span data-catalog-count>{String(products.length).padStart(2, "0")}</span>
+          {campo(secciones, "encabezado.count_suffix", "productos")}
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 px-5 pb-14 sm:grid-cols-2 sm:px-10 xl:grid-cols-3">
+        {
+          products.map((product, index) => (
+            <div
+              class="grid"
+              data-item
+              data-cat={product.category}
+              data-marca={product.brand}
+              data-precio={product.priceCLP}
+            >
+              <ProductCard product={product} eager={index < 3} veil />
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</BaseLayout>

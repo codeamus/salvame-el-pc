@@ -1,0 +1,28 @@
+---
+import { aplicarReglasDePedido } from "@/data/order-rules";
+
+/**
+ * Lleva las reglas de envío a las dos mitades del sitio.
+ *
+ * El servidor las necesita para renderizar los legales y para recotizar el
+ * pedido; el navegador, para calcular el envío del carrito mientras el
+ * comprador agrega cosas. La base solo es accesible desde el servidor, así
+ * que los valores tienen que viajar dentro del HTML.
+ *
+ * Que salgan de UN solo lugar es el punto: si el carrito dijera "$3.990" y
+ * el cobro usara otro número, el comprador vería un monto en pantalla y
+ * otro en la pasarela. Que la letra chica contradiga al checkout es
+ * exactamente el tipo de incumplimiento que sanciona el SERNAC.
+ *
+ * Va en un <script type="application/json"> y no en un `define:vars` con
+ * código: así el dato es dato, no algo que el navegador vaya a ejecutar.
+ *
+ * Ojo: esto NO es lo que garantiza que /api/checkout cobre bien. Ese
+ * endpoint atiende su propia petición sin renderizar página alguna, así que
+ * llama a aplicarReglasDePedido() por su cuenta antes de cotizar.
+ */
+
+const reglas = await aplicarReglasDePedido();
+---
+
+<script type="application/json" data-reglas-envio set:html={JSON.stringify(reglas)} />

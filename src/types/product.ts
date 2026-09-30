@@ -7,13 +7,22 @@
  * no se enteran de si el dato vino de un mock o de una API.
  */
 
-/** Categorías del catálogo. Union cerrada: el compilador atrapa typos. */
-export const CATEGORIES = ["Mouse", "Teclados", "RAM", "Audífonos", "Monitores", "GPU"] as const;
-export type Category = (typeof CATEGORIES)[number];
-
-export function isCategory(value: string): value is Category {
-  return (CATEGORIES as readonly string[]).includes(value);
-}
+/**
+ * Categoría del catálogo.
+ *
+ * Era una union cerrada (`"Mouse" | "Teclados" | …`) y ahora es un string,
+ * porque las categorías se administran desde el panel y la lista solo se
+ * conoce en runtime.
+ *
+ * Eso significa que el compilador YA NO atrapa un typo acá. La garantía no
+ * desapareció, cambió de lugar: la da la clave foránea
+ * products.category → categories.name, que se cumple venga la escritura de
+ * donde venga. Es más fuerte que la anterior; solo llega más tarde.
+ *
+ * El alias se conserva —en vez de escribir `string` en cada sitio— para que
+ * siga siendo evidente QUÉ representa ese string al leer una firma.
+ */
+export type Category = string;
 
 /**
  * Precio en pesos chilenos, en unidades enteras (CLP no usa decimales).

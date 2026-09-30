@@ -1,0 +1,372 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import {
+  campo,
+  enlaces as enlacesDeAjuste,
+  getSections,
+  esPendiente,
+  getSettings,
+  lista,
+  listaDeSeccion,
+  resolverPlaceholders,
+  texto,
+} from "@/data/content";
+import { formatCLP } from "@/lib/format";
+
+const ajustes = await getSettings();
+const secciones = await getSections("contacto");
+
+const subjects = listaDeSeccion(secciones, "formulario.subjects");
+const horario = lista(ajustes, "contact.hours");
+const whatsappUrl = texto(ajustes, "contact.whatsapp_url", "#");
+const whatsappDisplay = texto(ajustes, "contact.whatsapp_display");
+const redes = enlacesDeAjuste(ajustes, "contact.redes");
+
+/*
+ * ── Por qué esta columna ya no tiene dirección ni mapa ───────────────────
+ *
+ * Porque la tienda no tiene local a la calle. Una dirección que nadie puede
+ * ir a visitar y un mapa apuntando a una comuna no le resuelven nada a
+ * quien entra a contactarse: le responden una pregunta que no hizo.
+ *
+ * Lo legal no depende de esto. El domicilio de la empresa vive en
+ * `legal.domicilio` y sale publicado en los términos y en la política de
+ * privacidad, que es donde la Ley 19.496 pide que esté identificado quién
+ * vende.
+ *
+ * En su lugar va lo que sí se pregunta al entrar acá: por dónde escribir,
+ * a qué hora contestan, y cómo llega lo que compre.
+ */
+
+/* El correo que ya usan los documentos legales: una sola fuente. Si todavía
+ * es el placeholder entre corchetes, no se muestra —mejor un canal menos
+ * que un mailto a "[ correo pendiente ]"—. */
+/*
+ * Los textos del formulario se leen una vez y se usan DOS veces: como
+ * placeholder y como rótulo para lector de pantalla. Antes el rótulo estaba
+ * escrito en el HTML, así que cambiar "Nombre" por "Tu nombre" en el panel
+ * lo cambiaba en pantalla y no para quien navega escuchando.
+ */
+const phNombre = campo(secciones, "formulario.placeholder_nombre", "Nombre");
+const phCorreo = campo(secciones, "formulario.placeholder_correo", "Correo electrónico");
+const phMensaje = campo(secciones, "formulario.placeholder_mensaje", "Mensaje");
+
+const correo = texto(ajustes, "legal.correo_contacto");
+const correoVisible = correo !== "" && !esPendiente(correo);
+
+/* Los montos del despacho salen de los mismos ajustes que cotiza el carrito
+ * y que cita la letra chica de los términos: una sola verdad sobre cuánto
+ * cuesta el envío. Si la clave faltara, el texto queda con el {{...}} a la
+ * vista en vez de inventar un número — es el mismo criterio de los
+ * documentos legales, y es lo que hace que alguien lo note. */
+const lineaEnvio = resolverPlaceholders(
+  campo(
+    secciones,
+    "datos.despacho_envio",
+    "Envío gratis sobre <strong>{{shipping.free_from_clp}}</strong>. Bajo ese monto, {{shipping.cost_clp}}.",
+  ),
+  ajustes,
+  formatCLP,
+);
+
+/*
+ * On-demand con ISR.
+ *
+ * Su contenido —nombre del sitio, contacto, textos— sale de Supabase, y el
+ * layout necesita esos datos para renderizar. Prerenderizarla la congelaría
+ * con lo que hubiera en la base el día del deploy. Vercel cachea el HTML ya
+ * generado, así que el visitante no nota diferencia.
+ */
+export const prerender = false;
+---
+
+<BaseLayout
+  title="Contacto"
+  description="Escríbenos por consultas de productos, servicio técnico o el estado de tu pedido. Respondemos dentro del día, de lunes a sábado."
+>
+  <div class="grid min-h-[70vh] grid-cols-1 lg:grid-cols-2">
+    {/* ── Formulario ─────────────────────────────────────────────────── */}
+    <section class="border-b border-line px-6 py-14 sm:px-12 lg:border-r lg:border-b-0">
+      <h1 class="mb-2 text-[clamp(40px,5vw,72px)] font-extrabold tracking-[-.04em] uppercase">
+        {campo(secciones, "hero.heading")}<span class="text-coral">.</span>
+      </h1>
+      <p class="mb-8 text-[15px] text-ink/70">{campo(secciones, "hero.body")}</p>
+
+      {
+        /*
+        Sin backend todavía: el submit muestra el estado de éxito sin recargar
+        (comportamiento del prototipo). Cuando haya endpoint de contacto, este
+        form pasa a hacer el POST y el script queda igual.
+      */
+      }
+      <form data-contact-form class="flex flex-col gap-4">
+        {
+          /*
+            Trampa para bots: se esconde de la vista Y de los lectores de
+            pantalla, y se saca del orden de tabulación. Una persona nunca lo
+            llena; un robot que rellena todo lo que encuentra, sí. El
+            servidor descarta lo que venga con esto puesto.
+
+            `hidden` a secas no sirve: hay bots que igual lo completan. Lo que
+            importa es que ninguna persona pueda llegar a él por accidente.
+          */
+        }
+        <div aria-hidden="true" class="absolute -left-[9999px]">
+          <label for="contacto-sitio-web">No llenar</label>
+          <input
+            id="contacto-sitio-web"
+            name="sitio_web"
+            type="text"
+            tabindex="-1"
+            autocomplete="off"
+          />
+        </div>
+        <label class="sr-only" for="contacto-nombre">{phNombre}</label>
+        <input id="contacto-nombre" name="nombre" required placeholder={phNombre} class="field" />
+
+        <label class="sr-only" for="contacto-correo">{phCorreo}</label>
+        <input
+          id="contacto-correo"
+          name="correo"
+          type="email"
+          required
+          placeholder={phCorreo}
+          class="field"
+        />
+
+        <label class="sr-only" for="contacto-asunto">Asunto</label>
+        <select id="contacto-asunto" name="asunto" class="field">
+          {subjects.map((subject) => <option>{subject}</option>)}
+        </select>
+
+        <label class="sr-only" for="contacto-mensaje">{phMensaje}</label>
+        <textarea
+          id="contacto-mensaje"
+          name="mensaje"
+          required
+          rows="5"
+          placeholder={phMensaje}
+          class="field resize-y"></textarea>
+
+        <button type="submit" data-contact-submit class="btn-primary self-start px-7 py-3.75">
+          {campo(secciones, "formulario.submit_label")}
+        </button>
+
+        {/* Errores del servidor: casilla inválida, mensaje muy largo, caída. */}
+        <p
+          data-contact-error
+          hidden
+          role="alert"
+          class="border border-coral px-4 py-3 text-[13px] text-coral"
+        >
+        </p>
+      </form>
+
+      <div
+        data-contact-success
+        hidden
+        class="border border-line bg-invert p-8 text-on-invert"
+        role="status"
+      >
+        <p class="mb-2.5 font-mono text-xs tracking-[.14em] text-coral uppercase">
+          {campo(secciones, "formulario.success_label")}
+        </p>
+        <p class="text-lg font-bold">{campo(secciones, "formulario.success_body")}</p>
+      </div>
+    </section>
+
+    {/* ── Cómo llegar a nosotros ─────────────────────────────────────── */}
+    <section class="flex flex-col gap-9 px-6 py-14 sm:px-12">
+      {/* ── Canales directos ────────────────────────────────────────── */}
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_canales", "Escríbenos directo")}
+        </p>
+
+        {
+          /* WhatsApp arriba y en coral porque es el canal real de esta
+            tienda: el que contestan primero. Antes estaba como un botón más
+            entre las redes sociales, del mismo tamaño que Facebook. */
+        }
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener"
+          class="flex items-center justify-between gap-4 border border-line bg-coral px-5 py-4 text-on-coral no-underline transition-transform hover:-translate-y-0.5"
+        >
+          <span class="flex flex-col gap-0.5">
+            {
+              /* Sin opacity: atenuado quedaba en 4,18:1 sobre el coral, bajo el
+                mínimo AA de 4,5:1 para texto chico. */
+            }
+            <span class="font-mono text-[11px] tracking-[.14em] uppercase">
+              {campo(secciones, "datos.label_whatsapp", "WhatsApp")}
+            </span>
+            <span class="text-lg font-bold">{whatsappDisplay}</span>
+          </span>
+          <span class="text-xl" aria-hidden="true">→</span>
+        </a>
+
+        {
+          correoVisible && (
+            <a
+              href={`mailto:${correo}`}
+              class="mt-3 flex items-center justify-between gap-4 border border-line px-5 py-4 no-underline transition-colors hover:bg-coral hover:text-on-coral"
+            >
+              <span class="flex flex-col gap-0.5">
+                <span class="font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+                  {campo(secciones, "datos.label_correo", "Correo")}
+                </span>
+                <span class="text-[15px] font-bold break-all">{correo}</span>
+              </span>
+              <span class="text-xl" aria-hidden="true">
+                →
+              </span>
+            </a>
+          )
+        }
+      </div>
+
+      {/* ── Horario ─────────────────────────────────────────────────── */}
+      <div>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_horario")}
+        </p>
+        <p class="text-base font-bold">
+          {
+            horario.map((linea, i) => (
+              <>
+                {i > 0 && <br />}
+                {linea}
+              </>
+            ))
+          }
+        </p>
+      </div>
+
+      {
+        /* ── Despacho ────────────────────────────────────────────────────
+          Ocupa el lugar del mapa y responde la pregunta que el mapa
+          contestaba mal: no "dónde quedan" —que a nadie le sirve si no hay
+          local— sino "cómo me llega". Los montos salen de las mismas
+          reglas que cotiza el carrito, no escritos acá: si el cliente sube
+          el envío gratis a $60.000, esta línea cambia sola. */
+      }
+      <div>
+        <p class="mb-2.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_despacho", "Despacho")}
+        </p>
+        <ul class="flex flex-col border-t border-line-soft">
+          <li class="border-b border-line-soft py-2.5 text-[15px]">
+            {campo(secciones, "datos.despacho_cobertura", "Despacho a todo Chile")}
+          </li>
+          {
+            /* La redacción se edita en el panel; los montos NO se escriben
+              ahí: van como {{shipping.free_from_clp}} y los resuelve el
+              mismo mecanismo que la letra chica de los términos, con el
+              mismo formatCLP del carrito. Así la frase se puede reescribir
+              sin riesgo de que alguien deje un monto viejo adentro. */
+          }
+          <li class="border-b border-line-soft py-2.5 text-[15px]" set:html={lineaEnvio} />
+          <li class="border-b border-line-soft py-2.5 text-[15px]">
+            {campo(secciones, "datos.despacho_retiro", "Entrega a convenir dentro de Santiago")}
+          </li>
+        </ul>
+      </div>
+
+      {/* ── Redes ───────────────────────────────────────────────────── */}
+      <div>
+        <p class="mb-3.5 font-mono text-[11px] tracking-[.14em] text-muted uppercase">
+          {campo(secciones, "datos.label_redes")}
+        </p>
+        <div class="flex flex-wrap gap-3">
+          {
+            /* WhatsApp ya no se agrega acá a mano: subió a los canales
+               directos, y tenerlo en los dos lugares lo volvía ruido. */
+            redes.map((red) => (
+              <a
+                href={red.href}
+                target="_blank"
+                rel="noopener"
+                class="border border-line px-5 py-3 text-sm font-bold no-underline transition-colors hover:bg-coral hover:text-on-coral"
+              >
+                {red.label}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  /**
+   * Envío real del formulario de contacto.
+   *
+   * Antes esto solo escondía el formulario y mostraba "mensaje enviado ✓"
+   * sin mandar nada. La persona se iba tranquila y su consulta no llegaba a
+   * ninguna parte — el engaño más caro que puede tener una tienda, porque
+   * el que se va creyendo que escribió no vuelve a intentarlo.
+   *
+   * El estado de éxito ahora se muestra SOLO cuando el servidor confirmó que
+   * guardó el mensaje.
+   */
+  function initContactForm(): void {
+    const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+    const success = document.querySelector<HTMLElement>("[data-contact-success]");
+    const errorBox = document.querySelector<HTMLElement>("[data-contact-error]");
+    const submit = document.querySelector<HTMLButtonElement>("[data-contact-submit]");
+    if (!form || !success) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const datos = Object.fromEntries(new FormData(form));
+      const etiquetaOriginal = submit?.textContent ?? "";
+
+      if (errorBox) errorBox.hidden = true;
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = "Enviando…";
+      }
+
+      void fetch("/api/contacto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+      })
+        .then(async (respuesta) => {
+          const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
+
+          if (respuesta.ok) {
+            form.hidden = true;
+            success.hidden = false;
+            return;
+          }
+
+          if (errorBox) {
+            errorBox.textContent =
+              cuerpo.error ?? "No pudimos enviar tu mensaje. Inténtalo de nuevo.";
+            errorBox.hidden = false;
+          }
+        })
+        .catch(() => {
+          // Sin conexión. Se ofrece la alternativa que sí va a funcionar en
+          // vez de dejar a la persona reintentando contra el vacío.
+          if (errorBox) {
+            errorBox.textContent = "No hay conexión. Revisa tu red o escríbenos por WhatsApp.";
+            errorBox.hidden = false;
+          }
+        })
+        .finally(() => {
+          if (submit) {
+            submit.disabled = false;
+            submit.textContent = etiquetaOriginal;
+          }
+        });
+    });
+  }
+
+  document.addEventListener("astro:page-load", initContactForm);
+</script>

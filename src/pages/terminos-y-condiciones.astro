@@ -1,0 +1,53 @@
+---
+import LegalLayout from "@/layouts/LegalLayout.astro";
+import { getLegalDocument, getSettings, resolverPlaceholders } from "@/data/content";
+import { formatCLP } from "@/lib/format";
+
+/**
+ * Términos y condiciones de venta.
+ *
+ * La página dejó de contener el texto: ahora lo renderiza. La prosa vive en
+ * legal_documents / legal_sections y se edita desde el panel, que es lo que
+ * permite que un abogado corrija una cláusula sin pedir un deploy.
+ *
+ * Los {{placeholders}} del texto se resuelven contra site_settings al
+ * renderizar. Eso es lo que impide que la letra chica y el checkout se
+ * contradigan: el costo de despacho que dice este documento sale del mismo
+ * ajuste que cobra el carrito.
+ *
+ * ⚠️ El contenido está redactado sobre la Ley 19.496 con las modificaciones
+ * de la Ley 21.398, pero NO es asesoría legal: antes de publicar tiene que
+ * revisarlo un abogado y hay que completar los datos pendientes en
+ * Ajustes → Datos legales.
+ */
+export const prerender = false;
+
+const doc = await getLegalDocument("terminos-y-condiciones");
+if (doc === null) return Astro.rewrite("/404");
+
+const ajustes = await getSettings();
+const secciones = doc.secciones.map((seccion) => ({
+  ...seccion,
+  html: resolverPlaceholders(seccion.bodyHtml, ajustes, formatCLP),
+}));
+---
+
+<LegalLayout
+  title={doc.title}
+  description={doc.seoDescription}
+  intro={doc.intro}
+  updatedOn={doc.actualizado}
+  sections={secciones.map((s) => ({ id: s.anchor, title: s.title }))}
+>
+  {
+    secciones.map((seccion) => (
+      <>
+        <h2 id={seccion.anchor}>{seccion.title}</h2>
+        {/* El HTML viene de la base y lo escribe el admin, no un visitante:
+            es contenido editorial, no entrada de usuario. Los valores
+            interpolados sí se escapan en resolverPlaceholders. */}
+        <Fragment set:html={seccion.html} />
+      </>
+    ))
+  }
+</LegalLayout>

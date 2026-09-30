@@ -1,0 +1,47 @@
+---
+import LegalLayout from "@/layouts/LegalLayout.astro";
+import { getLegalDocument, getSettings, resolverPlaceholders } from "@/data/content";
+import { formatCLP } from "@/lib/format";
+
+/**
+ * Política de privacidad.
+ *
+ * Misma mecánica que los términos: la página renderiza, el texto vive en la
+ * base y los {{placeholders}} se resuelven contra site_settings.
+ *
+ * El correo para ejercer los derechos ARCOP (acceso, rectificación,
+ * cancelación, oposición y portabilidad) sale de Ajustes → Datos legales.
+ * La Ley 19.628 exige informarlo, así que si sigue con el texto de ejemplo
+ * aparece marcado en coral dentro del propio documento.
+ */
+export const prerender = false;
+
+const doc = await getLegalDocument("politica-de-privacidad");
+if (doc === null) return Astro.rewrite("/404");
+
+const ajustes = await getSettings();
+const secciones = doc.secciones.map((seccion) => ({
+  ...seccion,
+  html: resolverPlaceholders(seccion.bodyHtml, ajustes, formatCLP),
+}));
+---
+
+<LegalLayout
+  title={doc.title}
+  description={doc.seoDescription}
+  intro={doc.intro}
+  updatedOn={doc.actualizado}
+  sections={secciones.map((s) => ({ id: s.anchor, title: s.title }))}
+>
+  {
+    secciones.map((seccion) => (
+      <>
+        <h2 id={seccion.anchor}>{seccion.title}</h2>
+        {/* El HTML viene de la base y lo escribe el admin, no un visitante:
+            es contenido editorial, no entrada de usuario. Los valores
+            interpolados sí se escapan en resolverPlaceholders. */}
+        <Fragment set:html={seccion.html} />
+      </>
+    ))
+  }
+</LegalLayout>

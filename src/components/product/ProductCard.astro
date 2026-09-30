@@ -37,17 +37,17 @@ const cartPayload = JSON.stringify({
   ese pseudo-elemento se posiciona contra el ancestro posicionado más cercano.
 */
 }
-<article class="group hover-lift-coral relative flex flex-col border border-ink bg-cream">
+<article class="group hover-lift-coral relative flex flex-col border border-line bg-cream">
   <ProductPhoto
     product={product}
     eager={eager}
     vt={vt}
     veil={veil}
-    class="aspect-4/3 border-b border-ink"
+    class="aspect-4/3 border-b border-line"
   >
     {
       discount !== null && (
-        <span class="absolute top-2.5 left-2.5 border border-ink bg-coral px-2 py-0.5 font-mono text-[11px] font-bold">
+        <span class="absolute top-2.5 left-2.5 border border-line bg-coral px-2 py-0.5 font-mono text-[11px] font-bold text-on-coral">
           -{discount}%
         </span>
       )
@@ -88,19 +88,19 @@ const cartPayload = JSON.stringify({
     */
     }
     <div class="relative z-10 mt-2.5 flex items-stretch gap-2" data-qty-form>
-      <div class="flex shrink-0 border border-ink" role="group" aria-label={`Cantidad de ${name}`}>
+      <div class="flex shrink-0 border border-line" role="group" aria-label={`Cantidad de ${name}`}>
         <button
           type="button"
           data-qty-dec
           aria-label={`Menos unidades de ${name}`}
-          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral"
+          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral hover:text-on-coral"
         >
           −
         </button>
         <span
           data-qty-value
           aria-live="polite"
-          class="flex w-8 items-center justify-center border-x border-ink font-mono text-[13px] font-bold"
+          class="flex w-8 items-center justify-center border-x border-line font-mono text-[13px] font-bold"
         >
           1
         </span>
@@ -108,7 +108,7 @@ const cartPayload = JSON.stringify({
           type="button"
           data-qty-inc
           aria-label={`Más unidades de ${name}`}
-          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral"
+          class="h-8 w-8 cursor-pointer border-none bg-transparent text-base leading-none transition-colors hover:bg-coral hover:text-on-coral"
         >
           +
         </button>
@@ -118,7 +118,7 @@ const cartPayload = JSON.stringify({
         type="button"
         data-add-to-cart={cartPayload}
         aria-label={`Agregar ${name} al carrito`}
-        class="flex-1 cursor-pointer border border-ink bg-transparent px-2 text-[13px] font-bold whitespace-nowrap transition-colors hover:bg-coral"
+        class="flex-1 cursor-pointer border border-line bg-transparent px-2 text-[13px] font-bold whitespace-nowrap transition-colors hover:bg-coral hover:text-on-coral"
       >
         Agregar
       </button>

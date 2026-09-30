@@ -9,6 +9,8 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      // Output del adapter de Vercel: HTML y JS ya compilado, no fuente.
+      ".vercel/**",
       ".astro/**",
       "node_modules/**",
       "coverage/**",
@@ -98,6 +100,25 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-assignment": "off",
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-call": "off",
+
+      /*
+       * Desactivada porque HACE CRASHEAR a ESLint, no porque moleste.
+       *
+       * El frontmatter de una página es un cuerpo de función implícito, así
+       * que un `return` de primer nivel —la forma en que Astro corta el
+       * renderizado para devolver un 404 o una redirección— no tiene un nodo
+       * padre de función. La regla asume que siempre lo hay y revienta con
+       * "Non-null Assertion Failed: Expected node to have a parent",
+       * tumbando el lint del proyecto entero.
+       *
+       * Un comentario eslint-disable no sirve: el crash ocurre al recorrer
+       * el árbol, antes de que se evalúe ninguna supresión.
+       *
+       * Sigue activa en .ts y .tsx, que es donde de verdad atrapa promesas
+       * mal usadas. Revisar si una versión futura de typescript-eslint lo
+       * arregla; se ve en src/pages/producto/[slug].astro.
+       */
+      "@typescript-eslint/no-misused-promises": "off",
     },
   },
 
@@ -111,6 +132,20 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-argument": "off",
       "@typescript-eslint/no-unsafe-call": "off",
+      // Los scripts arman HTML y CSS interpolando números y strings sueltos;
+      // sin tipos publicados, la regla no puede distinguirlo de un error real.
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/restrict-template-expressions": "off",
+      "no-console": "off",
+    },
+  },
+
+  // Endpoints de pago: el log NO es debug, es el rastro de auditoría con el
+  // que se concilia contra TUU si aparece una diferencia en una transacción.
+  // Obligarlo a warn/error mezclaría operación normal con alertas reales.
+  {
+    files: ["src/pages/api/**/*.ts"],
+    rules: {
       "no-console": "off",
     },
   },

@@ -1,5 +1,6 @@
 import { persistentAtom } from "@nanostores/persistent";
 import { atom, computed } from "nanostores";
+import { maxQuantityPerLine, setOrderRules, shippingFor } from "@/lib/order-rules";
 import type { PriceCLP, Product } from "@/types/product";
 
 /**
@@ -13,9 +14,9 @@ import type { PriceCLP, Product } from "@/types/product";
  * header no se enterarían el uno del otro.
  *
  * IMPORTANTE — el precio guardado acá es solo para mostrar en pantalla.
- * Cuando se conecte Mercado Pago, el total SIEMPRE debe recalcularse en el
- * servidor leyendo el precio real de la base de datos, porque cualquiera
- * puede editar el localStorage desde las devtools.
+ * Cualquiera puede editar el localStorage desde las devtools, así que el
+ * total que se cobra NO sale de acá: /api/checkout relee los precios del
+ * catálogo del servidor y recalcula todo (ver src/lib/orders/quote.ts).
  */
 
 export interface CartLine {
@@ -29,12 +30,18 @@ export interface CartLine {
   readonly quantity: number;
 }
 
-/** Tope por línea, para evitar que alguien escriba 99999 en el input. */
-export const MAX_QUANTITY_PER_LINE = 20;
-
-/** Reglas de envío del handoff: $3.990, gratis desde $50.000. */
-export const SHIPPING_COST_CLP = 3990;
-export const FREE_SHIPPING_FROM_CLP = 50000;
+/**
+ * Las reglas de negocio del pedido (tope por línea, costo de envío) viven en
+ * order-rules.ts porque el servidor las necesita para recalcular el total, y
+ * este módulo no se puede importar en Node: persistentAtom asume localStorage.
+ * Se re-exportan para que los componentes sigan pidiéndoselas al carrito.
+ */
+export {
+  freeShippingFromCLP,
+  maxQuantityPerLine,
+  shippingCostCLP,
+  shippingFor,
+} from "@/lib/order-rules";
 
 function serialize(lines: readonly CartLine[]): string {
   return JSON.stringify(lines);
@@ -75,6 +82,35 @@ export function isCartLine(value: unknown): value is CartLine {
   );
 }
 
+/*
+ * Reglas de envío inyectadas por el servidor.
+ *
+ * El layout deja un <script type="application/json" data-reglas-envio> con
+ * lo que el admin configuró. Se lee acá, al cargar el módulo, porque
+ * cart-store es lo primero que importa cualquier componente del carrito: sea
+ * el cajón, la vista o el checkout, quien llegue primero deja las reglas
+ * puestas antes de que se calcule ningún total.
+ *
+ * Si el script no está —una página sin layout, un test— se mantienen los
+ * valores del handoff. La alternativa, cobrar cero por envío, es peor que
+ * cobrar de más.
+ */
+function leerReglasInyectadas(): void {
+  if (typeof document === "undefined") return;
+
+  const nodo = document.querySelector("[data-reglas-envio]");
+  if (nodo?.textContent == null) return;
+
+  try {
+    setOrderRules(JSON.parse(nodo.textContent) as Record<string, unknown>);
+  } catch {
+    // JSON corrupto: se siguen usando las reglas por defecto. No hay nada
+    // que mostrarle al comprador sobre esto.
+  }
+}
+
+leerReglasInyectadas();
+
 export const $cart = persistentAtom<readonly CartLine[]>("salvameelpc:cart", [], {
   encode: serialize,
   decode: deserialize,
@@ -90,12 +126,6 @@ export const $cartSubtotal = computed($cart, (lines) =>
   lines.reduce((total, line) => total + line.priceCLP * line.quantity, 0),
 );
 
-/** Costo de envío según subtotal: 0 con carrito vacío o sobre el umbral. */
-export function shippingFor(subtotal: number): number {
-  if (subtotal === 0) return 0;
-  return subtotal >= FREE_SHIPPING_FROM_CLP ? 0 : SHIPPING_COST_CLP;
-}
-
 export const $cartShipping = computed($cartSubtotal, shippingFor);
 
 /** Total a pagar, en CLP. Solo referencial (ver nota de arriba). */
@@ -105,7 +135,7 @@ export const $cartTotal = computed(
 );
 
 function clampQuantity(quantity: number): number {
-  return Math.max(1, Math.min(MAX_QUANTITY_PER_LINE, Math.floor(quantity)));
+  return Math.max(1, Math.min(maxQuantityPerLine(), Math.floor(quantity)));
 }
 
 /**

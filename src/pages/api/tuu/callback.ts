@@ -1,0 +1,113 @@
+import type { APIRoute } from "astro";
+import { enviarConfirmacionDeCompra } from "@/lib/orders/confirmacion";
+import { getOrder, markOrderResult } from "@/lib/orders/store";
+import { getTuuConfig } from "@/lib/tuu/env";
+import { verifySignature } from "@/lib/tuu/signature";
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * NOTIFICACIÓN SERVER-TO-SERVER DE TUU — FUENTE DE VERDAD DEL PAGO
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Todo lo que sabe el sitio sobre si una compra se pagó o no entra por acá.
+ * La redirección del navegador a /pago/exito es solo presentación: cualquiera
+ * puede escribir esa URL a mano.
+ *
+ * Reglas del protocolo que este endpoint tiene que respetar:
+ *
+ *   · Llega como POST con Content-Type application/x-www-form-urlencoded.
+ *   · Hay que responder en menos de ~5 segundos.
+ *   · Un 200 le dice a TUU que deje de reintentar. Con 4xx/5xx reintenta
+ *     hasta 10 veces con backoff exponencial.
+ *   · Por lo tanto tiene que ser idempotente: la misma notificación va a
+ *     llegar más de una vez.
+ */
+export const prerender = false;
+
+export const POST: APIRoute = async ({ request }) => {
+  const config = getTuuConfig();
+
+  const raw = await request.text();
+  const params = Object.fromEntries(new URLSearchParams(raw));
+  const { x_signature: received, ...signed } = params;
+
+  // El body crudo se registra completo a propósito: es lo único con lo que se
+  // puede conciliar contra el panel de TUU si aparece una diferencia, y en el
+  // primer pago real es lo que confirma qué campos manda TUU de verdad.
+  console.info("[tuu:callback] recibido", { raw });
+
+  // Firma inválida ⇒ no se procesa NADA. Sin esta verificación, cualquiera
+  // que conozca una referencia puede marcar su propia orden como pagada con
+  // un curl. El 400 es deliberado: que TUU reintente si fue un problema real.
+  const valid =
+    received !== undefined && (await verifySignature(signed, received, config.secretKey));
+
+  if (!valid) {
+    console.error("[tuu:callback] firma inválida", { reference: params.x_reference });
+    return new Response("invalid signature", { status: 400 });
+  }
+
+  const reference = params.x_reference ?? "";
+  const order = await getOrder(reference);
+
+  // Sin la orden en la base no hay contra qué validar el monto. Se responde
+  // 200 igual —reintentar no la va a hacer aparecer— pero queda en el log.
+  //
+  // Ahora esto sí significa lo que dice. Con el store en memoria era el caso
+  // común en Vercel (el callback caía en otra instancia) y no distinguía un
+  // problema real de la arquitectura; con la orden en Supabase, llegar acá
+  // es una referencia que de verdad no existe y hay que ir a mirarla.
+  if (order === undefined) {
+    console.error("[tuu:callback] orden no encontrada", { reference });
+    return new Response("ok", { status: 200 });
+  }
+
+  // El monto que informa TUU tiene que ser el que calculamos nosotros. Si no
+  // calza, algo se rompió en el camino y no se marca nada como pagado.
+  if (Number(params.x_amount) !== order.amountCLP) {
+    console.error("[tuu:callback] el monto no coincide", {
+      reference,
+      esperado: order.amountCLP,
+      recibido: params.x_amount,
+    });
+    return new Response("ok", { status: 200 });
+  }
+
+  // "pending" no es un estado final: TUU volverá a avisar cuando se resuelva.
+  if (params.x_result === "pending") {
+    return new Response("ok", { status: 200 });
+  }
+
+  const status = params.x_result === "completed" ? "completed" : "failed";
+  const { changed } = await markOrderResult(reference, status, params);
+
+  if (changed && status === "completed") {
+    console.info("[tuu:callback] pago confirmado", { reference, amount: order.amountCLP });
+
+    /*
+     * Confirmación escrita al comprador.
+     *
+     * Va dentro del `changed` para que los reintentos de TUU —hasta 10— no
+     * manden diez correos por una compra.
+     *
+     * Se espera el envío en vez de dejarlo suelto: en una función serverless
+     * el proceso se congela apenas se responde, así que un `void` sin await
+     * simplemente no se ejecutaría. El envío tiene su propio tope de 4
+     * segundos por debajo del límite de ~5 s que exige TUU, y nunca lanza:
+     * si falla, la orden queda con confirmation_sent_at en null y el panel
+     * la muestra para reenviar.
+     *
+     * No hacerlo no es un detalle de cortesía. La Ley 19.496 exige
+     * confirmación escrita, y sin ella el derecho a retracto del comprador
+     * pasa de 10 a 90 días corridos.
+     */
+    await enviarConfirmacionDeCompra(order);
+
+    // TODO(pagos): falta el aviso al equipo y la emisión de la boleta (DTE).
+  }
+
+  return new Response("ok", { status: 200 });
+};
+
+/** Un monitor o el propio TUU pueden hacer GET acá; no debe verse como un error. */
+export const GET: APIRoute = () => new Response("ok", { status: 200 });

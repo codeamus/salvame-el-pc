@@ -1,8 +1,12 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import BotonWhatsapp from "@/components/layout/BotonWhatsapp.astro";
 import Footer from "@/components/layout/Footer.astro";
 import Header from "@/components/layout/Header.astro";
-import { SITE } from "@/config/site";
+import ReglasEnvio from "@/components/layout/ReglasEnvio.astro";
+import ThemeScript from "@/components/layout/ThemeScript.astro";
+import { getSettings, texto } from "@/data/content";
+import { THEME_COLOR } from "@/lib/theme";
 import "@/styles/global.css";
 
 interface Props {
@@ -11,34 +15,56 @@ interface Props {
   description?: string;
   /** Ruta de imagen para compartir en redes (Open Graph). */
   ogImage?: string;
+  /**
+   * Saca la página de los buscadores. Para pantallas que solo tienen sentido
+   * dentro de un flujo (resultado de un pago, por ejemplo): indexarlas manda
+   * gente a una URL que sin su contexto no significa nada.
+   */
+  noindex?: boolean;
 }
 
-const { title, description = SITE.description, ogImage = "/og-default.png" } = Astro.props;
+const ajustes = await getSettings();
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? SITE.url);
-const ogImageUrl = new URL(ogImage, Astro.site ?? SITE.url);
-const fullTitle = `${title} · ${SITE.name}`;
+const nombreSitio = texto(ajustes, "site.name", "Sálvame el PC");
+const descripcionPorDefecto = texto(ajustes, "site.description");
+const urlSitio = texto(ajustes, "site.url", "https://salvameelpc.cl");
+const idioma = texto(ajustes, "site.locale", "es-CL");
+
+const {
+  title,
+  description = descripcionPorDefecto,
+  ogImage = "/og-default.png",
+  noindex = false,
+} = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? urlSitio);
+const ogImageUrl = new URL(ogImage, Astro.site ?? urlSitio);
+const fullTitle = `${title} · ${nombreSitio}`;
 ---
 
 <!doctype html>
-<html lang="es-CL">
+<html lang={idioma}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#F6F1E7" />
+    <meta name="theme-color" content={THEME_COLOR.light} />
     <meta name="generator" content={Astro.generator} />
 
+    <ThemeScript />
+    <ReglasEnvio />
+
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:site_name" content={nombreSitio} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
-    <meta property="og:locale" content="es_CL" />
+    <meta property="og:locale" content={idioma.replace("-", "_")} />
     <meta name="twitter:card" content="summary_large_image" />
 
     {/* View Transitions nativas: la foto del producto viaja de card → single. */}
@@ -56,6 +82,8 @@ const fullTitle = `${title} · ${SITE.name}`;
 
     <Footer />
 
+    <BotonWhatsapp />
+
     {
       /* Contenedor del panel del carrito. Se llena bajo demanda desde
         cart-ui.ts la primera vez que se abre; ver mount-cart-drawer.tsx.
@@ -70,7 +98,7 @@ const fullTitle = `${title} · ${SITE.name}`;
       hidden
       role="status"
       aria-live="polite"
-      class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 border border-coral bg-ink px-6 py-3 font-mono text-xs whitespace-nowrap text-cream"
+      class="fixed bottom-6 left-1/2 z-100 -translate-x-1/2 border border-coral bg-invert px-6 py-3 font-mono text-xs whitespace-nowrap text-on-invert"
     >
       <span data-toast-message></span> ·
       <a href="/carrito" class="text-coral underline">ver carrito</a>
@@ -84,6 +112,7 @@ const fullTitle = `${title} · ${SITE.name}`;
       import "@/lib/cart-ui";
       import "@/lib/photo-fallback";
       import "@/lib/catalog-filter";
+      import "@/lib/theme-ui";
     </script>
   </body>
 </html>
