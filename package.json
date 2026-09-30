@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=20.11"
+    "node": "22.x"
   },
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
