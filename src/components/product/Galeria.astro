@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import type { FotoProducto } from "@/data/products";
 import { productViewTransitionName, type Product } from "@/types/product";
 
@@ -31,6 +32,12 @@ interface Props {
 
 const { product, fotos, class: clase = "" } = Astro.props;
 const varias = fotos.length > 1;
+
+/* Ver la nota de ProductPhoto: medidas obligatorias en imágenes remotas.
+ * La lámina es lo más grande que se muestra de una foto en todo el sitio;
+ * la miniatura son 64 px de caja, así que pedir más sería tráfico tirado. */
+const LAMINA = { ancho: 1200, alto: 900 };
+const MINIATURA = { ancho: 128, alto: 128 };
 ---
 
 <div class:list={["flex flex-col", clase]} data-galeria>
@@ -64,9 +71,12 @@ const varias = fotos.length > 1;
             <span class="px-2 text-center font-mono text-[11px] text-faint" aria-hidden="true">
               {product.photoCaption}
             </span>
-            <img
+            <Image
               src={foto.url}
               alt={foto.alt}
+              width={LAMINA.ancho}
+              height={LAMINA.alto}
+              quality={78}
               loading={indice === 0 ? "eager" : "lazy"}
               decoding="async"
               data-photo-fallback
@@ -120,7 +130,15 @@ const varias = fotos.length > 1;
             aria-label={`Ver foto ${String(indice + 1)} de ${String(fotos.length)}`}
             class="stripes h-16 w-16 shrink-0 cursor-pointer overflow-hidden border border-line-soft p-0 transition-opacity aria-[current=true]:border-2 aria-[current=true]:border-coral [&:not([aria-current=true])]:opacity-60"
           >
-            <img src={foto.url} alt="" loading="lazy" class="h-full w-full object-cover" />
+            <Image
+              src={foto.url}
+              alt=""
+              width={MINIATURA.ancho}
+              height={MINIATURA.alto}
+              quality={70}
+              loading="lazy"
+              class="h-full w-full object-cover"
+            />
           </button>
         ))}
       </div>

@@ -1,4 +1,5 @@
 ---
+import { Image } from "astro:assets";
 import { cn } from "@/lib/cn";
 import { productViewTransitionName, type Product } from "@/types/product";
 
@@ -23,6 +24,19 @@ interface Props {
 }
 
 const { product, class: className, eager = false, vt = true, alt = "", veil = false } = Astro.props;
+
+/*
+ * Las medidas son obligatorias con una imagen remota: Astro no puede
+ * mirarla sin descargarla, y descargarla en cada render sería exactamente
+ * el gasto que esto viene a evitar.
+ *
+ * No recortan nada. El contenedor manda —aspect-4/3 con object-cover— y
+ * estos números solo le dicen a Vercel a qué tamaño servirla y al navegador
+ * qué espacio reservar. 800 de ancho cubre la card más grande en pantallas
+ * de retina.
+ */
+const ANCHO = 800;
+const ALTO = 600;
 ---
 
 {
@@ -40,9 +54,12 @@ const { product, class: className, eager = false, vt = true, alt = "", veil = fa
   <span class="px-2 text-center font-mono text-[11px] text-faint" aria-hidden="true">
     {product.photoCaption}
   </span>
-  <img
+  <Image
     src={product.photo}
     alt={alt}
+    width={ANCHO}
+    height={ALTO}
+    quality={78}
     loading={eager ? "eager" : "lazy"}
     decoding="async"
     data-photo-fallback

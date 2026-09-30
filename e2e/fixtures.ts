@@ -1,4 +1,4 @@
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect, type Route } from "@playwright/test";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
@@ -22,6 +22,12 @@ import { test as base, expect } from "@playwright/test";
  *
  * Lo que NO se toca son las URLs: se sigue comprobando que la página apunte
  * a donde debe. Lo único que cambia es que no viajan los bytes.
+ *
+ * Desde que las fotos pasan por el CDN de Vercel hay que atajar DOS formas.
+ * La optimizada (/_vercel/image?url=…) además no existe fuera de Vercel: la
+ * suite corre contra el build servido en local, donde esa ruta da 404, la
+ * imagen falla, photo-fallback la esconde y se caen los tests del velo y de
+ * la galería. Atajarla acá arregla las dos cosas de una vez.
  */
 
 /** PNG transparente de 1×1, el más chico que existe. */
@@ -32,9 +38,11 @@ const PIXEL = Buffer.from(
 
 export const test = base.extend({
   page: async ({ page }, use) => {
-    await page.route("**/*.supabase.co/storage/**", (route) =>
-      route.fulfill({ status: 200, contentType: "image/png", body: PIXEL }),
-    );
+    const responderConPixel = (route: Route) =>
+      route.fulfill({ status: 200, contentType: "image/png", body: PIXEL });
+
+    await page.route("**/*.supabase.co/storage/**", responderConPixel);
+    await page.route("**/_vercel/image**", responderConPixel);
     await use(page);
   },
 });

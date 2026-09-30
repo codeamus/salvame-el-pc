@@ -58,7 +58,46 @@ export default defineConfig({
   // contacto, que no lo necesitan. Ver docs/pagos-tuu.md.
   output: "static",
 
+  /*
+   * ─────────────────────────────────────────────────────────────────────────
+   * IMÁGENES REMOTAS
+   * ─────────────────────────────────────────────────────────────────────────
+   *
+   * Las fotos de producto viven en Supabase Storage, y hasta acá se servían
+   * con un <img src> apuntando derecho ahí. Eso significaba que CADA
+   * visitante se las bajaba de Supabase: una ficha de producto son 16 fotos.
+   *
+   * Con 8 MB de fotos guardadas, el egress llegó a 8 GB —el 161% del plan
+   * gratis— y el proyecto terminó restringido, con el sitio entero
+   * respondiendo 500. Las mismas imágenes servidas mil veces.
+   *
+   * Autorizar el dominio acá es lo que permite pasarlas por <Image>, que en
+   * producción las sirve por el CDN de Vercel: Supabase entrega cada foto
+   * UNA vez y de ahí en adelante responde Vercel, además en WebP y al tamaño
+   * que cada lugar necesita.
+   *
+   * El comodín en el subdominio no es pereza: el host incluye el id del
+   * proyecto de Supabase, y ese id cambia si alguna vez hay que recrearlo.
+   * Con el host escrito completo, esa recreación dejaría todas las fotos
+   * rotas y sin ninguna pista de por qué.
+   */
+  image: {
+    remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+  },
+
   adapter: vercel({
+    /*
+     * Las imágenes remotas pasan por la API de optimización de Vercel. Es la
+     * mitad que falta de lo de arriba: sin esto, <Image> sigue mandando al
+     * visitante a buscar la foto a Supabase.
+     */
+    imageService: true,
+    imagesConfig: {
+      sizes: [64, 128, 256, 384, 640, 828, 1080, 1200, 1920],
+      formats: ["image/webp"],
+      remotePatterns: [{ protocol: "https", hostname: "**.supabase.co" }],
+    },
+
     /*
      * ─────────────────────────────────────────────────────────────────────
      * ISR — el catálogo sigue sirviéndose como estático, pero sale de la base

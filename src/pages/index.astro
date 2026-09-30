@@ -3,6 +3,7 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import OfferCard from "@/components/product/OfferCard.astro";
 import ProductCard from "@/components/product/ProductCard.astro";
 import ProductPhoto from "@/components/product/ProductPhoto.astro";
+import { Image } from "astro:assets";
 import Video from "@/components/media/Video.astro";
 import { getAllProducts, getFeaturedProducts, getOfferProducts } from "@/data/products";
 import { formatCLP } from "@/lib/format";
@@ -154,9 +155,12 @@ const marqueeContent = Array.from({ length: MARQUEE_PAIRS }, () => marcasCinta).
             /* El nombre va en la <img> y no en el <a>: así lo que vuela es
                la foto sola, sin arrastrar la barra con el nombre de la
                categoría ni el chip del contador. */
-            <img
+            <Image
               src={tile.product.photo}
               alt=""
+              width={600}
+              height={450}
+              quality={78}
               loading="lazy"
               decoding="async"
               data-photo-fallback
